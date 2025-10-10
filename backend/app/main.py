@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from app.routers.users import users
 
 app = FastAPI()
+prefix = "/api/v1"
 
-app.include_router(prefix="/api/v1", router=users)
+app.include_router(prefix=prefix, router=users)
 
 
 @app.get("/")
