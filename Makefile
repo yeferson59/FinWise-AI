@@ -8,7 +8,7 @@ run-frontend:
 	cd frontend && $(NPM) run web
 
 run-backend:
-	cd backend && $(UV) run fastapi dev main.py
+	cd backend && $(UV) run fastapi dev app/main.py
 
 add-backend-deps:
 	@if [ -z "$(DEPS)" ]; then \
