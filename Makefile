@@ -1,4 +1,4 @@
-.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps backend-clean
+.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps clean-backend lint-backend format-backend
 
 NPM ?= npm
 UV ?= uv
