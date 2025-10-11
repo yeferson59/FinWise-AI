@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     environment: str = "development"
     openai_api_key: str = ""
+    prefix_api: str = "/api/v1"
 
     model_config = SettingsConfigDict(env_file=".env")
 

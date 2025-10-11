@@ -5,9 +5,8 @@ from app.config import get_settings
 settings = get_settings()
 
 app = FastAPI()
-prefix = "/api/v1"
 
-app.include_router(router=router, prefix=prefix)
+app.include_router(router=router, prefix=settings.prefix_api)
 
 
 @app.get("/")
