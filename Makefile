@@ -1,4 +1,4 @@
-.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps
+.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps backend-clean
 
 NPM ?= npm
 UV ?= uv
@@ -23,3 +23,9 @@ add-backend-dev-deps:
 		exit 1; \
 	fi
 	cd backend && $(UV) add $(DEPS) --dev
+
+clean-backend:
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +
