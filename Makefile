@@ -24,6 +24,12 @@ add-backend-dev-deps:
 	fi
 	cd backend && $(UV) add $(DEPS) --dev
 
+lint-backend:
+	cd backend && $(UV) run zuban check && $(UV) run ruff check
+
+format-backend:
+	cd backend && $(UV) run ruff format
+
 clean-backend:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
