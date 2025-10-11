@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-from app.routers.users import users
-from app.routers.agents import agents
+from app.api.v1.router import router
 from app.config import get_settings
 
 settings = get_settings()
@@ -8,8 +7,7 @@ settings = get_settings()
 app = FastAPI()
 prefix = "/api/v1"
 
-app.include_router(prefix=prefix, router=users)
-app.include_router(prefix=prefix, router=agents)
+app.include_router(router=router, prefix=prefix)
 
 
 @app.get("/")
