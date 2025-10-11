@@ -14,4 +14,4 @@ class ChatAgent(BaseModel):
 @agents.post("", tags=["Agents"])
 async def send_message(chatAgent: ChatAgent):
     response = await agent.run(chatAgent.message)
-    return response
+    return response.output
