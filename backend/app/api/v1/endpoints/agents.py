@@ -1,12 +1,8 @@
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
 from app.core.llm import agent
+from app.models.agents import ChatAgent
 
 router = APIRouter()
-
-
-class ChatAgent(BaseModel):
-    message: str = Field(description="The message to send to the agent")
 
 
 @router.post("")
