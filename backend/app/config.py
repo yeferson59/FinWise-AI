@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     openai_api_key: str = ""
     prefix_api: str = "/api/v1"
+    database_url: str = "sqlite:///database.db"
 
     model_config = SettingsConfigDict(env_file=".env")
 
