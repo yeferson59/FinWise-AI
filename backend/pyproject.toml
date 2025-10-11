@@ -13,6 +13,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pwdlib[argon2]>=0.2.1",
+    "pyjwt>=2.10.1",
     "ruff>=0.14.0",
     "zuban>=0.1.0",
 ]
