@@ -1,9 +1,34 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field
+from .base import Base
 
 
-class User(SQLModel, table=True):
-    id: str = Field(primary_key=True)
-    first_name: str = Field(index=True)
-    last_name: str = Field(index=True)
-    email: str = Field(index=True)
-    password: str = Field(index=True)
+class User(Base, table=True):
+    first_name: str = Field(
+        default=None,
+        description="User's first name",
+        nullable=False,
+        min_length=2,
+        max_length=100,
+    )
+    last_name: str = Field(
+        default=None,
+        description="User's last name",
+        nullable=False,
+        min_length=2,
+        max_length=100,
+    )
+    email: str = Field(
+        default=None,
+        description="User's email address",
+        unique=True,
+        nullable=False,
+        min_length=8,
+        max_length=255,
+    )
+    password: str = Field(
+        default=None,
+        description="User's password",
+        nullable=False,
+        min_length=8,
+        max_length=300,
+    )
