@@ -1,10 +1,8 @@
 from fastapi import APIRouter
 
-users = APIRouter(
-    prefix="/users",
-)
+router = APIRouter()
 
 
-@users.get("", tags=["Users"])
+@router.get("")
 async def read_users():
     return {"users": ["Alice", "Bob", "Charlie"]}
