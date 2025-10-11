@@ -1,13 +1,25 @@
 from app.models.user import User
 from app.db.session import SessionDep
-from app.schemas.user import UserCreate, UserUpdate
-from sqlmodel import select
+from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
+from sqlmodel import select, func
 from app.core.security import hash_password
+import math
 
 
-async def get_users(session: SessionDep) -> list[User]:
-    users = session.exec(select(User).offset(0).limit(10)).all()
-    return list(users)
+async def get_users(
+    session: SessionDep, filter_pagination: FilterPagination
+) -> UserListResponse:
+    offset = (filter_pagination.page - 1) * filter_pagination.limit
+    total = session.exec(select(func.count()).select_from(User)).one()
+    users = session.exec(
+        select(User).offset(offset).limit(filter_pagination.limit)
+    ).all()
+    return UserListResponse(
+        users=list(users),
+        pagination=filter_pagination,
+        total=total,
+        pages=math.ceil(total / filter_pagination.limit),
+    )
 
 
 async def get_user(user_id: int, session: SessionDep) -> User:
@@ -46,4 +58,9 @@ async def delete_user(user_id: int, session: SessionDep) -> User:
     user = session.exec(select(User).where(User.id == user_id)).one()
     session.delete(user)
     session.commit()
+    return user
+
+
+async def get_user_by_email(email: str, session: SessionDep) -> User:
+    user = session.exec(select(User).where(User.email == email)).one()
     return user

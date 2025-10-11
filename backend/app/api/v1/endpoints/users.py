@@ -1,15 +1,18 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Annotated
 from app.db.session import SessionDep
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
 from app.services import user
 
 router = APIRouter()
 
 
 @router.get("")
-async def get_users(session: SessionDep) -> list[User]:
-    return await user.get_users(session)
+async def get_users(
+    session: SessionDep, filter_pagination: Annotated[FilterPagination, Query()]
+) -> UserListResponse:
+    return await user.get_users(session, filter_pagination)
 
 
 @router.post("")
@@ -32,3 +35,8 @@ async def update_user(
 @router.delete("/{user_id}")
 async def delete_user(user_id: int, session: SessionDep) -> User:
     return await user.delete_user(user_id, session)
+
+
+@router.get("/email/{email}")
+async def get_user_by_email(email: str, session: SessionDep) -> User:
+    return await user.get_user_by_email(email, session)
