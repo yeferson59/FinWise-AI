@@ -5,6 +5,6 @@ users = APIRouter(
 )
 
 
-@users.get("", tags=["users"])
+@users.get("", tags=["Users"])
 async def read_users():
     return {"users": ["Alice", "Bob", "Charlie"]}
