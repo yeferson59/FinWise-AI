@@ -3,6 +3,7 @@ from app.db.session import SessionDep
 from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
 from sqlmodel import select, func
 from app.core.security import hash_password
+from app.utils.db import get_db_entities, get_entity_by_id, create_db_entity
 import math
 
 
@@ -11,9 +12,9 @@ async def get_users(
 ) -> UserListResponse:
     offset = (filter_pagination.page - 1) * filter_pagination.limit
     total = session.exec(select(func.count()).select_from(User)).one()
-    users = session.exec(
-        select(User).offset(offset).limit(filter_pagination.limit)
-    ).all()
+    users = get_db_entities(
+        entity=User, offset=offset, limit=filter_pagination.limit, session=session
+    )
     return UserListResponse(
         users=list(users),
         pagination=filter_pagination,
@@ -23,17 +24,13 @@ async def get_users(
 
 
 async def get_user(user_id: int, session: SessionDep) -> User:
-    user = session.exec(select(User).where(User.id == user_id)).one()
-    return user
+    return get_entity_by_id(User, user_id, session)
 
 
 async def create_user(user_create: UserCreate, session: SessionDep):
     user_create.password = await hash_password(user_create.password)
     user = User(**user_create.model_dump())
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
+    return create_db_entity(user, session)
 
 
 async def update_user(
