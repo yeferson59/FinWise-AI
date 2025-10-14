@@ -1,4 +1,4 @@
-.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps clean-backend lint-backend format-backend
+.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps clean-backend lint-backend format-backend sync-backend
 
 NPM ?= npm
 UV ?= uv
@@ -35,3 +35,6 @@ clean-backend:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+
+sync-backend:
+	cd backend && $(UV) sync
