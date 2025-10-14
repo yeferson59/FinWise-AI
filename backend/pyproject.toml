@@ -9,12 +9,12 @@ dependencies = [
     "pydantic-ai-slim[openai]>=1.0.17",
     "pydantic-settings>=2.11.0",
     "sqlmodel>=0.0.27",
+    "pwdlib[argon2]>=0.2.1",
+    "pyjwt>=2.10.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pwdlib[argon2]>=0.2.1",
-    "pyjwt>=2.10.1",
     "ruff>=0.14.0",
     "zuban>=0.1.0",
 ]
