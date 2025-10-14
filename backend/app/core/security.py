@@ -3,6 +3,9 @@ from datetime import timedelta, timezone, datetime
 import jwt
 from app.config import get_settings
 from typing import Any
+from fastapi.security import HTTPBearer
+
+http_bearer = HTTPBearer()
 
 settings = get_settings()
 password_hash = PasswordHash.recommended()
