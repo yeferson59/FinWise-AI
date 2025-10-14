@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     prefix_api: str = "/api/v1"
     database_url: str = "sqlite:///database.db"
+    secret_key: str = ""
+    algorithm: str = ""
+    access_token_expire_minutes: int = 30
 
     model_config = SettingsConfigDict(env_file=".env")
 
