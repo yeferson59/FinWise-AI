@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from typing import Annotated
 from app.db.session import SessionDep
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
 from app.services import user
+from app.api.deps import get_token_header
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_token_header)])
 
 
 @router.get("")
