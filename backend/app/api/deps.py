@@ -157,14 +157,14 @@ async def get_current_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario no encontrado.",
+            detail="User not found.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     if hasattr(user, "is_active") and not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario inactivo. Contacte al administrador.",
+            detail="User inactive. Contact the administrator.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -177,7 +177,7 @@ async def get_current_active_user(
     if hasattr(current_user, "is_active") and not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuario deshabilitado.",
+            detail="User disabled.",
         )
 
     return current_user
