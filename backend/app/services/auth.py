@@ -3,7 +3,7 @@ from app.schemas import auth, user as user_schemas
 from app.db.session import SessionDep
 from app.core.security import verify_password, create_token
 from app.models.auth import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.config import get_settings
 from app.utils.db import create_db_entity
 
@@ -27,17 +27,21 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
     session_data = Session(
         user_id=user_data.id,
         token=token,
-        expires_at=datetime.now()
+        expires_at=datetime.now(timezone.utc)
         + timedelta(minutes=settings.access_token_expire_minutes),
     )
 
     create_db_entity(session_data, session)
 
+    access_token = await create_token(
+        {"sub": str(session_data.id), "access_token": token}
+    )
+
     return auth.LoginResponse(
         success=True,
         user_id=user_data.id,
         user_email=user_data.email,
-        access_token=session_data.token,
+        access_token=access_token,
     )
 
 
@@ -58,3 +62,7 @@ async def register(session: SessionDep, register_data: auth.Register) -> str:
         return "No successfully"
 
     return "Register successfully"
+
+
+async def logout(session: SessionDep):
+    return "Logout successfully"
