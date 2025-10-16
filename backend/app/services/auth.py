@@ -5,7 +5,8 @@ from app.core.security import verify_password, create_token
 from app.models.auth import Session
 from datetime import datetime, timedelta, timezone
 from app.config import get_settings
-from app.utils.db import create_db_entity
+from app.utils.db import create_db_entity, delete_db_entity
+from app.api.deps import CurrentSession
 
 settings = get_settings()
 
@@ -64,5 +65,6 @@ async def register(session: SessionDep, register_data: auth.Register) -> str:
     return "Register successfully"
 
 
-async def logout(session: SessionDep):
+async def logout(session: SessionDep, current_session: CurrentSession):
+    delete_db_entity(Session, current_session.id, session)
     return "Logout successfully"
