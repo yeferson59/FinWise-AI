@@ -29,3 +29,6 @@ class User(Base, table=True):
         min_length=8,
         max_length=300,
     )
+    is_active: bool | None = Field(
+        default=True, description="if user is active", nullable=False
+    )
