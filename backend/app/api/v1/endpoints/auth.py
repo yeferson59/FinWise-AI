@@ -12,5 +12,5 @@ async def login(login_data: Login, session: SessionDep) -> LoginResponse:
 
 
 @router.post("/register")
-async def register(register_data: Register, session: SessionDep):
+async def register(register_data: Register, session: SessionDep) -> str:
     return await auth.register(session, register_data)

@@ -39,5 +39,5 @@ async def delete_user(user_id: int, session: SessionDep) -> User:
 
 
 @router.get("/email/{email}")
-async def get_user_by_email(email: str, session: SessionDep) -> User:
+async def get_user_by_email(email: str, session: SessionDep) -> User | None:
     return await user.get_user_by_email(email, session)

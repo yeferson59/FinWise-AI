@@ -41,7 +41,7 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
     )
 
 
-async def register(session: SessionDep, register_data: auth.Register):
+async def register(session: SessionDep, register_data: auth.Register) -> str:
     if register_data.password != register_data.confirm_password:
         return "No successfully"
 
