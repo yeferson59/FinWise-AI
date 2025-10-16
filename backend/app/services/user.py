@@ -1,9 +1,19 @@
 from app.models.user import User
 from app.db.session import SessionDep
 from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
-from sqlmodel import select, func
+
 from app.core.security import hash_password
-from app.utils.db import get_db_entities, get_entity_by_id, create_db_entity
+from app.utils.db import (
+    get_db_entities,
+    get_entity_by_id,
+    create_db_entity,
+    update_db_entity,
+    delete_db_entity,
+    get_entity_by_field,
+    get_total_count,
+    entity_exists,
+    get_entities_with_pagination,
+)
 import math
 
 
@@ -11,7 +21,7 @@ async def get_users(
     session: SessionDep, filter_pagination: FilterPagination
 ) -> UserListResponse:
     offset = (filter_pagination.page - 1) * filter_pagination.limit
-    total = session.exec(select(func.count()).select_from(User)).one()
+    total = get_total_count(User, session)
     users = get_db_entities(
         entity=User, offset=offset, limit=filter_pagination.limit, session=session
     )
@@ -36,28 +46,37 @@ async def create_user(user_create: UserCreate, session: SessionDep):
 async def update_user(
     user_id: int, user_update: UserUpdate, session: SessionDep
 ) -> User:
-    user = session.exec(select(User).where(User.id == user_id)).one()
-    update_data = user_update.model_dump(exclude_unset=True)
+    update_data: dict[str, str | int | float | bool] = user_update.model_dump(
+        exclude_unset=True
+    )
 
-    if "password" in update_data:
+    if "password" in update_data and isinstance(update_data["password"], str):
         update_data["password"] = await hash_password(update_data["password"])
 
-    for key, value in update_data.items():
-        setattr(user, key, value)
-
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
+    return update_db_entity(User, user_id, update_data, session)
 
 
 async def delete_user(user_id: int, session: SessionDep) -> User:
-    user = session.exec(select(User).where(User.id == user_id)).one()
-    session.delete(user)
-    session.commit()
+    user = get_entity_by_id(User, user_id, session)
+    delete_db_entity(User, user_id, session)
     return user
 
 
-async def get_user_by_email(email: str, session: SessionDep) -> User:
-    user = session.exec(select(User).where(User.email == email)).one()
-    return user
+async def get_user_by_email(email: str, session: SessionDep) -> User | None:
+    return get_entity_by_field(User, "email", email, session)
+
+
+async def check_user_exists_by_email(email: str, session: SessionDep) -> bool:
+    return entity_exists(User, "email", email, session)
+
+
+async def get_users_paginated(
+    session: SessionDep,
+    page: int = 1,
+    limit: int = 10,
+    order_by: str | None = None,
+    order_desc: bool = False,
+):
+    return get_entities_with_pagination(
+        User, session, page=page, limit=limit, order_by=order_by, order_desc=order_desc
+    )
