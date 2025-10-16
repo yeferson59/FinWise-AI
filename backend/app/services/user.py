@@ -37,10 +37,11 @@ async def get_user(user_id: int, session: SessionDep) -> User:
     return get_entity_by_id(User, user_id, session)
 
 
-async def create_user(user_create: UserCreate, session: SessionDep):
+async def create_user(user_create: UserCreate, session: SessionDep) -> User:
     user_create.password = await hash_password(user_create.password)
     user = User(**user_create.model_dump())
-    return create_db_entity(user, session)
+    create_db_entity(user, session)
+    return user
 
 
 async def update_user(

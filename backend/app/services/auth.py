@@ -1,5 +1,5 @@
 from app.services import user
-from app.schemas import auth
+from app.schemas import auth, user as user_schemas
 from app.db.session import SessionDep
 from app.core.security import verify_password, create_token
 from app.models.auth import Session
@@ -39,3 +39,22 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
         user_email=user_data.email,
         access_token=session_data.token,
     )
+
+
+async def register(session: SessionDep, register_data: auth.Register):
+    if register_data.password != register_data.confirm_password:
+        return "No successfully"
+
+    user_create = user_schemas.UserCreate(
+        first_name=register_data.first_name,
+        last_name=register_data.last_name,
+        email=register_data.email,
+        password=register_data.password,
+    )
+
+    user_data = await user.create_user(user_create, session)
+
+    if not user_data:
+        return "No successfully"
+
+    return "Register successfully"
