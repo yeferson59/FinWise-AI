@@ -1,8 +1,7 @@
-from app.core.llm import get_agent, get_react_agent, AgentDeps
+from app.core.llm import get_agent, AgentDeps, react_agent
 from app.db.session import SessionDep
 
 agent = get_agent()
-react_agent = get_react_agent()
 
 
 async def chat_agent(message: str) -> str:

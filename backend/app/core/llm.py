@@ -38,17 +38,14 @@ def get_agent():
     )
 
 
-@lru_cache
-def get_react_agent():
-    """Get or create the ReAct agent instance"""
-    settings = get_settings()
-    model = get_model()
+settings = get_settings()
+model = get_model()
 
-    react_agent_instance = Agent(
-        model=model,
-        deps_type=AgentDeps,
-        model_settings={"temperature": settings.temperature, "top_p": settings.top_p},
-        system_prompt="""Eres un agente ReAct que puede usar herramientas para responder preguntas.
+react_agent = Agent(
+    model=model,
+    deps_type=AgentDeps,
+    model_settings={"temperature": settings.temperature, "top_p": settings.top_p},
+    system_prompt="""Eres un agente ReAct que puede usar herramientas para responder preguntas.
 
     Debes seguir este patrón:
     1. RAZONA sobre qué necesitas hacer
@@ -57,15 +54,14 @@ def get_react_agent():
     4. Repite si es necesario
 
     Piensa paso a paso antes de usar cada herramienta.""",
-    )
+)
 
-    @react_agent_instance.tool
-    async def get_users_db(ctx: RunContext[AgentDeps]) -> list[User]:
-        """
-        Utilices esta herramienta cuando necesites los usuarios dentro de la base de datos
-        retorna una lista de usuarios registrados en la aplicación
-        """
-        users = ctx.deps.session.exec(select(User)).all()
-        return list(users)
 
-    return react_agent_instance
+@react_agent.tool
+async def get_users_db(ctx: RunContext[AgentDeps]) -> list[User]:
+    """
+    Utilices esta herramienta cuando necesites los usuarios dentro de la base de datos
+    retorna una lista de usuarios registrados en la aplicación
+    """
+    users = ctx.deps.session.exec(select(User)).all()
+    return list(users)
