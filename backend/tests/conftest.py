@@ -1,30 +1,19 @@
 import pytest
 from unittest.mock import Mock, patch
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
-    app_name: str = "FinWise API"
-    port: int = 8000
-    version: str = "1.0.0"
-    environment: str = "testing"
-    openai_api_key: str = "test-key-12345"
-    prefix_api: str = "/api/v1"
-    database_url: str = "sqlite:///:memory:"
-    secret_key: str = ""
-    algorithm: str = ""
-    access_token_expire_minutes: int = 30
-    models: str = "gpt-4o-mini"
-    top_p: float = 0.3
-    temperature: float = 0.2
+@pytest.fixture(scope="function", autouse=True)
+def clear_settings_cache():
+    """Clear lru_cache for settings functions before each test"""
+    from app.config import get_settings, get_models
 
-    model_config = SettingsConfigDict(env_file=".env.test")
+    get_settings.cache_clear()
+    get_models.cache_clear()
 
+    yield
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_env():
-    """Setup test environment variables before any tests run"""
-    _ = Settings()
+    get_settings.cache_clear()
+    get_models.cache_clear()
 
 
 @pytest.fixture(scope="function")

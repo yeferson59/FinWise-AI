@@ -1,5 +1,19 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+import os
+import sys
+
+
+def get_env_file() -> str:
+    """Determine which env file to use based on environment"""
+    # Check if running in pytest
+    if "pytest" in sys.modules:
+        return ".env.test"
+
+    if os.getenv("ENVIRONMENT") == "testing":
+        return ".env.test"
+
+    return ".env"
 
 
 class Settings(BaseSettings):
@@ -17,7 +31,7 @@ class Settings(BaseSettings):
     top_p: float = 0.3
     temperature: float = 0.2
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=get_env_file())
 
 
 @lru_cache
