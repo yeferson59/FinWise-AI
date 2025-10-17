@@ -13,17 +13,21 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 #### ✅ Completed Requirements
 
 1. **Registrar usuario** (User Registration)
-   - User registration with email and password
-   - Secure password hashing using Argon2
-   - User authentication with JWT tokens
-   - Session management with token expiration
-   - Login and logout endpoints
+   - ✅ User registration with email and password
+   - ✅ Secure password hashing using Argon2
+   - ✅ User authentication with JWT tokens
+   - ✅ Session management with token expiration
+   - ✅ Login and logout endpoints
+   - ✅ Full CRUD operations for user management
+   - ✅ User listing with pagination support
+   - ✅ Email-based user lookup
 
 2. **Conversar con asistente virtual** (Virtual Assistant Conversation)
-   - AI-powered chat agent using OpenAI/OpenRouter
-   - ReAct (Reasoning + Acting) agent pattern implementation
-   - Tool-based capabilities for querying database information
-   - Configurable temperature and top_p parameters for response generation
+   - ✅ AI-powered chat agent using OpenAI/OpenRouter
+   - ✅ ReAct (Reasoning + Acting) agent pattern implementation
+   - ✅ Tool-based capabilities for querying database information
+   - ✅ Configurable temperature and top_p parameters for response generation
+   - ✅ Database query tools (e.g., retrieve users from database)
 
 #### 🚧 Pending Requirements
 
@@ -113,7 +117,12 @@ Once the server is running, visit:
 - `POST /logout` - User logout
 
 #### Users (`/api/v1/users`)
-- User management endpoints (implementation in progress)
+- `GET /` - List all users (with pagination)
+- `POST /` - Create a new user
+- `GET /{user_id}` - Get user by ID
+- `PATCH /{user_id}` - Update user information
+- `DELETE /{user_id}` - Delete a user
+- `GET /email/{email}` - Get user by email
 
 #### AI Agents (`/api/v1/agents`)
 - `POST /` - Chat with basic AI agent
