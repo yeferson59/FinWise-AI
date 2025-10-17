@@ -1,23 +1,30 @@
 import pytest
-import os
 from unittest.mock import Mock, patch
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "FinWise API"
+    port: int = 8000
+    version: str = "1.0.0"
+    environment: str = "testing"
+    openai_api_key: str = "test-key-12345"
+    prefix_api: str = "/api/v1"
+    database_url: str = "sqlite:///:memory:"
+    secret_key: str = ""
+    algorithm: str = ""
+    access_token_expire_minutes: int = 30
+    models: str = "gpt-4o-mini"
+    top_p: float = 0.3
+    temperature: float = 0.2
+
+    model_config = SettingsConfigDict(env_file=".env.test")
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
     """Setup test environment variables before any tests run"""
-    # Set required environment variables for testing
-    _ = os.environ.setdefault("OPENAI_API_KEY", "test-key-12345")
-    _ = os.environ.setdefault("OPENROUTER_API_KEY", "test-key-12345")
-    _ = os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
-    _ = os.environ.setdefault("ALGORITHM", "HS256")
-    _ = os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-    _ = os.environ.setdefault("MODELS", "gpt-4o-mini")
-    _ = os.environ.setdefault("ENVIRONMENT", "testing")
-
-    yield
-
-    pass
+    _ = Settings()
 
 
 @pytest.fixture(scope="function")
