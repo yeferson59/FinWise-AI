@@ -1,4 +1,4 @@
-from typing import TypeVar, cast, Any, Generic
+from typing import TypeVar, cast, Generic
 from app.db.session import SessionDep
 from app.models.base import Base, BaseUuid
 from sqlmodel import select, func, col
@@ -22,7 +22,7 @@ class PaginationMetadata(BaseModel):
 class PaginatedResponse(BaseModel, Generic[T]):
     """Respuesta genérica con paginación"""
 
-    data: list[Any]
+    data: list[T]
     pagination: PaginationMetadata
 
 
