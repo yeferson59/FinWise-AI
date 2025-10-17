@@ -49,3 +49,6 @@ run-script-backend:
 
 run-test-backend:
 	cd backend && $(UV) run pytest
+
+run-test-backend-info:
+	cd backend && $(UV) run pytest -v
