@@ -47,9 +47,7 @@ async def create_user(user_create: UserCreate, session: SessionDep) -> User:
 async def update_user(
     user_id: int, user_update: UserUpdate, session: SessionDep
 ) -> User:
-    update_data: dict[str, str | int | float | bool] = user_update.model_dump(
-        exclude_unset=True
-    )
+    update_data = user_update.model_dump(exclude_unset=True)
 
     if "password" in update_data and isinstance(update_data["password"], str):
         update_data["password"] = await hash_password(update_data["password"])
