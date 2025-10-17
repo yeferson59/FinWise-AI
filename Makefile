@@ -1,8 +1,9 @@
-.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps clean-backend lint-backend format-backend sync-backend
+.PHONY: run-frontend run-backend add-backend-deps add-backend-dev-deps clean-backend lint-backend format-backend sync-backend test-backend
 
 NPM ?= npm
 UV ?= uv
 DEPS ?=
+VALUE ?=
 
 run-frontend:
 	cd frontend && $(NPM) run web
@@ -38,3 +39,13 @@ clean-backend:
 
 sync-backend:
 	cd backend && $(UV) sync
+
+run-script-backend:
+	@if [ -z "$(VALUE)" ]; then \
+		echo 'Usage: make run-script-backend VALUE="pytest" [UV=uv]'; \
+		exit 1; \
+	fi
+	cd backend && $(UV) run $(VALUE)
+
+run-test-backend:
+	cd backend && $(UV) run pytest
