@@ -2,19 +2,23 @@ from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
-from app.config import get_settings
+from app.config import get_settings, get_models
 from app.db.session import SessionDep
 from app.models.user import User
 from sqlmodel import select
 
 settings = get_settings()
+models = get_models()
 
 model = OpenAIChatModel(
-    "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    models[0],
     provider=OpenRouterProvider(api_key=settings.openai_api_key),
 )
 
-agent = Agent(model=model, model_settings={"temperature": 0.2, "top_p": 0.3})
+agent = Agent(
+    model=model,
+    model_settings={"temperature": settings.temperature, "top_p": settings.top_p},
+)
 
 
 @dataclass
@@ -25,6 +29,7 @@ class AgentDeps:
 react_agent = Agent(
     model=model,
     deps_type=AgentDeps,
+    model_settings={"temperature": settings.temperature, "top_p": settings.top_p},
     system_prompt="""Eres un agente ReAct que puede usar herramientas para responder preguntas.
 
     Debes seguir este patrón:
