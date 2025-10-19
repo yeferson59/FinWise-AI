@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     models: str = ""
     top_p: float = 0.3
     temperature: float = 0.2
+    file_storage_type: str = "local"
+    local_storage_path: str = "uploads"
+    s3_bucket: str = ""
+    s3_region: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_endpoint: str = ""
 
     model_config = SettingsConfigDict(env_file=get_env_file())
 
