@@ -6,8 +6,6 @@ from typing import Any
 from fastapi.security import HTTPBearer
 
 http_bearer = HTTPBearer()
-
-settings = get_settings()
 password_hash = PasswordHash.recommended()
 
 
@@ -20,9 +18,12 @@ async def hash_password(password: str) -> str:
 
 
 async def create_token(data: dict[str, Any]) -> str:
+    settings = get_settings()
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
+
     to_encode.update({"exp": expire})
+
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)

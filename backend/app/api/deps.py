@@ -13,9 +13,6 @@ from app.models.auth import Session
 from app.models.user import User
 
 
-settings = get_settings()
-
-
 async def get_current_session(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
     session: SessionDep,
@@ -34,6 +31,8 @@ async def get_current_session(
             detail="Authentication token not provided.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    settings = get_settings()
 
     try:
         payload = jwt.decode(

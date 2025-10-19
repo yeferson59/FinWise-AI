@@ -6,7 +6,7 @@ import sys
 
 def get_env_file() -> str:
     """Determine which env file to use based on environment"""
-    # Check if running in pytest
+
     if "pytest" in sys.modules:
         return ".env.test"
 

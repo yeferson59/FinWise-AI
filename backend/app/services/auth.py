@@ -8,8 +8,6 @@ from app.config import get_settings
 from app.utils.db import create_db_entity, delete_db_entity
 from app.api.deps import CurrentSession
 
-settings = get_settings()
-
 
 async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginResponse:
     user_data = await user.get_user_by_email(login_data.email, session)
@@ -24,6 +22,7 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
         return auth.LoginResponse(success=False)
 
     token = await create_token({"sub": str(user_data.id), "email": user_data.email})
+    settings = get_settings()
 
     session_data = Session(
         user_id=user_data.id,
