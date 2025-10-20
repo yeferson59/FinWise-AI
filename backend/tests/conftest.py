@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 @pytest.fixture(scope="function", autouse=True)
 def clear_settings_cache():
     """Clear lru_cache for settings functions before each test"""
-    from app.config import get_settings, get_models
+    from app.ocr_config import get_settings, get_models
 
     get_settings.cache_clear()
     get_models.cache_clear()
