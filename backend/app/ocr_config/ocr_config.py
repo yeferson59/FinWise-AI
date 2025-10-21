@@ -59,7 +59,7 @@ class OCRConfig:
         self,
         psm_mode: PSMMode = PSMMode.AUTO,
         oem_mode: OEMMode = OEMMode.DEFAULT,
-        language: str = "eng",
+        language: str = "eng+spa",  # Support both English and Spanish by default
         preserve_interword_spaces: bool = True,
         additional_params: dict[str, Any] | None = None,
     ):
@@ -139,10 +139,10 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.SINGLE_BLOCK,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
             additional_params={
-                "tessedit_char_whitelist": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz$.,:-/() "
+                "tessedit_char_whitelist": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáéíóúüñÁÉÍÓÚÜÑ$€.,:-/() "
             },
         ),
         preprocessing_config=PreprocessingConfig(
@@ -164,7 +164,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
@@ -186,7 +186,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
@@ -206,7 +206,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.SPARSE_TEXT,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
@@ -228,7 +228,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
             oem_mode=OEMMode.NEURAL_NET,  # LSTM works well on digital text
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
@@ -247,7 +247,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
@@ -269,7 +269,7 @@ PROFILES = {
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
             oem_mode=OEMMode.DEFAULT,
-            language="eng",
+            language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
