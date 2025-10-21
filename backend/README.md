@@ -29,6 +29,15 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
    - ✅ Configurable temperature and top_p parameters for response generation
    - ✅ Database query tools (e.g., retrieve users from database)
 
+8. **Extracción de texto de documentos** (Document Text Extraction)
+   - ✅ Multi-language OCR support (English + Spanish)
+   - ✅ Intelligent text extraction with fallback strategies
+   - ✅ Automatic language detection
+   - ✅ Document type optimization (receipts, invoices, forms, etc.)
+   - ✅ Quality validation and recommendations
+   - ✅ Text cleaning and normalization
+   - ✅ Confidence scoring for extraction quality
+
 #### 🚧 Pending Requirements
 
 3. **Registrar transacciones** (Transaction Registration)
@@ -58,6 +67,8 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 - **Authentication:** JWT tokens with session management
 - **Password Security:** Argon2 hashing via pwdlib
 - **AI/ML:** Pydantic AI with OpenAI/OpenRouter integration
+- **OCR:** Tesseract 5.3+ with multi-language support (English + Spanish)
+- **Image Processing:** OpenCV, Pillow, PyMuPDF
 - **Language:** Python 3.13+
 - **Package Manager:** uv
 
@@ -77,6 +88,14 @@ The backend follows a clean architecture pattern with clear separation of concer
 - Python 3.13 or higher
 - uv package manager
 - OpenAI API key (for AI assistant features)
+- Tesseract OCR with language packs:
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get install tesseract-ocr tesseract-ocr-eng tesseract-ocr-spa
+  
+  # macOS
+  brew install tesseract tesseract-lang
+  ```
 
 ## Installation
 
@@ -127,6 +146,13 @@ Once the server is running, visit:
 #### AI Agents (`/api/v1/agents`)
 - `POST /` - Chat with basic AI agent
 - `POST /react` - Chat with ReAct agent (can query database)
+
+#### Files & OCR (`/api/v1/files`)
+- `POST /extract-text` - Extract text from PDF or image (multi-language)
+- `POST /extract-text-with-confidence` - Extract text with confidence metrics
+- `POST /extract-text-intelligent` - Advanced extraction with fallback strategies ✨
+- `GET /document-types` - List supported document types
+- `GET /supported-languages` - List supported OCR languages (eng, spa, eng+spa)
 
 #### Health (`/api/v1/health`)
 - `GET /` - Health check endpoint
@@ -238,6 +264,50 @@ The application uses SQLite for data persistence. The database is automatically 
 ├── tests
 └── uv.lock
 ```
+
+## Multi-Language OCR Features
+
+The backend includes advanced OCR (Optical Character Recognition) capabilities for extracting text from images and PDFs in both English and Spanish.
+
+### Key Features
+
+- **Multi-language Support:** Automatic handling of English, Spanish, and bilingual documents
+- **Intelligent Extraction:** Multiple fallback strategies for optimal accuracy
+- **Document Type Optimization:** Specialized profiles for receipts, invoices, forms, etc.
+- **Quality Assessment:** Confidence scoring and recommendations for improvement
+- **Text Cleaning:** Automatic removal of OCR artifacts and normalization
+
+### Quick Start
+
+```python
+import requests
+
+# Extract text with intelligent agent
+with open('recibo.jpg', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/api/v1/files/extract-text-intelligent',
+        files={'file': f},
+        params={'document_type': 'receipt', 'language': 'eng+spa'}
+    )
+    result = response.json()
+    print(result['text'])
+```
+
+### Testing OCR
+
+```bash
+# Run OCR unit tests
+python test_multilang_ocr.py
+
+# Run OCR demonstration
+python demo_multilang_ocr.py
+```
+
+### Documentation
+
+For detailed OCR documentation, see:
+- [Multi-Language OCR Guide](docs/MULTILANG_OCR.md) - Complete feature documentation
+- [OCR Improvements](MEJORAS_OCR.md) - Technical improvements and configuration
 
 ## Contributing
 
