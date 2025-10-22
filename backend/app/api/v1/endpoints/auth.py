@@ -8,12 +8,12 @@ router = APIRouter()
 
 
 @router.post("/login")
-async def login(login_data: Login, session: SessionDep) -> LoginResponse:
+async def login(session: SessionDep, login_data: Login) -> LoginResponse:
     return await auth.login(session, login_data)
 
 
 @router.post("/register")
-async def register(register_data: Register, session: SessionDep) -> str:
+async def register(session: SessionDep, register_data: Register) -> str:
     return await auth.register(session, register_data)
 
 

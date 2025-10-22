@@ -1,8 +1,9 @@
+from typing import Annotated
 from app.models.category import Category
 from app.services import category
 from app.db.session import SessionDep
-from fastapi import APIRouter
-from app.schemas.category import CategoryCreate, CategoryUpdate
+from fastapi import APIRouter, Query
+from app.schemas.category import CreateCategory, UpdateCategory
 
 router = APIRouter()
 
@@ -14,9 +15,9 @@ async def get_categories(session: SessionDep) -> list[Category]:
 
 @router.post("")
 async def create_category(
-    session: SessionDep, category_create: CategoryCreate
+    session: SessionDep, create_category: CreateCategory
 ) -> Category:
-    return await category.create_category(session, category_create)
+    return await category.create_category(session, create_category)
 
 
 @router.get("/{id}")
@@ -26,11 +27,11 @@ async def get_category(session: SessionDep, id: int) -> Category:
 
 @router.patch("/{id}")
 async def update_category(
-    session: SessionDep, id: int, category_update: CategoryUpdate
+    session: SessionDep, id: Annotated[int, Query], update_category: UpdateCategory
 ) -> Category:
-    return await category.update_category(session, id, category_update)
+    return await category.update_category(session, id, update_category)
 
 
 @router.delete("/{id}")
-async def delete_category(session: SessionDep, id: int) -> Category:
+async def delete_category(session: SessionDep, id: Annotated[int, Query]) -> Category:
     return await category.delete_category(session, id)

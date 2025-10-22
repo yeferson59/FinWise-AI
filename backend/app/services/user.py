@@ -1,6 +1,6 @@
 from app.models.user import User
 from app.db.session import SessionDep
-from app.schemas.user import UserCreate, UserUpdate, FilterPagination, UserListResponse
+from app.schemas.user import FilterPagination, UserListResponse, CreateUser, UpdateUser
 
 from app.core.security import hash_password
 from app.utils.db import (
@@ -37,17 +37,17 @@ async def get_user(user_id: int, session: SessionDep) -> User:
     return get_entity_by_id(User, user_id, session)
 
 
-async def create_user(user_create: UserCreate, session: SessionDep) -> User:
-    user_create.password = await hash_password(user_create.password)
-    user = User(**user_create.model_dump())
+async def create_user(create_user: CreateUser, session: SessionDep) -> User:
+    create_user.password = await hash_password(create_user.password)
+    user = User(**create_user.model_dump())
     create_db_entity(user, session)
     return user
 
 
 async def update_user(
-    user_id: int, user_update: UserUpdate, session: SessionDep
+    user_id: int, update_user: UpdateUser, session: SessionDep
 ) -> User:
-    update_data = user_update.model_dump(exclude_unset=True)
+    update_data = update_user.model_dump(exclude_unset=True)
 
     if "password" in update_data and isinstance(update_data["password"], str):
         update_data["password"] = await hash_password(update_data["password"])

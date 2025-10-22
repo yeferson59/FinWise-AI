@@ -12,5 +12,5 @@ async def send_message(chatAgent: ChatAgent) -> str:
 
 
 @router.post("/react")
-async def send_message_agent_react(chatAgent: ChatAgent, session: SessionDep):
+async def send_message_agent_react(session: SessionDep, chatAgent: ChatAgent):
     return await agent.chat_react_agent(session, chatAgent.message)

@@ -1,4 +1,4 @@
-from app.config import get_models, get_settings
+from app.ocr_config import get_models, get_settings
 from tests.test_main import client
 
 
