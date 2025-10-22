@@ -1436,6 +1436,6 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ---
 
-**Last Updated**: 2024-10  
+**Last Updated**: 2024-10-XX  
 **Version**: 0.1.0  
 **Maintainers**: @yeferson59, @Windhoek-dev
