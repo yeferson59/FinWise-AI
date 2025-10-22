@@ -46,6 +46,7 @@ app-example
 # Python
 __pycache__/
 *.py[cod]
+.venv/
 venv/
 .env
 *.db

@@ -20,6 +20,7 @@ dependencies = [
     "doctr>=1.9.0",
     "python-multipart>=0.0.20",
     "pymupdf>=1.26.5",
+    "ocrmypdf>=16.11.1",
 ]
 
 [dependency-groups]
