@@ -1,15 +1,15 @@
 from app.db.session import SessionDep
 from app.utils import db
 from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryUpdate
+from app.schemas.category import CreateCategory, UpdateCategory
 
 
 async def get_all_categories(session: SessionDep):
     return db.get_db_entities(Category, 0, 10, session)
 
 
-async def create_category(session: SessionDep, category_create: CategoryCreate):
-    category = Category(**category_create.model_dump())
+async def create_category(session: SessionDep, create_category: CreateCategory):
+    category = Category(**create_category.model_dump())
     db.create_db_entity(category, session)
     return category
 
@@ -19,9 +19,9 @@ async def get_category(session: SessionDep, id: int):
 
 
 async def update_category(
-    session: SessionDep, id: int, category_update: CategoryUpdate
+    session: SessionDep, id: int, update_category: UpdateCategory
 ):
-    update_data = category_update.model_dump(exclude_unset=True)
+    update_data = update_category.model_dump(exclude_unset=True)
     return db.update_db_entity(Category, id, update_data, session)
 
 

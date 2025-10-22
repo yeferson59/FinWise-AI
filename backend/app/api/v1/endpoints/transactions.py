@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from typing import Annotated
+from fastapi import APIRouter, Query
 from app.models.transaction import Transaction
 from app.services import transaction
 from app.db.session import SessionDep
@@ -14,25 +15,34 @@ async def get_transactions(session: SessionDep) -> list[Transaction]:
 
 @router.post("")
 async def create_transaction(
-    transaction_create: CreateTransaction, session: SessionDep
+    session: SessionDep,
+    create_transaction: CreateTransaction,
 ) -> Transaction:
-    return await transaction.create_transaction(session, transaction_create)
+    return await transaction.create_transaction(session, create_transaction)
 
 
 @router.get("/{transaction_id}")
-async def get_transaction(transaction_id: int, session: SessionDep) -> Transaction:
+async def get_transaction(
+    session: SessionDep,
+    transaction_id: Annotated[int, Query],
+) -> Transaction:
     return await transaction.get_transaction(session, transaction_id)
 
 
 @router.put("/{transaction_id}")
 async def update_transaction(
-    transaction_id: int, transaction_update: UpdateTransaction, session: SessionDep
+    session: SessionDep,
+    transaction_id: Annotated[int, Query],
+    update_transaction: UpdateTransaction,
 ) -> Transaction:
     return await transaction.update_transaction(
-        session, transaction_id, transaction_update
+        session, transaction_id, update_transaction
     )
 
 
 @router.delete("/{transaction_id}")
-async def delete_transaction(transaction_id: int, session: SessionDep) -> Transaction:
+async def delete_transaction(
+    session: SessionDep,
+    transaction_id: Annotated[int, Query],
+) -> Transaction:
     return await transaction.delete_transaction(session, transaction_id)
