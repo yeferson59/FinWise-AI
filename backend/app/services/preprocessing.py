@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from typing import Any
+from PIL import Image
+from rembg import remove
 from app.ocr_config import PreprocessingConfig, DocumentType, get_profile
 
 
@@ -22,6 +24,55 @@ def scale_image(image: Any, config: PreprocessingConfig) -> tuple[Any, float]:
         return scaled_image, scale_factor
 
     return image, 1.0
+
+
+def remove_background(image: Any) -> Any:
+    """
+    Remove background from an image using rembg library.
+    This helps improve OCR accuracy by eliminating distracting background elements.
+    
+    Args:
+        image: Input image as numpy array (BGR format from cv2)
+    
+    Returns:
+        Image with background removed as numpy array (BGR format)
+    """
+    try:
+        # Convert BGR (OpenCV) to RGB (PIL)
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Convert to PIL Image
+        pil_image = Image.fromarray(image_rgb)
+        
+        # Remove background
+        output_pil = remove(pil_image)
+        
+        # Convert back to numpy array (RGBA)
+        output_rgba = np.array(output_pil)
+        
+        # Check if the image has an alpha channel
+        if output_rgba.shape[2] == 4:
+            # Extract alpha channel
+            alpha = output_rgba[:, :, 3]
+            
+            # Create a white background
+            white_background = np.ones_like(output_rgba[:, :, :3]) * 255
+            
+            # Blend the image with white background using alpha channel
+            alpha_3channel = np.stack([alpha, alpha, alpha], axis=2) / 255.0
+            result_rgb = (output_rgba[:, :, :3] * alpha_3channel + 
+                         white_background * (1 - alpha_3channel)).astype(np.uint8)
+        else:
+            result_rgb = output_rgba[:, :, :3]
+        
+        # Convert RGB back to BGR for OpenCV
+        result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
+        
+        return result_bgr
+    except Exception as e:
+        # If background removal fails, return the original image
+        print(f"Background removal failed: {e}. Using original image.")
+        return image
 
 
 def deskew_image(image: Any) -> Any:
@@ -93,18 +144,22 @@ def preprocess_image(
             profile = get_profile(DocumentType.GENERAL)
             config = profile.preprocessing_config
 
-    # Step 1: Scale image if too small (improves OCR accuracy)
+    # Step 1: Remove background if enabled (do this early to eliminate noise)
+    if config.enable_background_removal:
+        image = remove_background(image)
+
+    # Step 2: Scale image if too small (improves OCR accuracy)
     if config.scale_min_height > 0:
         image, _ = scale_image(image, config)
 
-    # Step 2: Deskew
+    # Step 3: Deskew
     if config.enable_deskew:
         image = deskew_image(image)
 
-    # Step 3: Convert to Grayscale
+    # Step 4: Convert to Grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Step 4: Noise Removal
+    # Step 5: Noise Removal
     if config.denoise_strength > 0:
         denoised = cv2.fastNlMeansDenoising(
             gray,
@@ -116,14 +171,14 @@ def preprocess_image(
     else:
         denoised = gray
 
-    # Step 5: Enhance Contrast with CLAHE
+    # Step 6: Enhance Contrast with CLAHE
     if config.enable_clahe:
         clahe = cv2.createCLAHE(clipLimit=config.clahe_clip_limit, tileGridSize=(8, 8))
         enhanced = clahe.apply(denoised)
     else:
         enhanced = denoised
 
-    # Step 6: Adaptive Thresholding
+    # Step 7: Adaptive Thresholding (improved binary filter)
     thresh = cv2.adaptiveThreshold(
         enhanced,
         255,
@@ -133,7 +188,7 @@ def preprocess_image(
         config.adaptive_threshold_c,
     )
 
-    # Step 7: Morphological Operations (optional)
+    # Step 8: Morphological Operations (optional)
     if config.enable_morphology:
         kernel = np.ones(config.morphology_kernel_size, np.uint8)
         final_image = cv2.morphologyEx(

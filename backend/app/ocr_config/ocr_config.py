@@ -94,6 +94,7 @@ class PreprocessingConfig:
         self,
         scale_min_height: int = 1000,
         enable_deskew: bool = True,
+        enable_background_removal: bool = False,
         denoise_strength: int = 10,
         enable_clahe: bool = True,
         clahe_clip_limit: float = 2.0,
@@ -105,6 +106,7 @@ class PreprocessingConfig:
     ):
         self.scale_min_height: int = scale_min_height
         self.enable_deskew: bool = enable_deskew
+        self.enable_background_removal: bool = enable_background_removal
         self.denoise_strength: int = denoise_strength
         self.enable_clahe: bool = enable_clahe
         self.clahe_clip_limit: float = clahe_clip_limit
@@ -253,6 +255,7 @@ PROFILES = {
         preprocessing_config=PreprocessingConfig(
             scale_min_height=1200,
             enable_deskew=True,  # Photos often have skew
+            enable_background_removal=True,  # Remove distracting backgrounds
             denoise_strength=12,  # More denoising for camera noise
             enable_clahe=True,
             clahe_clip_limit=2.5,
