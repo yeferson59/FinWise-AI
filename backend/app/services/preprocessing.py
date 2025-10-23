@@ -30,44 +30,46 @@ def remove_background(image: Any) -> Any:
     """
     Remove background from an image using rembg library.
     This helps improve OCR accuracy by eliminating distracting background elements.
-    
+
     Args:
         image: Input image as numpy array (BGR format from cv2)
-    
+
     Returns:
         Image with background removed as numpy array (BGR format)
     """
     try:
         # Convert BGR (OpenCV) to RGB (PIL)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
+
         # Convert to PIL Image
         pil_image = Image.fromarray(image_rgb)
-        
+
         # Remove background
         output_pil = remove(pil_image)
-        
+
         # Convert back to numpy array (RGBA)
         output_rgba = np.array(output_pil)
-        
+
         # Check if the image has an alpha channel
         if output_rgba.shape[2] == 4:
             # Extract alpha channel
             alpha = output_rgba[:, :, 3]
-            
+
             # Create a white background
             white_background = np.ones_like(output_rgba[:, :, :3]) * 255
-            
+
             # Blend the image with white background using alpha channel
             alpha_3channel = np.stack([alpha, alpha, alpha], axis=2) / 255.0
-            result_rgb = (output_rgba[:, :, :3] * alpha_3channel + 
-                         white_background * (1 - alpha_3channel)).astype(np.uint8)
+            result_rgb = (
+                output_rgba[:, :, :3] * alpha_3channel
+                + white_background * (1 - alpha_3channel)
+            ).astype(np.uint8)
         else:
             result_rgb = output_rgba[:, :, :3]
-        
+
         # Convert RGB back to BGR for OpenCV
         result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
-        
+
         return result_bgr
     except Exception as e:
         # If background removal fails, return the original image
