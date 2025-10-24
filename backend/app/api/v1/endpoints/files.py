@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.post("/extract-text")
 async def extract_text(
-    document_type: Annotated[str | None, Query()],
+    document_type: Annotated[str | None, Query],
     file: UploadFile,
 ):
     """
@@ -160,14 +160,12 @@ async def extract_text_intelligent_endpoint(
     document_type: Annotated[
         str | None,
         Query(
-            None,
             description="Type of document: receipt, invoice, document, form, screenshot, photo, general",
         ),
     ],
     language: Annotated[
         str | None,
         Query(
-            None,
             description="Language code: 'eng', 'spa', or 'eng+spa' (default: auto-detect)",
         ),
     ],
