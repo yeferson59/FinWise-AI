@@ -23,6 +23,7 @@ dependencies = [
     "rembg>=2.0.67",
     "onnxruntime>=1.23.2",
     "faster-whisper>=1.2.0",
+    "uvicorn>=0.38.0",
 ]
 
 [dependency-groups]

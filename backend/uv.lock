@@ -159,6 +159,7 @@ dependencies = [
     { name = "rembg" },
     { name = "sqlmodel" },
     { name = "uuid" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -189,6 +190,7 @@ requires-dist = [
     { name = "rembg", specifier = ">=2.0.67" },
     { name = "sqlmodel", specifier = ">=0.0.27" },
     { name = "uuid", specifier = ">=1.30" },
+    { name = "uvicorn", specifier = ">=0.38.0" },
 ]
 
 [package.metadata.requires-dev]
