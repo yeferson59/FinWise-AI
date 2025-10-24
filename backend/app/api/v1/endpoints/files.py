@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile, HTTPException, Query
 from app.services import storage, preprocessing, extraction
 from app.services import intelligent_extraction
 from app.ocr_config import DocumentType
+from faster_whisper import WhisperModel
 
 router = APIRouter()
 
@@ -290,3 +291,14 @@ async def get_supported_languages():
         "default": "eng+spa",
         "recommendation": "Use 'eng+spa' for best results with mixed-language documents",
     }
+
+
+model_audio = WhisperModel("base", device="cpu")
+
+
+@router.post("/audio/extract-text")
+async def transcribe_audio(file: UploadFile):
+    audio_path = await storage.save_file(file)
+    segments, info = model_audio.transcribe(audio=audio_path)
+    full_text = " ".join([segment.text for segment in segments])
+    return {"text": full_text.strip()}
