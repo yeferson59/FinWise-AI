@@ -18,7 +18,7 @@ This document details the optimizations implemented in the FinWise-AI backend Do
 
 The Dockerfile creates a production-optimized image with the following characteristics:
 
-- **Minimal size**: ~2-3 GB (including OCR models and deep learning libraries)
+- **Minimal size**: ~2.8 GB (including OCR models and deep learning libraries)
 - **Fast startup**: ~2-5 seconds
 - **Secure**: Non-root user, minimal attack surface
 - **Efficient**: Cached layers, optimized dependencies
@@ -80,7 +80,7 @@ FROM python:3.13-slim
 |------------|------|------|------|
 | `python:3.13` | ~1 GB | Complete toolset | Bloated, unnecessary tools |
 | `python:3.13-alpine` | ~50 MB | Smallest | musl libc incompatibility, longer builds |
-| `python:3.13-slim` | ~180 MB | **Best balance** | **Selected** |
+| `python:3.13-slim` | ~180 MB | Best balance ✅ | Larger than Alpine |
 
 **Why not Alpine?**
 - Many Python packages require glibc
@@ -273,7 +273,7 @@ For deployments without OCR needs:
 # pytesseract, easyocr, paddleocr, doctr
 ```
 
-**Result**: ~800 MB image (65% reduction)
+**Result**: ~800 MB image (71% reduction)
 
 ## Image Metrics
 
@@ -319,6 +319,8 @@ For deployments without OCR needs:
 - [x] Environment variable configuration
 - [x] Proper volume mounting
 - [x] Signal handling (graceful shutdown)
+
+**Note**: The uv package manager is pulled from `ghcr.io/astral-sh/uv:latest` as this is the official distribution method recommended by the uv team. All Python dependencies are pinned via `uv.lock` for reproducibility.
 
 ### ❌ Don'ts Avoided
 
