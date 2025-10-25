@@ -32,6 +32,7 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "ruff>=0.14.0",
     "zuban>=0.1.0",
 ]

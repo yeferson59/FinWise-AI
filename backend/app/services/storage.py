@@ -1,40 +1,111 @@
-import shutil
-import os
+"""
+File storage service using unified storage abstraction.
+
+This service provides backward-compatible file operations while using
+the new FileStorageInterface for seamless local and S3 support.
+"""
+
 from fastapi import UploadFile
-from app.config import get_settings
-from app.core.storage import s3_service
 from uuid import uuid4
 from datetime import datetime
+from app.core.file_storage import get_file_storage
 
 
 async def save_file(file: UploadFile) -> str:
-    settings = get_settings()
+    """
+    Save an uploaded file to configured storage backend.
+
+    Args:
+        file: The uploaded file
+
+    Returns:
+        Storage identifier (path or key) for the saved file
+
+    Raises:
+        ValueError: If filename is empty or file cannot be saved
+    """
     if not file.filename:
         raise ValueError("Filename cannot be empty")
 
-    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.split('.')[-1]}"
+    # Generate unique filename with timestamp
+    file_extension = file.filename.split(".")[-1] if "." in file.filename else ""
+    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if file_extension:
+        filename = f"{filename}.{file_extension}"
 
-    if settings.file_storage_type == "local":
-        upload_dir = settings.local_storage_path
+    # Read file content
+    file_content = await file.read()
+    content_type = file.content_type or "application/octet-stream"
 
-        os.makedirs(upload_dir, exist_ok=True)
+    # Get storage backend and save
+    storage = get_file_storage()
+    file_identifier = await storage.save_file(file_content, filename, content_type)
 
-        file_path = os.path.join(upload_dir, filename)
+    return file_identifier
 
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        return file_path
 
-    elif settings.file_storage_type == "s3":
-        file_content = await file.read()
-        content_type = file.content_type or "application/octet-stream"
-        exists = await s3_service.upload_file(
-            file_content=file_content, object_name=filename, content_type=content_type
-        )
-        if not exists:
-            raise ValueError("Failed to upload file to S3")
+async def retrieve_file(file_identifier: str) -> bytes:
+    """
+    Retrieve a file from storage.
 
-        return filename
+    Args:
+        file_identifier: Storage identifier returned by save_file
 
-    else:
-        raise ValueError(f"Unsupported file_storage_type: {settings.file_storage_type}")
+    Returns:
+        File content as bytes
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        ValueError: If file cannot be retrieved
+    """
+    storage = get_file_storage()
+    return await storage.retrieve_file(file_identifier)
+
+
+async def delete_file(file_identifier: str) -> bool:
+    """
+    Delete a file from storage.
+
+    Args:
+        file_identifier: Storage identifier returned by save_file
+
+    Returns:
+        True if deletion was successful, False otherwise
+    """
+    storage = get_file_storage()
+    return await storage.delete_file(file_identifier)
+
+
+async def file_exists(file_identifier: str) -> bool:
+    """
+    Check if a file exists in storage.
+
+    Args:
+        file_identifier: Storage identifier to check
+
+    Returns:
+        True if file exists, False otherwise
+    """
+    storage = get_file_storage()
+    return await storage.file_exists(file_identifier)
+
+
+def get_local_path(file_identifier: str):
+    """
+    Get a context manager for local file path access.
+
+    For local storage, returns the actual path.
+    For S3, downloads to temporary file and cleans up after use.
+
+    Args:
+        file_identifier: Storage identifier returned by save_file
+
+    Returns:
+        Context manager that yields a local file path
+
+    Example:
+        with get_local_path(file_id) as path:
+            text = extract_text(path)
+    """
+    storage = get_file_storage()
+    return storage.get_local_path(file_identifier)

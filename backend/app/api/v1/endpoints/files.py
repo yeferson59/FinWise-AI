@@ -31,7 +31,7 @@ async def extract_text(
 
     try:
         # Save uploaded file
-        file_path = await storage.save_file(file)
+        file_identifier = await storage.save_file(file)
 
         # Parse document type
         doc_type = None
@@ -44,22 +44,24 @@ async def extract_text(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Only preprocess images, not PDFs
-        if file_path.lower().endswith(".pdf"):
-            processed_path = file_path
-        else:
-            processed_path = preprocessing.preprocess_image(
-                file_path, document_type=doc_type
-            )
+        # Use context manager to get local path for processing
+        with storage.get_local_path(file_identifier) as local_path:
+            # Only preprocess images, not PDFs
+            if local_path.lower().endswith(".pdf"):
+                processed_path = local_path
+            else:
+                processed_path = preprocessing.preprocess_image(
+                    local_path, document_type=doc_type
+                )
 
-        # Extract text with document type optimization
-        raw_text = extraction.extract_text(processed_path, document_type=doc_type)
+            # Extract text with document type optimization
+            raw_text = extraction.extract_text(processed_path, document_type=doc_type)
 
-        return {
-            "raw_text": raw_text,
-            "document_type": document_type or "general",
-            "file_type": "pdf" if file_path.lower().endswith(".pdf") else "image",
-        }
+            return {
+                "raw_text": raw_text,
+                "document_type": document_type or "general",
+                "file_type": "pdf" if local_path.lower().endswith(".pdf") else "image",
+            }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -99,7 +101,7 @@ async def extract_text_with_confidence(
 
     try:
         # Save uploaded file
-        file_path = await storage.save_file(file)
+        file_identifier = await storage.save_file(file)
 
         # Parse document type
         doc_type = None
@@ -112,21 +114,23 @@ async def extract_text_with_confidence(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Preprocess image
-        processed_path = preprocessing.preprocess_image(
-            file_path, document_type=doc_type
-        )
+        # Use context manager to get local path for processing
+        with storage.get_local_path(file_identifier) as local_path:
+            # Preprocess image
+            processed_path = preprocessing.preprocess_image(
+                local_path, document_type=doc_type
+            )
 
-        # Extract text with confidence
-        raw_text, confidence_data = extraction.extract_text_with_confidence(
-            processed_path, document_type=doc_type
-        )
+            # Extract text with confidence
+            raw_text, confidence_data = extraction.extract_text_with_confidence(
+                processed_path, document_type=doc_type
+            )
 
-        return {
-            "raw_text": raw_text,
-            "confidence": confidence_data,
-            "document_type": document_type or "general",
-        }
+            return {
+                "raw_text": raw_text,
+                "confidence": confidence_data,
+                "document_type": document_type or "general",
+            }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -196,7 +200,7 @@ async def extract_text_intelligent_endpoint(
 
     try:
         # Save uploaded file
-        file_path = await storage.save_file(file)
+        file_identifier = await storage.save_file(file)
 
         # Parse document type
         doc_type = None
@@ -209,56 +213,57 @@ async def extract_text_intelligent_endpoint(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Only preprocess images, not PDFs
-        if file_path.lower().endswith(".pdf"):
-            processed_path = file_path
-            # For PDFs, use standard extraction
-            raw_text = extraction.extract_text(processed_path, document_type=doc_type)
-            cleaned_text = intelligent_extraction.clean_text(raw_text)
-            detected_lang = intelligent_extraction.detect_language(cleaned_text)
+        # Use context manager to get local path for processing
+        with storage.get_local_path(file_identifier) as local_path:
+            # Only preprocess images, not PDFs
+            if local_path.lower().endswith(".pdf"):
+                # For PDFs, use standard extraction
+                raw_text = extraction.extract_text(local_path, document_type=doc_type)
+                cleaned_text = intelligent_extraction.clean_text(raw_text)
+                detected_lang = intelligent_extraction.detect_language(cleaned_text)
 
-            return {
-                "text": cleaned_text,
-                "raw_text": raw_text,
-                "metadata": {
-                    "method_used": "pdf_direct",
-                    "detected_language": detected_lang,
-                    "text_length": len(cleaned_text),
-                    "file_type": "pdf",
-                },
-                "document_type": document_type or "general",
-                "quality": {
-                    "note": "PDF extraction does not provide confidence scores"
-                },
-            }
-        else:
-            # Preprocess image
-            processed_path = preprocessing.preprocess_image(
-                file_path, document_type=doc_type
-            )
-
-            # Use intelligent extraction with fallback
-            extracted_text, metadata = intelligent_extraction.extract_with_fallback(
-                processed_path, doc_type, language
-            )
-
-            # Get confidence data for quality assessment if available
-            if metadata.get("original_confidence"):
-                quality = intelligent_extraction.validate_extraction_quality(
-                    extracted_text, metadata["original_confidence"]
-                )
-            else:
-                quality = {
-                    "note": "Quality metrics not available for this extraction method"
+                return {
+                    "text": cleaned_text,
+                    "raw_text": raw_text,
+                    "metadata": {
+                        "method_used": "pdf_direct",
+                        "detected_language": detected_lang,
+                        "text_length": len(cleaned_text),
+                        "file_type": "pdf",
+                    },
+                    "document_type": document_type or "general",
+                    "quality": {
+                        "note": "PDF extraction does not provide confidence scores"
+                    },
                 }
+            else:
+                # Preprocess image
+                processed_path = preprocessing.preprocess_image(
+                    local_path, document_type=doc_type
+                )
 
-            return {
-                "text": extracted_text,
-                "metadata": metadata,
-                "document_type": document_type or "general",
-                "quality": quality,
-                "file_type": "image",
-            }
+                # Use intelligent extraction with fallback
+                extracted_text, metadata = intelligent_extraction.extract_with_fallback(
+                    processed_path, doc_type, language
+                )
+
+                # Get confidence data for quality assessment if available
+                if metadata.get("original_confidence"):
+                    quality = intelligent_extraction.validate_extraction_quality(
+                        extracted_text, metadata["original_confidence"]
+                    )
+                else:
+                    quality = {
+                        "note": "Quality metrics not available for this extraction method"
+                    }
+
+                return {
+                    "text": extracted_text,
+                    "metadata": metadata,
+                    "document_type": document_type or "general",
+                    "quality": quality,
+                    "file_type": "image",
+                }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -298,7 +303,8 @@ model_audio = WhisperModel("base", device="cpu")
 
 @router.post("/audio/extract-text")
 async def transcribe_audio(file: UploadFile):
-    audio_path = await storage.save_file(file)
-    segments, _ = model_audio.transcribe(audio=audio_path)
-    full_text = " ".join([segment.text for segment in segments])
+    file_identifier = await storage.save_file(file)
+    with storage.get_local_path(file_identifier) as local_path:
+        segments, _ = model_audio.transcribe(audio=local_path)
+        full_text = " ".join([segment.text for segment in segments])
     return {"text": full_text.strip()}
