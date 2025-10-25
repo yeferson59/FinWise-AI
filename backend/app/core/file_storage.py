@@ -18,24 +18,29 @@ from app.config import get_settings
 class FileStorageInterface(ABC):
     """
     Abstract base class for file storage backends.
-    
+
     Provides a unified interface for saving and retrieving files
     regardless of the underlying storage mechanism.
     """
 
     @abstractmethod
-    async def save_file(self, file_content: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
+    async def save_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+    ) -> str:
         """
         Save a file to storage.
-        
+
         Args:
             file_content: The file content as bytes
             filename: The name to save the file as
             content_type: MIME type of the file
-            
+
         Returns:
             Storage identifier (path or key) for the saved file
-            
+
         Raises:
             ValueError: If the file cannot be saved
         """
@@ -45,13 +50,13 @@ class FileStorageInterface(ABC):
     async def retrieve_file(self, file_identifier: str) -> bytes:
         """
         Retrieve a file from storage.
-        
+
         Args:
             file_identifier: Storage identifier returned by save_file
-            
+
         Returns:
             File content as bytes
-            
+
         Raises:
             FileNotFoundError: If the file doesn't exist
             ValueError: If the file cannot be retrieved
@@ -63,16 +68,16 @@ class FileStorageInterface(ABC):
     def get_local_path(self, file_identifier: str):
         """
         Context manager that provides a local file path for reading.
-        
+
         For local storage, this returns the actual path.
         For S3 storage, this downloads to a temporary file.
-        
+
         Args:
             file_identifier: Storage identifier returned by save_file
-            
+
         Yields:
             Path to a local file that can be read
-            
+
         Example:
             with storage.get_local_path("file.pdf") as local_path:
                 text = extract_text(local_path)
@@ -83,10 +88,10 @@ class FileStorageInterface(ABC):
     async def delete_file(self, file_identifier: str) -> bool:
         """
         Delete a file from storage.
-        
+
         Args:
             file_identifier: Storage identifier returned by save_file
-            
+
         Returns:
             True if deletion was successful, False otherwise
         """
@@ -96,10 +101,10 @@ class FileStorageInterface(ABC):
     async def file_exists(self, file_identifier: str) -> bool:
         """
         Check if a file exists in storage.
-        
+
         Args:
             file_identifier: Storage identifier to check
-            
+
         Returns:
             True if the file exists, False otherwise
         """
@@ -109,24 +114,29 @@ class FileStorageInterface(ABC):
 class LocalFileStorage(FileStorageInterface):
     """
     Local filesystem storage implementation.
-    
+
     Stores files in a local directory structure.
     """
 
     def __init__(self, base_path: str = "uploads"):
         """
         Initialize local file storage.
-        
+
         Args:
             base_path: Base directory for file storage
         """
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    async def save_file(self, file_content: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
+    async def save_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+    ) -> str:
         """Save file to local filesystem."""
         file_path = self.base_path / filename
-        
+
         try:
             with open(file_path, "wb") as f:
                 f.write(file_content)
@@ -137,10 +147,10 @@ class LocalFileStorage(FileStorageInterface):
     async def retrieve_file(self, file_identifier: str) -> bytes:
         """Retrieve file from local filesystem."""
         file_path = Path(file_identifier)
-        
+
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_identifier}")
-        
+
         try:
             with open(file_path, "rb") as f:
                 return f.read()
@@ -156,7 +166,7 @@ class LocalFileStorage(FileStorageInterface):
         file_path = Path(file_identifier)
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_identifier}")
-        
+
         yield str(file_path)
 
     async def delete_file(self, file_identifier: str) -> bool:
@@ -178,7 +188,7 @@ class LocalFileStorage(FileStorageInterface):
 class S3FileStorage(FileStorageInterface):
     """
     S3-compatible storage implementation.
-    
+
     Works with AWS S3 and S3-compatible services (MinIO, Backblaze B2, etc.).
     """
 
@@ -193,7 +203,7 @@ class S3FileStorage(FileStorageInterface):
     ):
         """
         Initialize S3 storage.
-        
+
         Args:
             bucket_name: S3 bucket name
             access_key: AWS access key ID
@@ -204,12 +214,11 @@ class S3FileStorage(FileStorageInterface):
         """
         self.bucket_name = bucket_name
         self.endpoint_url = endpoint_url
-        
+
         client_config = Config(
-            signature_version=signature_version,
-            s3={"addressing_style": "path"}
+            signature_version=signature_version, s3={"addressing_style": "path"}
         )
-        
+
         self.client_params = {
             "service_name": "s3",
             "aws_access_key_id": access_key,
@@ -217,13 +226,18 @@ class S3FileStorage(FileStorageInterface):
             "config": client_config,
             "region_name": region,
         }
-        
+
         if endpoint_url:
             self.client_params["endpoint_url"] = endpoint_url
-        
+
         self.session = aioboto3.Session()
 
-    async def save_file(self, file_content: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
+    async def save_file(
+        self,
+        file_content: bytes,
+        filename: str,
+        content_type: str = "application/octet-stream",
+    ) -> str:
         """Save file to S3."""
         try:
             async with self.session.client(**self.client_params) as s3:
@@ -242,8 +256,7 @@ class S3FileStorage(FileStorageInterface):
         try:
             async with self.session.client(**self.client_params) as s3:
                 response = await s3.get_object(
-                    Bucket=self.bucket_name,
-                    Key=file_identifier
+                    Bucket=self.bucket_name, Key=file_identifier
                 )
                 return await response["Body"].read()
         except Exception as e:
@@ -256,19 +269,21 @@ class S3FileStorage(FileStorageInterface):
         Cleans up the temporary file after use.
         """
         import asyncio
-        
+
         # Create a temporary file
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=Path(file_identifier).suffix)
+        temp_file = tempfile.NamedTemporaryFile(
+            delete=False, suffix=Path(file_identifier).suffix
+        )
         temp_path = temp_file.name
         temp_file.close()
-        
+
         try:
             # Download file from S3
             file_content = asyncio.run(self.retrieve_file(file_identifier))
-            
+
             with open(temp_path, "wb") as f:
                 f.write(file_content)
-            
+
             yield temp_path
         finally:
             # Clean up temporary file
@@ -282,10 +297,7 @@ class S3FileStorage(FileStorageInterface):
         """Delete file from S3."""
         try:
             async with self.session.client(**self.client_params) as s3:
-                await s3.delete_object(
-                    Bucket=self.bucket_name,
-                    Key=file_identifier
-                )
+                await s3.delete_object(Bucket=self.bucket_name, Key=file_identifier)
             return True
         except Exception:
             return False
@@ -294,10 +306,7 @@ class S3FileStorage(FileStorageInterface):
         """Check if file exists in S3."""
         try:
             async with self.session.client(**self.client_params) as s3:
-                await s3.head_object(
-                    Bucket=self.bucket_name,
-                    Key=file_identifier
-                )
+                await s3.head_object(Bucket=self.bucket_name, Key=file_identifier)
             return True
         except Exception:
             return False
@@ -306,32 +315,34 @@ class S3FileStorage(FileStorageInterface):
 def get_file_storage() -> FileStorageInterface:
     """
     Factory function to get the configured file storage backend.
-    
+
     Returns:
         FileStorageInterface instance configured based on settings
-        
+
     Raises:
         ValueError: If storage type is not supported
-        
+
     Example:
         storage = get_file_storage()
         file_id = await storage.save_file(content, "document.pdf")
     """
     settings = get_settings()
-    
+
     if settings.file_storage_type == "local":
         return LocalFileStorage(base_path=settings.local_storage_path)
     elif settings.file_storage_type == "s3":
-        if not all([
-            settings.s3_bucket,
-            settings.s3_access_key,
-            settings.s3_secret_key,
-        ]):
+        if not all(
+            [
+                settings.s3_bucket,
+                settings.s3_access_key,
+                settings.s3_secret_key,
+            ]
+        ):
             raise ValueError(
                 "S3 storage requires S3_BUCKET, S3_ACCESS_KEY, and S3_SECRET_KEY "
                 "to be configured in environment variables"
             )
-        
+
         return S3FileStorage(
             bucket_name=settings.s3_bucket,
             access_key=settings.s3_access_key,
