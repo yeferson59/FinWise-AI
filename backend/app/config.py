@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     openai_api_key: str = ""
     prefix_api: str = "/api/v1"
+    database: str = "sqlite"
     database_url: str = "sqlite:///database.db"
     secret_key: str = ""
     algorithm: str = ""

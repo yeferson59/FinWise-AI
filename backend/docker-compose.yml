@@ -31,9 +31,10 @@ services:
 
       # Database Configuration
       # For SQLite (development/simple deployments):
-      DATABASE_URL: ${DATABASE_URL:-sqlite:///database.db}
+      # DATABASE_URL: ${DATABASE_URL:-sqlite:///database.db}
       # For PostgreSQL (recommended for production):
-      # DATABASE_URL: postgresql://finwise:password@postgres:5432/finwise
+      DATABASE_URL: postgresql://finwise:password@postgres:5432/finwise
+      DATABASE: ${DATABASE:-postgres}
 
       # Security & Authentication (REQUIRED)
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY environment variable is required}
@@ -74,25 +75,25 @@ services:
 
   # PostgreSQL Database (optional, recommended for production)
   # Uncomment this section to use PostgreSQL instead of SQLite
-  # postgres:
-  #   image: postgres:16-alpine
-  #   container_name: finwise-postgres
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: finwise
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-  #     POSTGRES_DB: finwise
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U finwise"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - finwise-network
+  postgres:
+    image: postgres:17-alpine
+    container_name: finwise-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finwise
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: finwise
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finwise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finwise-network
 
   # pgAdmin (optional, for database management)
   # Uncomment this section if you want a web UI for PostgreSQL
@@ -118,8 +119,8 @@ volumes:
     driver: local
   finwise-data:
     driver: local
-  # postgres-data:
-  #   driver: local
+  postgres-data:
+    driver: local
   # pgadmin-data:
   #   driver: local
 
