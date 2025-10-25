@@ -1,12 +1,43 @@
+"""
+DEPRECATED: This module is deprecated and will be removed in a future version.
+
+Use app.core.file_storage instead, which provides a unified abstraction
+for both local and S3 storage with better error handling and features.
+
+Migration guide:
+    Old: from app.core.storage import s3_service
+    New: from app.core.file_storage import get_file_storage
+         storage = get_file_storage()  # Returns S3FileStorage or LocalFileStorage
+
+The new abstraction provides:
+- Unified interface for local and S3 storage
+- Context manager for transparent local path access
+- Better error handling
+- Support for file existence checks and deletion
+"""
+
 import aioboto3
 from app.config import get_settings
 from botocore.client import Config
 from typing import Any
+import warnings
+
+warnings.warn(
+    "app.core.storage is deprecated. Use app.core.file_storage instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 settings = get_settings()
 
 
 class S3Storage:
+    """
+    DEPRECATED: Use S3FileStorage from app.core.file_storage instead.
+    
+    This class is maintained for backward compatibility only.
+    """
+
     def __init__(
         self,
         access_key: str,
@@ -57,13 +88,17 @@ class S3Storage:
     ) -> bytes | None:
         async with self.session.client(**self.client_params) as s3:
             try:
-                response = await s3.get_object(Bucket=self.bucket_name, Key=object_name)
+                response = await s3.get_object(
+                    Bucket=self.bucket_name, Key=object_name
+                )
                 return await response["Body"].read()
             except Exception as e:
                 print(f"Error downloading file: {e}")
                 return None
 
 
+# DEPRECATED: This instance is maintained for backward compatibility only
+# Use get_file_storage() from app.core.file_storage instead
 s3_service = S3Storage(
     access_key=settings.s3_access_key,
     secret_key=settings.s3_secret_key,
