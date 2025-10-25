@@ -2,7 +2,7 @@
 # Docker Compose Configuration for FinWise-AI Backend
 # =============================================================================
 # This file provides an easy way to run the backend with all required services
-# 
+#
 # Usage:
 #   docker-compose up -d           # Start services in background
 #   docker-compose logs -f         # View logs
@@ -28,34 +28,43 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-production}
       VERSION: ${VERSION:-1.0.0}
       PREFIX_API: ${PREFIX_API:-/api/v1}
-      
+
       # Database Configuration
       # For SQLite (development/simple deployments):
       DATABASE_URL: ${DATABASE_URL:-sqlite:///database.db}
       # For PostgreSQL (recommended for production):
       # DATABASE_URL: postgresql://finwise:password@postgres:5432/finwise
-      
+
       # Security & Authentication (REQUIRED)
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY environment variable is required}
       ALGORITHM: ${ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
-      
+
       # AI/LLM Configuration (REQUIRED for AI features)
       OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY environment variable is required}
       MODELS: ${MODELS:-nvidia/llama-3.3-nemotron-70b-instruct}
       TEMPERATURE: ${TEMPERATURE:-0.2}
       TOP_P: ${TOP_P:-0.3}
-      
+
       # File Storage
       FILE_STORAGE_TYPE: ${FILE_STORAGE_TYPE:-local}
       LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-uploads}
+
+      # Numba Cache Configuration (fixes Python 3.13 caching issues)
+      NUMBA_CACHE_DIR: /tmp/numba_cache
     volumes:
       # Persistent storage for uploads
       - finwise-uploads:/app/uploads
       # Persistent storage for SQLite database (if using SQLite)
-      - finwise-data:/app
+      - finwise-data:/app/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/').read()"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/').read()",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -118,11 +127,10 @@ volumes:
 networks:
   finwise-network:
     driver: bridge
-
 # =============================================================================
 # Configuration Instructions:
 # =============================================================================
-# 
+#
 # 1. Create a .env file in the backend directory with required variables:
 #
 #    SECRET_KEY=your-super-secret-key-min-32-chars
@@ -152,7 +160,7 @@ networks:
 # =============================================================================
 #
 # For production, we recommend:
-# 
+#
 # 1. Use PostgreSQL instead of SQLite:
 #    - Uncomment the postgres service above
 #    - Set DATABASE_URL=postgresql://finwise:password@postgres:5432/finwise
