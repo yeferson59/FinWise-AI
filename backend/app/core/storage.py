@@ -34,7 +34,7 @@ settings = get_settings()
 class S3Storage:
     """
     DEPRECATED: Use S3FileStorage from app.core.file_storage instead.
-    
+
     This class is maintained for backward compatibility only.
     """
 
