@@ -1,0 +1,191 @@
+# =============================================================================
+# Docker Compose Configuration for FinWise-AI Backend
+# =============================================================================
+# This file provides an easy way to run the backend with all required services
+#
+# Usage:
+#   docker-compose up -d           # Start services in background
+#   docker-compose logs -f         # View logs
+#   docker-compose down            # Stop services
+#   docker-compose down -v         # Stop and remove volumes
+# =============================================================================
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finwise-backend:latest
+    container_name: finwise-backend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      # Application Settings
+      APP_NAME: ${APP_NAME:-FinWise API}
+      PORT: ${PORT:-8000}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      VERSION: ${VERSION:-1.0.0}
+      PREFIX_API: ${PREFIX_API:-/api/v1}
+
+      # Database Configuration
+      # For SQLite (development/simple deployments):
+      # DATABASE_URL: ${DATABASE_URL:-sqlite:///database.db}
+      # For PostgreSQL (recommended for production):
+      DATABASE_URL: postgresql://finwise:password@postgres:5432/finwise
+      DATABASE: ${DATABASE:-postgres}
+
+      # Security & Authentication (REQUIRED)
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY environment variable is required}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+
+      # AI/LLM Configuration (REQUIRED for AI features)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY environment variable is required}
+      MODELS: ${MODELS:-nvidia/llama-3.3-nemotron-70b-instruct}
+      TEMPERATURE: ${TEMPERATURE:-0.2}
+      TOP_P: ${TOP_P:-0.3}
+
+      # File Storage
+      FILE_STORAGE_TYPE: ${FILE_STORAGE_TYPE:-local}
+      LOCAL_STORAGE_PATH: ${LOCAL_STORAGE_PATH:-uploads}
+
+      # Numba Cache Configuration (fixes Python 3.13 caching issues)
+      NUMBA_CACHE_DIR: /tmp/numba_cache
+    volumes:
+      # Persistent storage for uploads
+      - finwise-uploads:/app/uploads
+      # Persistent storage for SQLite database (if using SQLite)
+      - finwise-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/').read()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - finwise-network
+
+  # PostgreSQL Database (optional, recommended for production)
+  # Uncomment this section to use PostgreSQL instead of SQLite
+  postgres:
+    image: postgres:17-alpine
+    container_name: finwise-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finwise
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: finwise
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finwise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finwise-network
+
+  # pgAdmin (optional, for database management)
+  # Uncomment this section if you want a web UI for PostgreSQL
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: finwise-pgadmin
+  #   restart: unless-stopped
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@finwise.local
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+  #   ports:
+  #     - "5050:80"
+  #   volumes:
+  #     - pgadmin-data:/var/lib/pgadmin
+  #   networks:
+  #     - finwise-network
+  #   depends_on:
+  #     - postgres
+
+# Named volumes for persistent data
+volumes:
+  finwise-uploads:
+    driver: local
+  finwise-data:
+    driver: local
+  postgres-data:
+    driver: local
+  # pgadmin-data:
+  #   driver: local
+
+# Network for service communication
+networks:
+  finwise-network:
+    driver: bridge
+# =============================================================================
+# Configuration Instructions:
+# =============================================================================
+#
+# 1. Create a .env file in the backend directory with required variables:
+#
+#    SECRET_KEY=your-super-secret-key-min-32-chars
+#    OPENAI_API_KEY=your-openrouter-api-key-here
+#    DATABASE_URL=sqlite:///database.db
+#
+# 2. Generate a secure SECRET_KEY:
+#
+#    python -c "import secrets; print(secrets.token_urlsafe(32))"
+#
+# 3. Start the services:
+#
+#    docker-compose up -d
+#
+# 4. View logs:
+#
+#    docker-compose logs -f backend
+#
+# 5. Access the API:
+#
+#    - API: http://localhost:8000/api/v1/
+#    - Docs: http://localhost:8000/docs
+#    - Health: http://localhost:8000/api/v1/health/
+#
+# =============================================================================
+# Production Deployment:
+# =============================================================================
+#
+# For production, we recommend:
+#
+# 1. Use PostgreSQL instead of SQLite:
+#    - Uncomment the postgres service above
+#    - Set DATABASE_URL=postgresql://finwise:password@postgres:5432/finwise
+#
+# 2. Use strong passwords:
+#    - Generate strong SECRET_KEY and DB_PASSWORD
+#    - Store secrets in a secure secrets manager
+#
+# 3. Configure resource limits:
+#    - Add deploy.resources.limits to services
+#    - Set appropriate CPU and memory limits
+#
+# 4. Use external storage for production:
+#    - Configure S3 or cloud storage for uploads
+#    - Set FILE_STORAGE_TYPE=s3 and provide S3 credentials
+#
+# 5. Set up reverse proxy (nginx/traefik):
+#    - Add HTTPS/TLS termination
+#    - Configure proper CORS settings
+#    - Add rate limiting and security headers
+#
+# 6. Enable monitoring:
+#    - Add logging aggregation (ELK, Loki)
+#    - Set up metrics collection (Prometheus)
+#    - Configure alerting (AlertManager)
+#
+# =============================================================================

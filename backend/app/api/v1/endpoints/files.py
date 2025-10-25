@@ -299,6 +299,6 @@ model_audio = WhisperModel("base", device="cpu")
 @router.post("/audio/extract-text")
 async def transcribe_audio(file: UploadFile):
     audio_path = await storage.save_file(file)
-    segments, info = model_audio.transcribe(audio=audio_path)
+    segments, _ = model_audio.transcribe(audio=audio_path)
     full_text = " ".join([segment.text for segment in segments])
     return {"text": full_text.strip()}

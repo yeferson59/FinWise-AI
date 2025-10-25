@@ -772,28 +772,47 @@ return OpenAIChatModel("gpt-4-turbo", api_key=settings.openai_api_key)
 
 #### 1. Docker Deployment (Recommended)
 
-**Note**: Dockerfile not yet created. When implementing:
+**✅ Now Available!** The backend now includes an optimized production-ready Dockerfile.
 
-```dockerfile
-FROM python:3.13-slim
+**Quick Start with Docker:**
+```bash
+cd backend
 
-# Install Tesseract and system dependencies
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    tesseract-ocr-spa \
-    && rm -rf /var/lib/apt/lists/*
+# Build the image
+docker build -t finwise-backend:latest .
 
-WORKDIR /app
-COPY . .
-
-# Install uv and dependencies
-RUN pip install uv
-RUN uv sync --no-dev
-
-EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the container
+docker run -d \
+  -p 8000:8000 \
+  -e SECRET_KEY="your-secret-key-min-32-chars" \
+  -e OPENAI_API_KEY="your-api-key" \
+  -e DATABASE_URL="sqlite:///database.db" \
+  --name finwise-backend \
+  finwise-backend:latest
 ```
+
+**Or use Docker Compose (easier):**
+```bash
+# Copy and configure environment file
+cp .env.docker.example .env
+# Edit .env with your values
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+```
+
+**📚 For complete Docker deployment guide, see [DOCKER.md](DOCKER.md)**
+
+**Features:**
+- ✅ Multi-stage builds for minimal image size (~2-3 GB)
+- ✅ Non-root user for security
+- ✅ Health checks included
+- ✅ Optimized with uv package manager
+- ✅ Includes Tesseract OCR with English and Spanish
+- ✅ Comprehensive documentation
 
 #### 2. Traditional Server Deployment
 
@@ -970,8 +989,12 @@ jobs:
   - Session management and revocation
   - API key rotation
 
-- [ ] **Production Readiness**
-  - Dockerization (Dockerfile + docker-compose)
+- [x] **Production Readiness - Docker** ✅
+  - ✅ Dockerization (Dockerfile + docker-compose)
+  - ✅ Multi-stage builds for optimization
+  - ✅ Production-ready configuration
+  - ✅ Comprehensive deployment documentation
+- [ ] **Production Readiness - CI/CD & Monitoring**
   - CI/CD pipeline (GitHub Actions)
   - Monitoring and alerting (Sentry, Prometheus)
   - Load testing and performance optimization
@@ -998,6 +1021,7 @@ jobs:
 - [x] API documentation (OpenAPI)
 - [x] Development environment setup (uv)
 - [x] Code quality tools (Ruff, Zuban)
+- [x] Docker deployment (Dockerfile + docker-compose + documentation)
 
 ## Code Quality and Development Practices
 
