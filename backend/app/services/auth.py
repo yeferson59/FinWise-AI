@@ -49,7 +49,7 @@ async def register(session: SessionDep, register_data: auth.Register) -> str:
     if register_data.password != register_data.confirm_password:
         return "No successfully"
 
-    user_create = user_schemas.UserCreate(
+    user_create = user_schemas.CreateUser(
         first_name=register_data.first_name,
         last_name=register_data.last_name,
         email=register_data.email,
