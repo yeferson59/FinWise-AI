@@ -31,6 +31,7 @@ async def extract_text(
         raise HTTPException(status_code=400, detail="Invalid file format")
 
     processed_path = None
+    is_pdf = False
     try:
         # Step 1: Save uploaded file to storage (local or S3)
         file_identifier = await storage.save_file(file)
@@ -48,8 +49,10 @@ async def extract_text(
 
         # Step 2: Use context manager to get local path for processing
         with storage.get_local_path(file_identifier) as local_path:
+            is_pdf = local_path.lower().endswith(".pdf")
+            
             # Only preprocess images, not PDFs
-            if local_path.lower().endswith(".pdf"):
+            if is_pdf:
                 processed_path = local_path
             else:
                 # Step 3: Preprocess image (saved to temp location)
@@ -63,7 +66,7 @@ async def extract_text(
             # Step 5: Upload preprocessed image to S3 if configured
             settings = get_settings()
             processed_file_id = None
-            if settings.file_storage_type == "s3" and not local_path.lower().endswith(".pdf"):
+            if settings.file_storage_type == "s3" and not is_pdf:
                 try:
                     processed_file_id = await storage.save_file_from_path(
                         processed_path, 
@@ -76,7 +79,7 @@ async def extract_text(
             result = {
                 "raw_text": raw_text,
                 "document_type": document_type or "general",
-                "file_type": "pdf" if local_path.lower().endswith(".pdf") else "image",
+                "file_type": "pdf" if is_pdf else "image",
             }
             
             if processed_file_id:
@@ -89,8 +92,8 @@ async def extract_text(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
     finally:
-        # Step 6: Clean up temporary preprocessed file
-        if processed_path and processed_path != local_path:
+        # Step 6: Clean up temporary preprocessed file (only if it's not a PDF and not the original)
+        if processed_path and not is_pdf:
             preprocessing.cleanup_temp_file(processed_path)
 
 
@@ -246,6 +249,7 @@ async def extract_text_intelligent_endpoint(
         raise HTTPException(status_code=400, detail="Invalid file format")
 
     processed_path = None
+    is_pdf = False
     try:
         # Step 1: Save uploaded file
         file_identifier = await storage.save_file(file)
@@ -263,8 +267,10 @@ async def extract_text_intelligent_endpoint(
 
         # Step 2: Use context manager to get local path for processing
         with storage.get_local_path(file_identifier) as local_path:
+            is_pdf = local_path.lower().endswith(".pdf")
+            
             # Only preprocess images, not PDFs
-            if local_path.lower().endswith(".pdf"):
+            if is_pdf:
                 # For PDFs, use standard extraction
                 raw_text = extraction.extract_text(local_path, document_type=doc_type)
                 cleaned_text = intelligent_extraction.clean_text(raw_text)
@@ -335,8 +341,8 @@ async def extract_text_intelligent_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
     finally:
-        # Step 6: Clean up temporary preprocessed file
-        if processed_path:
+        # Step 6: Clean up temporary preprocessed file (only for images)
+        if processed_path and not is_pdf:
             preprocessing.cleanup_temp_file(processed_path)
 
 
