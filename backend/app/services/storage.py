@@ -53,7 +53,7 @@ async def save_file_locally(file: UploadFile) -> str:
     file_identifier = await storage.save_file(file_content, filename, content_type)
 
     # Return the absolute path
-    return file_identifier
+    return str(Path(file_identifier).resolve())
 
 
 async def save_file(file: UploadFile) -> str:
