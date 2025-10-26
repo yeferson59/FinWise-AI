@@ -66,7 +66,7 @@ async def extract_text(
         # Step 5: Extract text with document type optimization
         raw_text = extraction.extract_text(processed_path, document_type=doc_type)
 
-        # Step 6: After successful OCR, upload original file to S3 if configured
+        # Step 5: After successful OCR, upload original file to S3 if configured
         settings = get_settings()
         if settings.file_storage_type == "s3":
             try:
