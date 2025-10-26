@@ -96,7 +96,7 @@ async def extract_text(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
     finally:
-        # Step 7: Clean up temporary files
+        # Step 6: Clean up temporary files
         # Clean up preprocessed image (only if it's not a PDF and not the original)
         if processed_path and not is_pdf and processed_path != local_path:
             preprocessing.cleanup_temp_file(processed_path)
