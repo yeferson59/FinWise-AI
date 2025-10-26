@@ -69,6 +69,10 @@ def extract_text_from_image(
     language = config.get_language()
 
     try:
+        # Ensure image is in RGB mode (some formats cause Tesseract errors)
+        if image.mode not in ('RGB', 'L', 'RGBA'):
+            image = image.convert('RGB')
+        
         # Extract text with custom configuration
         extracted_text = pytesseract.image_to_string(
             image, lang=language, config=tesseract_config
@@ -79,7 +83,32 @@ def extract_text_from_image(
             return extracted_text.strip()
         return ""
     except Exception as e:
-        raise ValueError(f"Error during OCR processing: {str(e)}")
+        # Fallback: try with a converted image in case format is problematic
+        try:
+            # Convert to RGB if not already
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Save to temporary file in PNG format (most compatible)
+            import tempfile
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
+            image.save(temp_path, format='PNG')
+            
+            # Try again with the temporary file
+            extracted_text = pytesseract.image_to_string(
+                Image.open(temp_path), lang=language, config=tesseract_config
+            )
+            
+            # Clean up temp file
+            import os
+            os.close(temp_fd)
+            os.unlink(temp_path)
+            
+            if isinstance(extracted_text, str):
+                return extracted_text.strip()
+            return ""
+        except Exception as fallback_error:
+            raise ValueError(f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}")
 
 
 def extract_text(
