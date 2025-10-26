@@ -48,9 +48,9 @@ async def extract_text(
                 )
 
         # Step 2: Use context manager to get local path for processing
-        with storage.get_local_path(file_identifier) as local_path:
+        async with storage.get_local_path(file_identifier) as local_path:
             is_pdf = local_path.lower().endswith(".pdf")
-            
+
             # Only preprocess images, not PDFs
             if is_pdf:
                 processed_path = local_path
@@ -62,15 +62,14 @@ async def extract_text(
 
             # Step 4: Extract text with document type optimization
             raw_text = extraction.extract_text(processed_path, document_type=doc_type)
-            
+
             # Step 5: Upload preprocessed image to S3 if configured
             settings = get_settings()
             processed_file_id = None
             if settings.file_storage_type == "s3" and not is_pdf:
                 try:
                     processed_file_id = await storage.save_file_from_path(
-                        processed_path, 
-                        filename=f"preprocessed_{file_identifier}"
+                        processed_path, filename=f"preprocessed_{file_identifier}"
                     )
                 except Exception as e:
                     # Log but don't fail if upload doesn't work
@@ -81,10 +80,10 @@ async def extract_text(
                 "document_type": document_type or "general",
                 "file_type": "pdf" if is_pdf else "image",
             }
-            
+
             if processed_file_id:
                 result["preprocessed_file_id"] = processed_file_id
-            
+
             return result
 
     except ValueError as e:
@@ -144,7 +143,7 @@ async def extract_text_with_confidence(
                 )
 
         # Step 2: Use context manager to get local path for processing
-        with storage.get_local_path(file_identifier) as local_path:
+        async with storage.get_local_path(file_identifier) as local_path:
             # Step 3: Preprocess image (saved to temp location)
             processed_path = preprocessing.preprocess_image(
                 local_path, document_type=doc_type, save_to_temp=True
@@ -154,15 +153,14 @@ async def extract_text_with_confidence(
             raw_text, confidence_data = extraction.extract_text_with_confidence(
                 processed_path, document_type=doc_type
             )
-            
+
             # Step 5: Upload preprocessed image to S3 if configured
             settings = get_settings()
             processed_file_id = None
             if settings.file_storage_type == "s3":
                 try:
                     processed_file_id = await storage.save_file_from_path(
-                        processed_path, 
-                        filename=f"preprocessed_{file_identifier}"
+                        processed_path, filename=f"preprocessed_{file_identifier}"
                     )
                 except Exception as e:
                     print(f"Warning: Failed to upload preprocessed image to S3: {e}")
@@ -172,10 +170,10 @@ async def extract_text_with_confidence(
                 "confidence": confidence_data,
                 "document_type": document_type or "general",
             }
-            
+
             if processed_file_id:
                 result["preprocessed_file_id"] = processed_file_id
-            
+
             return result
 
     except ValueError as e:
@@ -266,9 +264,9 @@ async def extract_text_intelligent_endpoint(
                 )
 
         # Step 2: Use context manager to get local path for processing
-        with storage.get_local_path(file_identifier) as local_path:
+        async with storage.get_local_path(file_identifier) as local_path:
             is_pdf = local_path.lower().endswith(".pdf")
-            
+
             # Only preprocess images, not PDFs
             if is_pdf:
                 # For PDFs, use standard extraction
@@ -310,18 +308,19 @@ async def extract_text_intelligent_endpoint(
                     quality = {
                         "note": "Quality metrics not available for this extraction method"
                     }
-                
+
                 # Step 5: Upload preprocessed image to S3 if configured
                 settings = get_settings()
                 processed_file_id = None
                 if settings.file_storage_type == "s3":
                     try:
                         processed_file_id = await storage.save_file_from_path(
-                            processed_path, 
-                            filename=f"preprocessed_{file_identifier}"
+                            processed_path, filename=f"preprocessed_{file_identifier}"
                         )
                     except Exception as e:
-                        print(f"Warning: Failed to upload preprocessed image to S3: {e}")
+                        print(
+                            f"Warning: Failed to upload preprocessed image to S3: {e}"
+                        )
 
                 result = {
                     "text": extracted_text,
@@ -330,10 +329,10 @@ async def extract_text_intelligent_endpoint(
                     "quality": quality,
                     "file_type": "image",
                 }
-                
+
                 if processed_file_id:
                     result["preprocessed_file_id"] = processed_file_id
-                
+
                 return result
 
     except ValueError as e:
@@ -379,7 +378,7 @@ model_audio = WhisperModel("base", device="cpu")
 @router.post("/audio/extract-text")
 async def transcribe_audio(file: UploadFile):
     file_identifier = await storage.save_file(file)
-    with storage.get_local_path(file_identifier) as local_path:
+    async with storage.get_local_path(file_identifier) as local_path:
         segments, _ = model_audio.transcribe(audio=local_path)
         full_text = " ".join([segment.text for segment in segments])
     return {"text": full_text.strip()}
