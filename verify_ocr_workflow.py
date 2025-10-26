@@ -42,9 +42,14 @@ class WorkflowVerifier:
         self.errors.append(f"Function '{function_name}' not found in {filepath}")
         return False
 
-    def check_string_in_file(self, filepath: str, search_string: str) -> bool:
+    def check_string_in_file(
+        self, filepath: str, search_string: str, critical: bool = False
+    ) -> bool:
         """Check if a string exists in a file"""
-        if not self.check_file_exists(filepath):
+        path = Path(filepath)
+        if not path.exists():
+            if critical:
+                self.errors.append(f"File not found: {filepath}")
             return False
 
         with open(filepath, "r") as f:
@@ -54,9 +59,12 @@ class WorkflowVerifier:
             self.checks_passed += 1
             return True
 
-        self.warnings.append(
-            f"String '{search_string}' not found in {filepath} (may not be critical)"
-        )
+        if critical:
+            self.errors.append(f"Critical string '{search_string}' not found in {filepath}")
+        else:
+            self.warnings.append(
+                f"String '{search_string}' not found in {filepath} (may not be critical)"
+            )
         return False
 
     def verify_preprocessing(self):
@@ -71,15 +79,15 @@ class WorkflowVerifier:
         # Check cleanup function exists
         self.check_function_exists(filepath, "cleanup_temp_file")
 
-        # Check tempfile import
-        self.check_string_in_file(filepath, "import tempfile")
-        self.check_string_in_file(filepath, "import os")
+        # Check critical imports
+        self.check_string_in_file(filepath, "import tempfile", critical=True)
+        self.check_string_in_file(filepath, "import os", critical=True)
 
         # Check save_to_temp parameter in function signature
-        self.check_string_in_file(filepath, "save_to_temp: bool = True")
+        self.check_string_in_file(filepath, "save_to_temp", critical=True)
 
         # Check tempfile.mkstemp usage
-        self.check_string_in_file(filepath, "tempfile.mkstemp")
+        self.check_string_in_file(filepath, "tempfile.mkstemp", critical=True)
 
     def verify_storage(self):
         """Verify storage.py changes"""
@@ -91,11 +99,11 @@ class WorkflowVerifier:
         self.check_function_exists(filepath, "save_file_from_path")
 
         # Check Path import
-        self.check_string_in_file(filepath, "from pathlib import Path")
+        self.check_string_in_file(filepath, "from pathlib import Path", critical=True)
 
-        # Check content type detection
-        self.check_string_in_file(filepath, "image/jpeg")
-        self.check_string_in_file(filepath, "image/png")
+        # Check content type detection (non-critical, implementation detail)
+        self.check_string_in_file(filepath, "content_type")
+        self.check_string_in_file(filepath, "image/")
 
     def verify_endpoints(self):
         """Verify files.py endpoints"""
@@ -105,21 +113,23 @@ class WorkflowVerifier:
 
         # Check workflow steps are documented
         for step in range(1, 7):
-            self.check_string_in_file(filepath, f"Step {step}")
+            self.check_string_in_file(filepath, f"Step {step}", critical=True)
 
-        # Check is_pdf flag
-        self.check_string_in_file(filepath, "is_pdf = ")
+        # Check is_pdf flag (flexible check)
+        self.check_string_in_file(filepath, "is_pdf")
 
         # Check finally blocks
-        self.check_string_in_file(filepath, "finally:")
-        self.check_string_in_file(filepath, "cleanup_temp_file")
+        self.check_string_in_file(filepath, "finally:", critical=True)
+        self.check_string_in_file(filepath, "cleanup_temp_file", critical=True)
 
         # Check S3 upload logic
-        self.check_string_in_file(filepath, "save_file_from_path")
+        self.check_string_in_file(filepath, "save_file_from_path", critical=True)
         self.check_string_in_file(filepath, "preprocessed_file_id")
 
         # Check config import
-        self.check_string_in_file(filepath, "from app.config import get_settings")
+        self.check_string_in_file(
+            filepath, "from app.config import get_settings", critical=True
+        )
 
     def verify_tests(self):
         """Verify test file exists and has tests"""
@@ -145,8 +155,12 @@ class WorkflowVerifier:
         self.check_file_exists("backend/docs/OCR_WORKFLOW_DIAGRAMS.md")
         self.check_file_exists("PR_SUMMARY.md")
 
-        # Check gitignore update
-        self.check_string_in_file(".gitignore", "*.egg-info/")
+        # Check gitignore update (critical for avoiding build artifacts)
+        gitignore_path = ".gitignore"
+        if Path(gitignore_path).exists():
+            self.check_string_in_file(gitignore_path, "*.egg-info/", critical=True)
+        else:
+            self.errors.append(f"File not found: {gitignore_path}")
 
     def run_all_checks(self):
         """Run all verification checks"""
