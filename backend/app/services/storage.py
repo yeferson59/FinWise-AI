@@ -8,6 +8,7 @@ the new FileStorageInterface for seamless local and S3 support.
 from fastapi import UploadFile
 from uuid import uuid4
 from datetime import datetime
+from pathlib import Path
 from app.core.file_storage import get_file_storage
 
 
@@ -37,6 +38,56 @@ async def save_file(file: UploadFile) -> str:
     file_content = await file.read()
     content_type = file.content_type or "application/octet-stream"
 
+    # Get storage backend and save
+    storage = get_file_storage()
+    file_identifier = await storage.save_file(file_content, filename, content_type)
+
+    return file_identifier
+
+
+async def save_file_from_path(filepath: str, filename: str | None = None) -> str:
+    """
+    Save a file from a local path to configured storage backend.
+    
+    This is useful for uploading preprocessed images to S3 after OCR processing.
+
+    Args:
+        filepath: Path to the local file to upload
+        filename: Optional custom filename, otherwise uses the original filename
+
+    Returns:
+        Storage identifier (path or key) for the saved file
+
+    Raises:
+        ValueError: If file cannot be saved or doesn't exist
+        FileNotFoundError: If the file doesn't exist
+    """
+    file_path = Path(filepath)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    
+    # Use provided filename or generate one from the original
+    if filename is None:
+        # Generate unique filename with timestamp
+        file_extension = file_path.suffix
+        filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}{file_extension}"
+    
+    # Read file content
+    with open(filepath, "rb") as f:
+        file_content = f.read()
+    
+    # Determine content type based on extension
+    content_type = "application/octet-stream"
+    if filepath.lower().endswith((".jpg", ".jpeg")):
+        content_type = "image/jpeg"
+    elif filepath.lower().endswith(".png"):
+        content_type = "image/png"
+    elif filepath.lower().endswith(".pdf"):
+        content_type = "application/pdf"
+    elif filepath.lower().endswith((".tiff", ".tif")):
+        content_type = "image/tiff"
+    
     # Get storage backend and save
     storage = get_file_storage()
     file_identifier = await storage.save_file(file_content, filename, content_type)

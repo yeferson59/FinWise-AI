@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile, HTTPException, Query
 from app.services import storage, preprocessing, extraction
 from app.services import intelligent_extraction
 from app.ocr_config import DocumentType
+from app.config import get_settings
 from faster_whisper import WhisperModel
 
 router = APIRouter()
@@ -29,8 +30,9 @@ async def extract_text(
     ):
         raise HTTPException(status_code=400, detail="Invalid file format")
 
+    processed_path = None
     try:
-        # Save uploaded file
+        # Step 1: Save uploaded file to storage (local or S3)
         file_identifier = await storage.save_file(file)
 
         # Parse document type
@@ -44,29 +46,52 @@ async def extract_text(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Use context manager to get local path for processing
+        # Step 2: Use context manager to get local path for processing
         with storage.get_local_path(file_identifier) as local_path:
             # Only preprocess images, not PDFs
             if local_path.lower().endswith(".pdf"):
                 processed_path = local_path
             else:
+                # Step 3: Preprocess image (saved to temp location)
                 processed_path = preprocessing.preprocess_image(
-                    local_path, document_type=doc_type
+                    local_path, document_type=doc_type, save_to_temp=True
                 )
 
-            # Extract text with document type optimization
+            # Step 4: Extract text with document type optimization
             raw_text = extraction.extract_text(processed_path, document_type=doc_type)
+            
+            # Step 5: Upload preprocessed image to S3 if configured
+            settings = get_settings()
+            processed_file_id = None
+            if settings.file_storage_type == "s3" and not local_path.lower().endswith(".pdf"):
+                try:
+                    processed_file_id = await storage.save_file_from_path(
+                        processed_path, 
+                        filename=f"preprocessed_{file_identifier}"
+                    )
+                except Exception as e:
+                    # Log but don't fail if upload doesn't work
+                    print(f"Warning: Failed to upload preprocessed image to S3: {e}")
 
-            return {
+            result = {
                 "raw_text": raw_text,
                 "document_type": document_type or "general",
                 "file_type": "pdf" if local_path.lower().endswith(".pdf") else "image",
             }
+            
+            if processed_file_id:
+                result["preprocessed_file_id"] = processed_file_id
+            
+            return result
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 6: Clean up temporary preprocessed file
+        if processed_path and processed_path != local_path:
+            preprocessing.cleanup_temp_file(processed_path)
 
 
 @router.post("/extract-text-with-confidence")
@@ -99,8 +124,9 @@ async def extract_text_with_confidence(
             detail="Invalid file format. This endpoint only supports image files.",
         )
 
+    processed_path = None
     try:
-        # Save uploaded file
+        # Step 1: Save uploaded file to storage
         file_identifier = await storage.save_file(file)
 
         # Parse document type
@@ -114,28 +140,49 @@ async def extract_text_with_confidence(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Use context manager to get local path for processing
+        # Step 2: Use context manager to get local path for processing
         with storage.get_local_path(file_identifier) as local_path:
-            # Preprocess image
+            # Step 3: Preprocess image (saved to temp location)
             processed_path = preprocessing.preprocess_image(
-                local_path, document_type=doc_type
+                local_path, document_type=doc_type, save_to_temp=True
             )
 
-            # Extract text with confidence
+            # Step 4: Extract text with confidence
             raw_text, confidence_data = extraction.extract_text_with_confidence(
                 processed_path, document_type=doc_type
             )
+            
+            # Step 5: Upload preprocessed image to S3 if configured
+            settings = get_settings()
+            processed_file_id = None
+            if settings.file_storage_type == "s3":
+                try:
+                    processed_file_id = await storage.save_file_from_path(
+                        processed_path, 
+                        filename=f"preprocessed_{file_identifier}"
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to upload preprocessed image to S3: {e}")
 
-            return {
+            result = {
                 "raw_text": raw_text,
                 "confidence": confidence_data,
                 "document_type": document_type or "general",
             }
+            
+            if processed_file_id:
+                result["preprocessed_file_id"] = processed_file_id
+            
+            return result
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 6: Clean up temporary preprocessed file
+        if processed_path:
+            preprocessing.cleanup_temp_file(processed_path)
 
 
 @router.get("/document-types")
@@ -198,8 +245,9 @@ async def extract_text_intelligent_endpoint(
     ):
         raise HTTPException(status_code=400, detail="Invalid file format")
 
+    processed_path = None
     try:
-        # Save uploaded file
+        # Step 1: Save uploaded file
         file_identifier = await storage.save_file(file)
 
         # Parse document type
@@ -213,7 +261,7 @@ async def extract_text_intelligent_endpoint(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Use context manager to get local path for processing
+        # Step 2: Use context manager to get local path for processing
         with storage.get_local_path(file_identifier) as local_path:
             # Only preprocess images, not PDFs
             if local_path.lower().endswith(".pdf"):
@@ -237,12 +285,12 @@ async def extract_text_intelligent_endpoint(
                     },
                 }
             else:
-                # Preprocess image
+                # Step 3: Preprocess image (saved to temp location)
                 processed_path = preprocessing.preprocess_image(
-                    local_path, document_type=doc_type
+                    local_path, document_type=doc_type, save_to_temp=True
                 )
 
-                # Use intelligent extraction with fallback
+                # Step 4: Use intelligent extraction with fallback
                 extracted_text, metadata = intelligent_extraction.extract_with_fallback(
                     processed_path, doc_type, language
                 )
@@ -256,19 +304,40 @@ async def extract_text_intelligent_endpoint(
                     quality = {
                         "note": "Quality metrics not available for this extraction method"
                     }
+                
+                # Step 5: Upload preprocessed image to S3 if configured
+                settings = get_settings()
+                processed_file_id = None
+                if settings.file_storage_type == "s3":
+                    try:
+                        processed_file_id = await storage.save_file_from_path(
+                            processed_path, 
+                            filename=f"preprocessed_{file_identifier}"
+                        )
+                    except Exception as e:
+                        print(f"Warning: Failed to upload preprocessed image to S3: {e}")
 
-                return {
+                result = {
                     "text": extracted_text,
                     "metadata": metadata,
                     "document_type": document_type or "general",
                     "quality": quality,
                     "file_type": "image",
                 }
+                
+                if processed_file_id:
+                    result["preprocessed_file_id"] = processed_file_id
+                
+                return result
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 6: Clean up temporary preprocessed file
+        if processed_path:
+            preprocessing.cleanup_temp_file(processed_path)
 
 
 @router.get("/supported-languages")
