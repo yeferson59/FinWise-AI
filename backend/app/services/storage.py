@@ -5,11 +5,55 @@ This service provides backward-compatible file operations while using
 the new FileStorageInterface for seamless local and S3 support.
 """
 
-from fastapi import UploadFile
-from uuid import uuid4
 from datetime import datetime
 from pathlib import Path
-from app.core.file_storage import get_file_storage
+from uuid import uuid4
+
+from fastapi import UploadFile
+
+from app.core.file_storage import LocalFileStorage, get_file_storage
+from app.config import get_settings
+
+
+async def save_file_locally(file: UploadFile) -> str:
+    """
+    Save an uploaded file to local storage for processing.
+
+    This function always saves files locally, regardless of the global storage configuration.
+    Useful for OCR processing where files need to be processed locally first.
+
+    Args:
+        file: The uploaded file
+
+    Returns:
+        Local file path for the saved file
+
+    Raises:
+        ValueError: If filename is empty or file cannot be saved
+    """
+    if not file.filename:
+        raise ValueError("Filename cannot be empty")
+
+    # Generate unique filename with timestamp
+    file_extension = file.filename.split(".")[-1] if "." in file.filename else ""
+    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if file_extension:
+        filename = f"{filename}.{file_extension}"
+
+    # Read file content
+    file_content = await file.read()
+    if not file_content:
+        raise ValueError("Uploaded file is empty")
+
+    content_type = file.content_type or "application/octet-stream"
+
+    # Use local storage directly with the configured path
+    settings = get_settings()
+    storage = LocalFileStorage(base_path=settings.local_storage_path)
+    file_identifier = await storage.save_file(file_content, filename, content_type)
+
+    # Return the absolute path
+    return file_identifier
 
 
 async def save_file(file: UploadFile) -> str:

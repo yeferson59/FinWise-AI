@@ -139,7 +139,10 @@ def preprocess_image(
     """
     image = cv2.imread(filepath)
     if image is None:
-        raise ValueError("Invalid image file or file does not exist.")
+        if os.path.exists(filepath):
+            raise ValueError("Invalid image file: file exists but cannot be read as image")
+        else:
+            raise ValueError("Invalid image file or file does not exist.")
 
     # Get configuration
     if config is None:

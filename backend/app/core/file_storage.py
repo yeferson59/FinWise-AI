@@ -127,7 +127,7 @@ class LocalFileStorage(FileStorageInterface):
         Args:
             base_path: Base directory for file storage
         """
-        self.base_path = Path(base_path)
+        self.base_path = Path(base_path).resolve()
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     async def save_file(
