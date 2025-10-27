@@ -9,7 +9,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import os
 import tempfile
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
+from typing import AsyncContextManager
 import aioboto3
 from botocore.client import Config
 from app.config import get_settings
@@ -64,10 +65,9 @@ class FileStorageInterface(ABC):
         pass
 
     @abstractmethod
-    @contextmanager
     def get_local_path(self, file_identifier: str):
         """
-        Context manager that provides a local file path for reading.
+        Async context manager that provides a local file path for reading.
 
         For local storage, this returns the actual path.
         For S3 storage, this downloads to a temporary file.
@@ -79,8 +79,10 @@ class FileStorageInterface(ABC):
             Path to a local file that can be read
 
         Example:
-            with storage.get_local_path("file.pdf") as local_path:
+            async with storage.get_local_path("file.pdf") as local_path:
                 text = extract_text(local_path)
+        
+        Note: This method should be implemented as an async context manager.
         """
         pass
 
@@ -125,7 +127,7 @@ class LocalFileStorage(FileStorageInterface):
         Args:
             base_path: Base directory for file storage
         """
-        self.base_path = Path(base_path)
+        self.base_path = Path(base_path).resolve()
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     async def save_file(
@@ -157,8 +159,8 @@ class LocalFileStorage(FileStorageInterface):
         except Exception as e:
             raise ValueError(f"Failed to retrieve file from local storage: {str(e)}")
 
-    @contextmanager
-    def get_local_path(self, file_identifier: str):
+    @asynccontextmanager
+    async def get_local_path(self, file_identifier: str):
         """
         For local storage, just return the path directly.
         No cleanup needed since it's already local.
@@ -262,13 +264,12 @@ class S3FileStorage(FileStorageInterface):
         except Exception as e:
             raise ValueError(f"Failed to retrieve file from S3: {str(e)}")
 
-    @contextmanager
-    def get_local_path(self, file_identifier: str):
+    @asynccontextmanager
+    async def get_local_path(self, file_identifier: str):
         """
         Download S3 file to a temporary location and provide path.
         Cleans up the temporary file after use.
         """
-        import asyncio
 
         # Create a temporary file
         temp_file = tempfile.NamedTemporaryFile(
@@ -279,7 +280,7 @@ class S3FileStorage(FileStorageInterface):
 
         try:
             # Download file from S3
-            file_content = asyncio.run(self.retrieve_file(file_identifier))
+            file_content = await self.retrieve_file(file_identifier)
 
             with open(temp_path, "wb") as f:
                 f.write(file_content)
