@@ -1,6 +1,7 @@
 """
 Test OCR workflow improvements - ensuring proper file handling and cleanup.
 """
+
 import pytest
 import tempfile
 import os
@@ -160,7 +161,9 @@ class TestStorageService:
 
                 # Save file with custom filename
                 custom_name = "preprocessed_test.jpg"
-                result = await storage.save_file_from_path(tmp_path, filename=custom_name)
+                result = await storage.save_file_from_path(
+                    tmp_path, filename=custom_name
+                )
 
                 # Verify save_file was called with custom filename
                 call_args = mock_storage.save_file.call_args
@@ -216,29 +219,27 @@ class TestStorageService:
 class TestWorkflowIntegration:
     """Test the complete OCR workflow"""
 
-    def test_workflow_steps_documented(self):
-        """Verify that workflow steps are properly documented in endpoints"""
+    def test_workflow_critical_operations(self):
+        """Verify that critical workflow operations are present in endpoints"""
         from app.api.v1.endpoints import files
         import inspect
 
         # Check extract_text endpoint
         extract_text_source = inspect.getsource(files.extract_text)
 
-        # Verify steps are documented in comments
-        assert "Step 1" in extract_text_source
-        assert "Step 2" in extract_text_source
-        assert "Step 3" in extract_text_source
-        assert "Step 4" in extract_text_source
-        assert "Step 5" in extract_text_source
-        assert "Step 6" in extract_text_source
-
         # Verify critical operations are present
-        assert "save_file" in extract_text_source
+        assert "save_file_locally" in extract_text_source
         assert "preprocess_image" in extract_text_source
         assert "extract_text" in extract_text_source
-        assert "save_file_from_path" in extract_text_source
-        assert "cleanup_temp_file" in extract_text_source
+        assert "upload_to_s3_if_configured" in extract_text_source
+        assert "cleanup_files" in extract_text_source
         assert "finally:" in extract_text_source
+
+        # Verify helper functions exist
+        assert hasattr(files, "validate_file_format")
+        assert hasattr(files, "parse_document_type")
+        assert hasattr(files, "upload_to_s3_if_configured")
+        assert hasattr(files, "cleanup_files")
 
 
 if __name__ == "__main__":
