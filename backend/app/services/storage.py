@@ -5,15 +5,56 @@ This service provides backward-compatible file operations while using
 the new FileStorageInterface for seamless local and S3 support.
 """
 
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
-from contextlib import asynccontextmanager
 
-from app.core.file_storage import LocalFileStorage, get_file_storage
 from app.config import get_settings
+from app.core.file_storage import LocalFileStorage, get_file_storage
+
+
+def generate_unique_filename(original_filename: str) -> str:
+    """
+    Generate a unique filename with timestamp and UUID.
+
+    Args:
+        original_filename: Original filename to extract extension from
+
+    Returns:
+        Unique filename with format: {uuid}-{timestamp}.{extension}
+    """
+    file_extension = (
+        original_filename.split(".")[-1] if "." in original_filename else ""
+    )
+    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if file_extension:
+        filename = f"{filename}.{file_extension}"
+    return filename
+
+
+def detect_content_type(filepath: str) -> str:
+    """
+    Detect MIME content type based on file extension.
+
+    Args:
+        filepath: Path to the file
+
+    Returns:
+        MIME content type string
+    """
+    filepath_lower = filepath.lower()
+    if filepath_lower.endswith((".jpg", ".jpeg")):
+        return "image/jpeg"
+    elif filepath_lower.endswith(".png"):
+        return "image/png"
+    elif filepath_lower.endswith(".pdf"):
+        return "application/pdf"
+    elif filepath_lower.endswith((".tiff", ".tif")):
+        return "image/tiff"
+    return "application/octet-stream"
 
 
 async def save_file_locally(file: UploadFile) -> str:
@@ -35,25 +76,18 @@ async def save_file_locally(file: UploadFile) -> str:
     if not file.filename:
         raise ValueError("Filename cannot be empty")
 
-    # Generate unique filename with timestamp
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else ""
-    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    if file_extension:
-        filename = f"{filename}.{file_extension}"
+    filename = generate_unique_filename(file.filename)
 
-    # Read file content
     file_content = await file.read()
     if not file_content:
         raise ValueError("Uploaded file is empty")
 
     content_type = file.content_type or "application/octet-stream"
 
-    # Use local storage directly with the configured path
     settings = get_settings()
     storage = LocalFileStorage(base_path=settings.local_storage_path)
     file_identifier = await storage.save_file(file_content, filename, content_type)
 
-    # Return the absolute path
     return str(Path(file_identifier).resolve())
 
 
@@ -73,17 +107,11 @@ async def save_file(file: UploadFile) -> str:
     if not file.filename:
         raise ValueError("Filename cannot be empty")
 
-    # Generate unique filename with timestamp
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else ""
-    filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    if file_extension:
-        filename = f"{filename}.{file_extension}"
+    filename = generate_unique_filename(file.filename)
 
-    # Read file content
     file_content = await file.read()
     content_type = file.content_type or "application/octet-stream"
 
-    # Get storage backend and save
     storage = get_file_storage()
     file_identifier = await storage.save_file(file_content, filename, content_type)
 
@@ -98,7 +126,7 @@ async def save_file_from_path(filepath: str, filename: str | None = None) -> str
 
     Args:
         filepath: Path to the local file to upload
-        filename: Optional custom filename, otherwise uses the original filename
+        filename: Optional custom filename, otherwise generates unique filename
 
     Returns:
         Storage identifier (path or key) for the saved file
@@ -112,30 +140,14 @@ async def save_file_from_path(filepath: str, filename: str | None = None) -> str
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
 
-    # Use provided filename or generate one from the original
     if filename is None:
-        # Generate unique filename with timestamp
-        file_extension = file_path.suffix
-        filename = (
-            f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}{file_extension}"
-        )
+        filename = generate_unique_filename(file_path.name)
 
-    # Read file content
     with open(filepath, "rb") as f:
         file_content = f.read()
 
-    # Determine content type based on extension
-    content_type = "application/octet-stream"
-    if filepath.lower().endswith((".jpg", ".jpeg")):
-        content_type = "image/jpeg"
-    elif filepath.lower().endswith(".png"):
-        content_type = "image/png"
-    elif filepath.lower().endswith(".pdf"):
-        content_type = "application/pdf"
-    elif filepath.lower().endswith((".tiff", ".tif")):
-        content_type = "image/tiff"
+    content_type = detect_content_type(filepath)
 
-    # Get storage backend and save
     storage = get_file_storage()
     file_identifier = await storage.save_file(file_content, filename, content_type)
 

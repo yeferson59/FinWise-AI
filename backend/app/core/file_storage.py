@@ -9,10 +9,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import os
 import tempfile
-from contextlib import contextmanager, asynccontextmanager
-from typing import AsyncContextManager
+from contextlib import asynccontextmanager
+
 import aioboto3
 from botocore.client import Config
+
 from app.config import get_settings
 
 
@@ -81,7 +82,7 @@ class FileStorageInterface(ABC):
         Example:
             async with storage.get_local_path("file.pdf") as local_path:
                 text = extract_text(local_path)
-        
+
         Note: This method should be implemented as an async context manager.
         """
         pass
