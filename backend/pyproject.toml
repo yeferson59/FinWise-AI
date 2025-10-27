@@ -25,12 +25,14 @@ dependencies = [
     "faster-whisper>=1.2.0",
     "uvicorn>=0.38.0",
     "psycopg2-binary>=2.9.11",
+    "aioboto3>=15.4.0",
 ]
 
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
     "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "ruff>=0.14.0",
     "zuban>=0.1.0",
 ]

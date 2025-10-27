@@ -326,6 +326,14 @@ LOCAL_STORAGE_PATH=uploads
 | `TEMPERATURE` | LLM temperature (0-1) | `0.2` | ❌ |
 | `TOP_P` | LLM top-p sampling (0-1) | `0.3` | ❌ |
 | `FILE_STORAGE_TYPE` | Storage backend (`local` or `s3`) | `local` | ❌ |
+| `LOCAL_STORAGE_PATH` | Local storage directory | `uploads` | ❌ |
+| `S3_BUCKET` | S3 bucket name | - | ✅ (if using S3) |
+| `S3_REGION` | S3 region | `us-east-1` | ❌ |
+| `S3_ACCESS_KEY` | S3 access key | - | ✅ (if using S3) |
+| `S3_SECRET_KEY` | S3 secret key | - | ✅ (if using S3) |
+| `S3_ENDPOINT` | Custom S3 endpoint (for S3-compatible services) | - | ❌ |
+
+**Note:** For detailed file storage configuration including S3-compatible services (MinIO, Backblaze B2, DigitalOcean Spaces, etc.), see [File Storage Configuration Guide](docs/FILE_STORAGE.md).
 
 ### 4. Initialize Database
 
@@ -1383,6 +1391,7 @@ chore: update dependencies
 
 ### Documentation Files
 
+- **[File Storage Configuration Guide](docs/FILE_STORAGE.md)** - Configure local and S3-compatible storage
 - **[Multi-Language OCR Guide](docs/MULTILANG_OCR.md)** - Comprehensive OCR documentation
 - **[API Examples](docs/API_EXAMPLES.md)** - Code examples for API usage
 - **[OCR Improvements](MEJORAS_OCR.md)** - Technical OCR improvements (Spanish)

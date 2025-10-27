@@ -1,9 +1,11 @@
 from typing import Annotated
-from fastapi import APIRouter, UploadFile, HTTPException, Query
-from app.services import storage, preprocessing, extraction
-from app.services import intelligent_extraction
-from app.ocr_config import DocumentType
+
+from fastapi import APIRouter, HTTPException, Query, UploadFile
 from faster_whisper import WhisperModel
+
+from app.config import get_settings
+from app.ocr_config import DocumentType
+from app.services import extraction, intelligent_extraction, preprocessing, storage
 
 router = APIRouter()
 
@@ -29,9 +31,17 @@ async def extract_text(
     ):
         raise HTTPException(status_code=400, detail="Invalid file format")
 
+    processed_path = None
+    local_path = None
+    is_pdf = False
+    original_file_id = None
+
     try:
-        # Save uploaded file
-        file_path = await storage.save_file(file)
+        # Step 1: Save uploaded file LOCALLY first for processing
+        local_path = await storage.save_file_locally(file)
+
+        # Step 2: Check if it's a PDF
+        is_pdf = local_path.lower().endswith(".pdf")
 
         # Parse document type
         doc_type = None
@@ -44,27 +54,57 @@ async def extract_text(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Only preprocess images, not PDFs
-        if file_path.lower().endswith(".pdf"):
-            processed_path = file_path
+        # Step 3: Only preprocess images, not PDFs
+        if is_pdf:
+            processed_path = local_path
         else:
+            # Step 4: Preprocess image (saved to temp location)
             processed_path = preprocessing.preprocess_image(
-                file_path, document_type=doc_type
+                local_path, document_type=doc_type, save_to_temp=True
             )
 
-        # Extract text with document type optimization
+        # Step 5: Extract text with document type optimization
         raw_text = extraction.extract_text(processed_path, document_type=doc_type)
 
-        return {
+        # Step 5: After successful OCR, upload original file to S3 if configured
+        settings = get_settings()
+        if settings.file_storage_type == "s3":
+            try:
+                # Generate a filename for S3
+                from pathlib import Path
+
+                original_filename = Path(local_path).name
+                original_file_id = await storage.save_file_from_path(
+                    local_path, filename=original_filename
+                )
+            except Exception as e:
+                # Log but don't fail if S3 upload doesn't work
+                print(f"Warning: Failed to upload original file to S3: {e}")
+
+        result = {
             "raw_text": raw_text,
             "document_type": document_type or "general",
-            "file_type": "pdf" if file_path.lower().endswith(".pdf") else "image",
+            "file_type": "pdf" if is_pdf else "image",
         }
+
+        if original_file_id:
+            result["file_id"] = original_file_id
+
+        return result
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 6: Clean up temporary files
+        # Clean up preprocessed image (only if it's not a PDF and not the original)
+        if processed_path and not is_pdf and processed_path != local_path:
+            preprocessing.cleanup_temp_file(processed_path)
+        # Clean up original local file (only if stored in S3, otherwise keep it in local storage)
+        settings = get_settings()
+        if local_path and settings.file_storage_type == "s3":
+            preprocessing.cleanup_temp_file(local_path)
 
 
 @router.post("/extract-text-with-confidence")
@@ -97,9 +137,13 @@ async def extract_text_with_confidence(
             detail="Invalid file format. This endpoint only supports image files.",
         )
 
+    processed_path = None
+    local_path = None
+    original_file_id = None
+
     try:
-        # Save uploaded file
-        file_path = await storage.save_file(file)
+        # Step 1: Save uploaded file LOCALLY first for processing
+        local_path = await storage.save_file_locally(file)
 
         # Parse document type
         doc_type = None
@@ -112,26 +156,55 @@ async def extract_text_with_confidence(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Preprocess image
+        # Step 2: Preprocess image (saved to temp location)
         processed_path = preprocessing.preprocess_image(
-            file_path, document_type=doc_type
+            local_path, document_type=doc_type, save_to_temp=True
         )
 
-        # Extract text with confidence
+        # Step 3: Extract text with confidence
         raw_text, confidence_data = extraction.extract_text_with_confidence(
             processed_path, document_type=doc_type
         )
 
-        return {
+        # Step 4: After successful OCR, upload original file to S3 if configured
+        settings = get_settings()
+        if settings.file_storage_type == "s3":
+            try:
+                # Generate a filename for S3
+                from pathlib import Path
+
+                original_filename = Path(local_path).name
+                original_file_id = await storage.save_file_from_path(
+                    local_path, filename=original_filename
+                )
+            except Exception as e:
+                # Log but don't fail if S3 upload doesn't work
+                print(f"Warning: Failed to upload original file to S3: {e}")
+
+        result = {
             "raw_text": raw_text,
             "confidence": confidence_data,
             "document_type": document_type or "general",
         }
 
+        if original_file_id:
+            result["file_id"] = original_file_id
+
+        return result
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 6: Clean up temporary files
+        # Clean up preprocessed image (only if it's not the original)
+        if processed_path and processed_path != local_path:
+            preprocessing.cleanup_temp_file(processed_path)
+        # Clean up original local file (only if stored in S3, otherwise keep it in local storage)
+        settings = get_settings()
+        if local_path and settings.file_storage_type == "s3":
+            preprocessing.cleanup_temp_file(local_path)
 
 
 @router.get("/document-types")
@@ -194,9 +267,17 @@ async def extract_text_intelligent_endpoint(
     ):
         raise HTTPException(status_code=400, detail="Invalid file format")
 
+    processed_path = None
+    local_path = None
+    is_pdf = False
+    original_file_id = None
+
     try:
-        # Save uploaded file
-        file_path = await storage.save_file(file)
+        # Step 1: Save uploaded file LOCALLY first for processing
+        local_path = await storage.save_file_locally(file)
+
+        # Step 2: Check if it's a PDF
+        is_pdf = local_path.lower().endswith(".pdf")
 
         # Parse document type
         doc_type = None
@@ -209,15 +290,14 @@ async def extract_text_intelligent_endpoint(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Only preprocess images, not PDFs
-        if file_path.lower().endswith(".pdf"):
-            processed_path = file_path
+        # Step 3: Process based on file type
+        if is_pdf:
             # For PDFs, use standard extraction
-            raw_text = extraction.extract_text(processed_path, document_type=doc_type)
+            raw_text = extraction.extract_text(local_path, document_type=doc_type)
             cleaned_text = intelligent_extraction.clean_text(raw_text)
             detected_lang = intelligent_extraction.detect_language(cleaned_text)
 
-            return {
+            result = {
                 "text": cleaned_text,
                 "raw_text": raw_text,
                 "metadata": {
@@ -232,9 +312,9 @@ async def extract_text_intelligent_endpoint(
                 },
             }
         else:
-            # Preprocess image
+            # For images: preprocess → extract with intelligent fallback
             processed_path = preprocessing.preprocess_image(
-                file_path, document_type=doc_type
+                local_path, document_type=doc_type, save_to_temp=True
             )
 
             # Use intelligent extraction with fallback
@@ -252,7 +332,7 @@ async def extract_text_intelligent_endpoint(
                     "note": "Quality metrics not available for this extraction method"
                 }
 
-            return {
+            result = {
                 "text": extracted_text,
                 "metadata": metadata,
                 "document_type": document_type or "general",
@@ -260,10 +340,37 @@ async def extract_text_intelligent_endpoint(
                 "file_type": "image",
             }
 
+        # Step 4: After successful OCR, upload original file to S3 if configured
+        settings = get_settings()
+        if settings.file_storage_type == "s3":
+            try:
+                # Generate a filename for S3
+                from pathlib import Path
+
+                original_filename = Path(local_path).name
+                original_file_id = await storage.save_file_from_path(
+                    local_path, filename=original_filename
+                )
+                result["file_id"] = original_file_id
+            except Exception as e:
+                # Log but don't fail if S3 upload doesn't work
+                print(f"Warning: Failed to upload original file to S3: {e}")
+
+        return result
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    finally:
+        # Step 5: Clean up temporary files
+        # Clean up preprocessed image (only if it's not a PDF and not the original)
+        if processed_path and not is_pdf and processed_path != local_path:
+            preprocessing.cleanup_temp_file(processed_path)
+        # Clean up original local file (only if stored in S3, otherwise keep it in local storage)
+        settings = get_settings()
+        if local_path and settings.file_storage_type == "s3":
+            preprocessing.cleanup_temp_file(local_path)
 
 
 @router.get("/supported-languages")
@@ -298,7 +405,8 @@ model_audio = WhisperModel("base", device="cpu")
 
 @router.post("/audio/extract-text")
 async def transcribe_audio(file: UploadFile):
-    audio_path = await storage.save_file(file)
-    segments, _ = model_audio.transcribe(audio=audio_path)
-    full_text = " ".join([segment.text for segment in segments])
+    file_identifier = await storage.save_file(file)
+    async with storage.get_local_path(file_identifier) as local_path:
+        segments, _ = model_audio.transcribe(audio=local_path)
+        full_text = " ".join([segment.text for segment in segments])
     return {"text": full_text.strip()}

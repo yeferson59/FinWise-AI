@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import tempfile
+import os
+from pathlib import Path
 from typing import Any
 from PIL import Image
 from rembg import remove
@@ -120,6 +123,7 @@ def preprocess_image(
     filepath: str,
     document_type: DocumentType | None = None,
     config: PreprocessingConfig | None = None,
+    save_to_temp: bool = True,
 ) -> str:
     """
     Preprocess an image for OCR with configurable settings.
@@ -128,13 +132,17 @@ def preprocess_image(
         filepath: Path to the image file
         document_type: Type of document (receipt, invoice, etc.)
         config: Custom preprocessing configuration (overrides document_type)
+        save_to_temp: If True, save to temporary directory instead of alongside original
 
     Returns:
         Path to the preprocessed image
     """
     image = cv2.imread(filepath)
     if image is None:
-        raise ValueError("Invalid image file or file does not exist.")
+        if os.path.exists(filepath):
+            raise ValueError("Invalid image file: file exists but cannot be read as image")
+        else:
+            raise ValueError("Invalid image file or file does not exist.")
 
     # Get configuration
     if config is None:
@@ -200,7 +208,21 @@ def preprocess_image(
         final_image = thresh
 
     # Save Preprocessed Image
-    preprocessed_path = filepath.replace(".", "_preprocessed.")
+    if save_to_temp:
+        # Create a temporary file with the same extension
+        original_path = Path(filepath)
+        suffix = original_path.suffix if original_path.suffix else ".png"
+        
+        # Create temp file with delete=False so we can return the path
+        temp_fd, preprocessed_path = tempfile.mkstemp(
+            suffix=f"_preprocessed{suffix}", 
+            prefix="ocr_"
+        )
+        os.close(temp_fd)  # Close file descriptor as cv2 will write to path
+    else:
+        # Save alongside original (legacy behavior)
+        preprocessed_path = filepath.replace(".", "_preprocessed.")
+    
     _ = cv2.imwrite(preprocessed_path, final_image)
 
     return preprocessed_path
@@ -211,4 +233,19 @@ def preprocess_image_simple(filepath: str) -> str:
     Simple preprocessing with default general settings.
     This is the backward-compatible version.
     """
-    return preprocess_image(filepath, document_type=DocumentType.GENERAL)
+    return preprocess_image(filepath, document_type=DocumentType.GENERAL, save_to_temp=False)
+
+
+def cleanup_temp_file(filepath: str) -> None:
+    """
+    Remove a temporary file if it exists.
+    
+    Args:
+        filepath: Path to the file to remove
+    """
+    try:
+        if filepath and os.path.exists(filepath):
+            os.unlink(filepath)
+    except Exception as e:
+        # Log but don't fail if cleanup doesn't work
+        print(f"Warning: Failed to cleanup temp file {filepath}: {e}")
