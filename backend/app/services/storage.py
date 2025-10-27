@@ -10,6 +10,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
+from contextlib import asynccontextmanager
 
 from app.core.file_storage import LocalFileStorage, get_file_storage
 from app.config import get_settings
@@ -92,7 +93,7 @@ async def save_file(file: UploadFile) -> str:
 async def save_file_from_path(filepath: str, filename: str | None = None) -> str:
     """
     Save a file from a local path to configured storage backend.
-    
+
     This is useful for uploading preprocessed images to S3 after OCR processing.
 
     Args:
@@ -107,20 +108,22 @@ async def save_file_from_path(filepath: str, filename: str | None = None) -> str
         FileNotFoundError: If the file doesn't exist
     """
     file_path = Path(filepath)
-    
+
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
-    
+
     # Use provided filename or generate one from the original
     if filename is None:
         # Generate unique filename with timestamp
         file_extension = file_path.suffix
-        filename = f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}{file_extension}"
-    
+        filename = (
+            f"{uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}{file_extension}"
+        )
+
     # Read file content
     with open(filepath, "rb") as f:
         file_content = f.read()
-    
+
     # Determine content type based on extension
     content_type = "application/octet-stream"
     if filepath.lower().endswith((".jpg", ".jpeg")):
@@ -131,7 +134,7 @@ async def save_file_from_path(filepath: str, filename: str | None = None) -> str
         content_type = "application/pdf"
     elif filepath.lower().endswith((".tiff", ".tif")):
         content_type = "image/tiff"
-    
+
     # Get storage backend and save
     storage = get_file_storage()
     file_identifier = await storage.save_file(file_content, filename, content_type)
@@ -185,22 +188,26 @@ async def file_exists(file_identifier: str) -> bool:
     return await storage.file_exists(file_identifier)
 
 
-def get_local_path(file_identifier: str):
+@asynccontextmanager
+async def get_local_path(file_identifier: str):
     """
-    Get a context manager for local file path access.
+    Async context manager that yields a local file path.
 
     For local storage, returns the actual path.
-    For S3, downloads to temporary file and cleans up after use.
+    For S3, downloads to a temporary file and cleans up after use.
 
     Args:
         file_identifier: Storage identifier returned by save_file
 
-    Returns:
-        Context manager that yields a local file path
+    Yields:
+        Local file path as a string
 
     Example:
-        with get_local_path(file_id) as path:
+        async with get_local_path(file_id) as path:
             text = extract_text(path)
     """
     storage = get_file_storage()
-    return storage.get_local_path(file_identifier)
+    # Delegate to the storage backend's async context manager.
+    # This ensures callers can always use `async with get_local_path(...)`.
+    async with storage.get_local_path(file_identifier) as local_path:
+        yield local_path

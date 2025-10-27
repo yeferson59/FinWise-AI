@@ -35,11 +35,11 @@ async def extract_text(
     local_path = None
     is_pdf = False
     original_file_id = None
-    
+
     try:
         # Step 1: Save uploaded file LOCALLY first for processing
         local_path = await storage.save_file_locally(file)
-        
+
         # Step 2: Check if it's a PDF
         is_pdf = local_path.lower().endswith(".pdf")
 
@@ -72,6 +72,7 @@ async def extract_text(
             try:
                 # Generate a filename for S3
                 from pathlib import Path
+
                 original_filename = Path(local_path).name
                 original_file_id = await storage.save_file_from_path(
                     local_path, filename=original_filename
@@ -138,15 +139,11 @@ async def extract_text_with_confidence(
 
     processed_path = None
     local_path = None
-    is_pdf = False
     original_file_id = None
-    
+
     try:
         # Step 1: Save uploaded file LOCALLY first for processing
         local_path = await storage.save_file_locally(file)
-        
-        # Step 2: Check if it's a PDF
-        is_pdf = local_path.lower().endswith(".pdf")
 
         # Parse document type
         doc_type = None
@@ -159,22 +156,23 @@ async def extract_text_with_confidence(
                     detail=f"Invalid document type. Must be one of: {', '.join([dt.value for dt in DocumentType])}",
                 )
 
-        # Step 3: Preprocess image (saved to temp location)
+        # Step 2: Preprocess image (saved to temp location)
         processed_path = preprocessing.preprocess_image(
             local_path, document_type=doc_type, save_to_temp=True
         )
 
-        # Step 4: Extract text with confidence
+        # Step 3: Extract text with confidence
         raw_text, confidence_data = extraction.extract_text_with_confidence(
             processed_path, document_type=doc_type
         )
 
-        # Step 5: After successful OCR, upload original file to S3 if configured
+        # Step 4: After successful OCR, upload original file to S3 if configured
         settings = get_settings()
         if settings.file_storage_type == "s3":
             try:
                 # Generate a filename for S3
                 from pathlib import Path
+
                 original_filename = Path(local_path).name
                 original_file_id = await storage.save_file_from_path(
                     local_path, filename=original_filename
@@ -273,11 +271,11 @@ async def extract_text_intelligent_endpoint(
     local_path = None
     is_pdf = False
     original_file_id = None
-    
+
     try:
         # Step 1: Save uploaded file LOCALLY first for processing
         local_path = await storage.save_file_locally(file)
-        
+
         # Step 2: Check if it's a PDF
         is_pdf = local_path.lower().endswith(".pdf")
 
@@ -348,6 +346,7 @@ async def extract_text_intelligent_endpoint(
             try:
                 # Generate a filename for S3
                 from pathlib import Path
+
                 original_filename = Path(local_path).name
                 original_file_id = await storage.save_file_from_path(
                     local_path, filename=original_filename
