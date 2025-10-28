@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 def get_default_categories() -> list[Category]:
     """
     Returns the list of default global categories.
-    
+
     Returns:
         List of Category instances with default categories for the application
     """
@@ -182,46 +182,50 @@ def get_default_categories() -> list[Category]:
 def init_categories() -> None:
     """
     Initialize default global categories in the database.
-    
+
     This function is idempotent - it will only create categories that don't exist yet,
-    based on the category name. Global categories are identified by having 
+    based on the category name. Global categories are identified by having
     is_default=True and user_id=None. It's safe to call multiple times.
-    
+
     Raises:
         Exception: If there's a database error during category initialization
     """
     default_categories = get_default_categories()
-    
+
     try:
         with Session(engine) as session:
             # Get all existing global category names to avoid duplicates
             # Global categories have is_default=True and user_id=None
+            # Use .is_(None) instead of == None for better SQL performance
             existing_categories = session.exec(
                 select(Category.name).where(
-                    Category.is_default == True, Category.user_id == None
+                    Category.is_default.is_(True), Category.user_id.is_(None)
                 )
             ).all()
             existing_names = set(existing_categories)
-            
+
             # Filter out categories that already exist
             categories_to_create = [
-                category for category in default_categories 
+                category
+                for category in default_categories
                 if category.name not in existing_names
             ]
-            
+
             if not categories_to_create:
-                logger.info("All default global categories already exist. Skipping initialization.")
+                logger.info(
+                    "All default global categories already exist. Skipping initialization."
+                )
                 return
-            
-            # Add only new categories
+
+            # Use bulk insert for better performance
             session.add_all(categories_to_create)
             session.commit()
-            
+
             logger.info(
                 f"Successfully initialized {len(categories_to_create)} default global categories. "
                 f"Skipped {len(existing_names)} existing categories."
             )
-            
+
     except Exception as e:
         logger.error(f"Error initializing default global categories: {str(e)}")
         raise

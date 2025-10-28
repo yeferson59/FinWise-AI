@@ -10,23 +10,9 @@ from app.services.extraction import extract_text, extract_text_with_confidence
 from app.ocr_config import DocumentType
 
 
-def detect_language(text: str) -> str:
-    """
-    Detect if text is primarily Spanish or English based on common words.
-
-    Args:
-        text: Text to analyze
-
-    Returns:
-        Language code: 'spa', 'eng', or 'eng+spa' for mixed
-    """
-    if not text or len(text.strip()) < 10:
-        return "eng+spa"
-
-    text_lower = text.lower()
-
-    # Common Spanish words
-    spanish_markers = [
+# Common Spanish words - defined at module level to avoid recreation
+_SPANISH_MARKERS = frozenset(
+    [
         "de",
         "la",
         "el",
@@ -62,9 +48,11 @@ def detect_language(text: str) -> str:
         "entre",
         "sobre",
     ]
+)
 
-    # Common English words
-    english_markers = [
+# Common English words - defined at module level to avoid recreation
+_ENGLISH_MARKERS = frozenset(
+    [
         "the",
         "is",
         "at",
@@ -100,14 +88,31 @@ def detect_language(text: str) -> str:
         "she",
         "each",
     ]
+)
 
-    # Count occurrences
-    spanish_count = sum(
-        1 for word in spanish_markers if f" {word} " in f" {text_lower} "
-    )
-    english_count = sum(
-        1 for word in english_markers if f" {word} " in f" {text_lower} "
-    )
+
+def detect_language(text: str) -> str:
+    """
+    Detect if text is primarily Spanish or English based on common words.
+
+    Args:
+        text: Text to analyze
+
+    Returns:
+        Language code: 'spa', 'eng', or 'eng+spa' for mixed
+    """
+    if not text or len(text.strip()) < 10:
+        return "eng+spa"
+
+    # Prepare text once with word boundaries
+    text_with_spaces = f" {text.lower()} "
+
+    # Count occurrences more efficiently using frozenset intersection
+    # Split text into words and check intersection with marker sets
+    words = set(text_with_spaces.split())
+
+    spanish_count = len(words & _SPANISH_MARKERS)
+    english_count = len(words & _ENGLISH_MARKERS)
 
     # Determine language
     if spanish_count > english_count * 1.5:

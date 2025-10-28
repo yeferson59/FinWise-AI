@@ -68,11 +68,11 @@ def extract_text_from_image(
     tesseract_config = config.get_tesseract_config()
     language = config.get_language()
 
+    # Ensure image is in a compatible mode (some formats cause Tesseract errors)
+    if image.mode not in ("RGB", "L", "RGBA"):
+        image = image.convert("RGB")
+
     try:
-        # Ensure image is in RGB mode (some formats cause Tesseract errors)
-        if image.mode not in ('RGB', 'L', 'RGBA'):
-            image = image.convert('RGB')
-        
         # Extract text with custom configuration
         extracted_text = pytesseract.image_to_string(
             image, lang=language, config=tesseract_config
@@ -85,30 +85,36 @@ def extract_text_from_image(
     except Exception as e:
         # Fallback: try with a converted image in case format is problematic
         try:
-            # Convert to RGB if not already
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
+            # Convert to RGB if not already (though we should already be in a compatible mode)
+            if image.mode not in ("RGB", "L"):
+                image = image.convert("RGB")
+
             # Save to temporary file in PNG format (most compatible)
             import tempfile
-            temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
-            image.save(temp_path, format='PNG')
-            
-            # Try again with the temporary file
-            extracted_text = pytesseract.image_to_string(
-                Image.open(temp_path), lang=language, config=tesseract_config
-            )
-            
-            # Clean up temp file
             import os
-            os.close(temp_fd)
-            os.unlink(temp_path)
-            
-            if isinstance(extracted_text, str):
-                return extracted_text.strip()
-            return ""
+
+            temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
+            try:
+                os.close(temp_fd)  # Close file descriptor before PIL writes
+                image.save(temp_path, format="PNG")
+
+                # Try again with the temporary file
+                extracted_text = pytesseract.image_to_string(
+                    Image.open(temp_path), lang=language, config=tesseract_config
+                )
+
+                if isinstance(extracted_text, str):
+                    return extracted_text.strip()
+                return ""
+            finally:
+                # Ensure cleanup happens even if an exception occurs
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+
         except Exception as fallback_error:
-            raise ValueError(f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}")
+            raise ValueError(
+                f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}"
+            )
 
 
 def extract_text(
