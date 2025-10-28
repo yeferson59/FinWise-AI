@@ -2,11 +2,18 @@ import pytesseract
 from PIL import Image
 import fitz  # PyMuPDF
 from typing import Any
+import logging
 from app.ocr_config import (
     OCRConfig,
     DocumentType,
     get_profile,
 )
+from app.services.tesseract_wrapper import (
+    extract_text_resilient,
+    extract_text_with_confidence_resilient,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def extract_text_from_pdf(filepath: str) -> str:
@@ -72,49 +79,33 @@ def extract_text_from_image(
     if image.mode not in ("RGB", "L", "RGBA"):
         image = image.convert("RGB")
 
+    # Save to temporary PNG file for resilient processing
+    import tempfile
+    import os
+
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
-        # Extract text with custom configuration
-        extracted_text = pytesseract.image_to_string(
-            image, lang=language, config=tesseract_config
+        os.close(temp_fd)
+        image.save(temp_path, format="PNG")
+        image.close()
+
+        # Use resilient wrapper to protect against crashes
+        extracted_text = extract_text_resilient(
+            temp_path, config_str=tesseract_config, lang=language
         )
 
-        # Ensure we return a clean string
-        if isinstance(extracted_text, str):
-            return extracted_text.strip()
-        return ""
+        return extracted_text if extracted_text else ""
+
     except Exception as e:
-        # Fallback: try with a converted image in case format is problematic
-        try:
-            # Convert to RGB if not already (though we should already be in a compatible mode)
-            if image.mode not in ("RGB", "L"):
-                image = image.convert("RGB")
-
-            # Save to temporary file in PNG format (most compatible)
-            import tempfile
-            import os
-
-            temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
+        logger.error(f"Error during OCR processing: {e}")
+        raise ValueError(f"Error during OCR processing: {str(e)}")
+    finally:
+        # Cleanup
+        if os.path.exists(temp_path):
             try:
-                os.close(temp_fd)  # Close file descriptor before PIL writes
-                image.save(temp_path, format="PNG")
-
-                # Try again with the temporary file
-                extracted_text = pytesseract.image_to_string(
-                    Image.open(temp_path), lang=language, config=tesseract_config
-                )
-
-                if isinstance(extracted_text, str):
-                    return extracted_text.strip()
-                return ""
-            finally:
-                # Ensure cleanup happens even if an exception occurs
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
-
-        except Exception as fallback_error:
-            raise ValueError(
-                f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}"
-            )
+                os.unlink(temp_path)
+            except:
+                pass
 
 
 def extract_text(
@@ -183,7 +174,7 @@ def extract_text_with_confidence(
     document_type: DocumentType | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """
-    Extract text from image and return confidence scores.
+    Extract text from image and return confidence scores (resilient version).
 
     Args:
         filepath: Path to the image file
@@ -210,42 +201,34 @@ def extract_text_with_confidence(
     tesseract_config = config.get_tesseract_config()
     language = config.get_language()
 
+    # Ensure image is in compatible mode
+    if image.mode not in ("RGB", "L", "RGBA"):
+        image = image.convert("RGB")
+
+    # Save to temporary PNG file for resilient processing
+    import tempfile
+    import os
+
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
-        # Get detailed data from Tesseract
-        data = pytesseract.image_to_data(
-            image,
-            lang=language,
-            config=tesseract_config,
-            output_type=pytesseract.Output.DICT,
+        os.close(temp_fd)
+        image.save(temp_path, format="PNG")
+        image.close()
+
+        # Use resilient wrapper with confidence
+        text, confidence_data = extract_text_with_confidence_resilient(
+            temp_path, config_str=tesseract_config, lang=language
         )
 
-        # Extract text
-        text_result = pytesseract.image_to_string(
-            image, lang=language, config=tesseract_config
-        )
-        text = (
-            text_result.strip()
-            if isinstance(text_result, str)
-            else str(text_result).strip()
-        )
-
-        # Calculate confidence metrics
-        conf_list = data.get("conf", []) if isinstance(data, dict) else []
-        confidences = [
-            int(conf) for conf in conf_list if str(conf) != "-1" and int(conf) > 0
-        ]
-
-        confidence_data = {
-            "average_confidence": sum(confidences) / len(confidences)
-            if confidences
-            else 0,
-            "min_confidence": min(confidences) if confidences else 0,
-            "max_confidence": max(confidences) if confidences else 0,
-            "word_count": len(confidences),
-            "low_confidence_words": sum(1 for c in confidences if c < 60),
-        }
-
-        return text, confidence_data
+        return text if text else "", confidence_data
 
     except Exception as e:
+        logger.error(f"Error during OCR processing with confidence: {e}")
         raise ValueError(f"Error during OCR processing with confidence: {str(e)}")
+    finally:
+        # Cleanup
+        if os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except:
+                pass

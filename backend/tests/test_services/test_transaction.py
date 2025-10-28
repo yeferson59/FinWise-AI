@@ -1,4 +1,5 @@
 """Tests for transaction service with pagination."""
+
 import pytest
 from app.services import transaction
 from app.models.transaction import Transaction
@@ -30,7 +31,7 @@ async def test_get_all_transactions_with_data(test_db):
     # 1. Create test users, categories, and sources
     # 2. Create multiple test transactions
     # 3. Test that pagination returns the correct subset
-    
+
     # For now, just verify the function signature works
     result = await transaction.get_all_transactions(test_db, offset=10, limit=20)
     assert isinstance(result, list)

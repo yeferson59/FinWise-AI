@@ -8,6 +8,13 @@ from PIL import Image
 from rembg import remove
 from app.ocr_config import PreprocessingConfig, DocumentType, get_profile
 
+try:
+    import pytesseract
+
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
+
 
 def scale_image(image: Any, config: PreprocessingConfig) -> tuple[Any, float]:
     """
@@ -140,7 +147,9 @@ def preprocess_image(
     image = cv2.imread(filepath)
     if image is None:
         if os.path.exists(filepath):
-            raise ValueError("Invalid image file: file exists but cannot be read as image")
+            raise ValueError(
+                "Invalid image file: file exists but cannot be read as image"
+            )
         else:
             raise ValueError("Invalid image file or file does not exist.")
 
@@ -212,17 +221,16 @@ def preprocess_image(
         # Create a temporary file with the same extension
         original_path = Path(filepath)
         suffix = original_path.suffix if original_path.suffix else ".png"
-        
+
         # Create temp file with delete=False so we can return the path
         temp_fd, preprocessed_path = tempfile.mkstemp(
-            suffix=f"_preprocessed{suffix}", 
-            prefix="ocr_"
+            suffix=f"_preprocessed{suffix}", prefix="ocr_"
         )
         os.close(temp_fd)  # Close file descriptor as cv2 will write to path
     else:
         # Save alongside original (legacy behavior)
         preprocessed_path = filepath.replace(".", "_preprocessed.")
-    
+
     _ = cv2.imwrite(preprocessed_path, final_image)
 
     return preprocessed_path
@@ -233,13 +241,15 @@ def preprocess_image_simple(filepath: str) -> str:
     Simple preprocessing with default general settings.
     This is the backward-compatible version.
     """
-    return preprocess_image(filepath, document_type=DocumentType.GENERAL, save_to_temp=False)
+    return preprocess_image(
+        filepath, document_type=DocumentType.GENERAL, save_to_temp=False
+    )
 
 
 def cleanup_temp_file(filepath: str) -> None:
     """
     Remove a temporary file if it exists.
-    
+
     Args:
         filepath: Path to the file to remove
     """
@@ -249,3 +259,301 @@ def cleanup_temp_file(filepath: str) -> None:
     except Exception as e:
         # Log but don't fail if cleanup doesn't work
         print(f"Warning: Failed to cleanup temp file {filepath}: {e}")
+
+
+# ============================================================================
+# PHASE 2: ADVANCED PREPROCESSING IMPROVEMENTS
+# ============================================================================
+
+
+def multi_binarization(gray_image: np.ndarray) -> list[tuple[np.ndarray, str]]:
+    """
+    Generate multiple binarized versions of an image using different techniques.
+
+    This allows trying multiple approaches and selecting the best result.
+
+    Args:
+        gray_image: Grayscale image as numpy array
+
+    Returns:
+        List of tuples (binarized_image, method_name)
+    """
+    results = []
+
+    # 1. Adaptive Gaussian Threshold (current default)
+    try:
+        adaptive_gaussian = cv2.adaptiveThreshold(
+            gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 5
+        )
+        results.append((adaptive_gaussian, "adaptive_gaussian"))
+    except Exception as e:
+        print(f"Adaptive Gaussian failed: {e}")
+
+    # 2. Adaptive Mean Threshold
+    try:
+        adaptive_mean = cv2.adaptiveThreshold(
+            gray_image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 15, 5
+        )
+        results.append((adaptive_mean, "adaptive_mean"))
+    except Exception as e:
+        print(f"Adaptive Mean failed: {e}")
+
+    # 3. Otsu's Binarization (good for bimodal histograms)
+    try:
+        _, otsu = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        results.append((otsu, "otsu"))
+    except Exception as e:
+        print(f"Otsu failed: {e}")
+
+    # 4. Sauvola Binarization (better for documents with shadows/uneven illumination)
+    try:
+        # Sauvola algorithm implementation
+        window_size = 25
+        k = 0.5
+        R = 128
+
+        # Calculate local mean and std
+        mean = cv2.boxFilter(
+            gray_image.astype(np.float32), -1, (window_size, window_size)
+        )
+        sqr_mean = cv2.boxFilter(
+            gray_image.astype(np.float32) ** 2, -1, (window_size, window_size)
+        )
+        std = np.sqrt(sqr_mean - mean**2)
+
+        # Sauvola threshold
+        threshold = mean * (1 + k * ((std / R) - 1))
+        sauvola = np.where(gray_image > threshold, 255, 0).astype(np.uint8)
+        results.append((sauvola, "sauvola"))
+    except Exception as e:
+        print(f"Sauvola failed: {e}")
+
+    # 5. Simple global threshold with blur preprocessing
+    try:
+        blurred = cv2.GaussianBlur(gray_image, (5, 5), 0)
+        _, simple = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY)
+        results.append((simple, "simple_threshold"))
+    except Exception as e:
+        print(f"Simple threshold failed: {e}")
+
+    return results
+
+
+def detect_text_orientation(image: np.ndarray) -> int:
+    """
+    Detect text orientation in the image (0, 90, 180, 270 degrees).
+
+    Uses Tesseract's OSD (Orientation and Script Detection) when available,
+    falls back to edge detection analysis.
+
+    Args:
+        image: Input image as numpy array (BGR format)
+
+    Returns:
+        Rotation angle needed (0, 90, 180, or 270 degrees)
+    """
+    # Try Tesseract OSD first (most accurate)
+    if TESSERACT_AVAILABLE:
+        try:
+            # Convert to PIL Image
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb_image)
+
+            # Get orientation and script detection
+            osd = pytesseract.image_to_osd(
+                pil_image, output_type=pytesseract.Output.DICT
+            )
+            rotation = osd.get("rotate", 0)
+
+            # Normalize to 0, 90, 180, 270
+            rotation = int(rotation)
+            if rotation not in [0, 90, 180, 270]:
+                rotation = (rotation // 90) * 90
+
+            return rotation
+        except Exception as e:
+            print(f"Tesseract OSD failed: {e}, using fallback method")
+
+    # Fallback: Edge-based orientation detection
+    try:
+        gray = (
+            cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        )
+
+        # Apply edge detection
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+
+        # Detect lines using Hough Transform
+        lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+
+        if lines is not None and len(lines) > 0:
+            angles = []
+            for line in lines[: min(20, len(lines))]:  # Use top 20 lines
+                rho, theta = line[0]
+                angle = np.degrees(theta) - 90
+                angles.append(angle)
+
+            if angles:
+                # Calculate median angle
+                angle_median = np.median(angles)
+
+                # Map to nearest 90-degree rotation
+                if -45 <= angle_median < 45:
+                    return 0
+                elif 45 <= angle_median < 135:
+                    return 90
+                elif angle_median >= 135 or angle_median < -135:
+                    return 180
+                else:
+                    return 270
+    except Exception as e:
+        print(f"Edge-based orientation detection failed: {e}")
+
+    # Default: no rotation
+    return 0
+
+
+def rotate_image_to_correct_orientation(image: np.ndarray) -> tuple[np.ndarray, int]:
+    """
+    Detect and correct image orientation automatically.
+
+    Args:
+        image: Input image as numpy array (BGR format)
+
+    Returns:
+        Tuple of (rotated_image, rotation_applied)
+    """
+    rotation = detect_text_orientation(image)
+
+    if rotation == 0:
+        return image, 0
+
+    # Get image dimensions
+    h, w = image.shape[:2]
+    center = (w // 2, h // 2)
+
+    # Create rotation matrix
+    rotation_matrix = cv2.getRotationMatrix2D(center, rotation, 1.0)
+
+    # Calculate new dimensions for 90/270 rotations
+    if rotation in [90, 270]:
+        # Swap dimensions
+        new_w, new_h = h, w
+        # Adjust rotation matrix for dimension swap
+        cos = np.abs(rotation_matrix[0, 0])
+        sin = np.abs(rotation_matrix[0, 1])
+        new_w = int((h * sin) + (w * cos))
+        new_h = int((h * cos) + (w * sin))
+        rotation_matrix[0, 2] += (new_w / 2) - center[0]
+        rotation_matrix[1, 2] += (new_h / 2) - center[1]
+        rotated = cv2.warpAffine(
+            image,
+            rotation_matrix,
+            (new_w, new_h),
+            flags=cv2.INTER_CUBIC,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+    else:
+        # 180-degree rotation
+        rotated = cv2.warpAffine(
+            image,
+            rotation_matrix,
+            (w, h),
+            flags=cv2.INTER_CUBIC,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+
+    return rotated, rotation
+
+
+def preprocess_with_multiple_binarizations(
+    filepath: str,
+    document_type: DocumentType | None = None,
+    config: PreprocessingConfig | None = None,
+) -> list[tuple[str, str]]:
+    """
+    Preprocess image using multiple binarization techniques.
+
+    Returns multiple preprocessed versions for testing different approaches.
+
+    Args:
+        filepath: Path to the image file
+        document_type: Type of document
+        config: Custom preprocessing configuration
+
+    Returns:
+        List of tuples (preprocessed_path, method_name)
+    """
+    image = cv2.imread(filepath)
+    if image is None:
+        raise ValueError("Invalid image file or file does not exist.")
+
+    # Get configuration
+    if config is None:
+        if document_type is not None:
+            profile = get_profile(document_type)
+            config = profile.preprocessing_config
+        else:
+            profile = get_profile(DocumentType.GENERAL)
+            config = profile.preprocessing_config
+
+    # Apply common preprocessing steps
+    if config.enable_background_removal:
+        image = remove_background(image)
+
+    if config.scale_min_height > 0:
+        image, _ = scale_image(image, config)
+
+    if config.enable_deskew:
+        image = deskew_image(image)
+
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply denoising
+    if config.denoise_strength > 0:
+        denoised = cv2.fastNlMeansDenoising(
+            gray,
+            None,
+            h=config.denoise_strength,
+            templateWindowSize=7,
+            searchWindowSize=21,
+        )
+    else:
+        denoised = gray
+
+    # Apply CLAHE
+    if config.enable_clahe:
+        clahe = cv2.createCLAHE(clipLimit=config.clahe_clip_limit, tileGridSize=(8, 8))
+        enhanced = clahe.apply(denoised)
+    else:
+        enhanced = denoised
+
+    # Generate multiple binarizations
+    binarizations = multi_binarization(enhanced)
+
+    # Save each version to temporary file
+    results = []
+    for bin_image, method_name in binarizations:
+        # Apply morphological operations if enabled
+        if config.enable_morphology:
+            kernel = np.ones(config.morphology_kernel_size, np.uint8)
+            final_image = cv2.morphologyEx(
+                bin_image,
+                cv2.MORPH_CLOSE,
+                kernel,
+                iterations=config.morphology_iterations,
+            )
+        else:
+            final_image = bin_image
+
+        # Save to temporary file
+        temp_fd, temp_path = tempfile.mkstemp(
+            suffix=f"_{method_name}.png", prefix="ocr_multi_"
+        )
+        os.close(temp_fd)
+        cv2.imwrite(temp_path, final_image)
+
+        results.append((temp_path, method_name))
+
+    return results

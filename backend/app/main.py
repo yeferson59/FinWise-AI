@@ -1,3 +1,6 @@
+# CRITICAL: Configure Tesseract environment FIRST
+import app.tesseract_config  # noqa: F401
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.v1.router import router
