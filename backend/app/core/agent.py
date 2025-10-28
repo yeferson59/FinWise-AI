@@ -89,8 +89,8 @@ def get_all_categories(
     - limit: maximum number of categories to return, default is 10 but you can pass any positive integer.
 
     Returns:
-    - list[Category]: list of Category objects (may include default categories
-      and/or user-created categories), respecting offset and limit.
+        list[Category]: list of Category objects (may include default categories
+        and/or user-created categories), respecting offset and limit.
 
     Category table schema:
     - id: int
@@ -120,7 +120,7 @@ def get_category_by_name(ctx: RunContext[AgentDeps], name: str) -> Category | No
     - name: name of the category to search for.
 
     Returns:
-    - Category | None: Category object if found, None if not found.
+        Category | None: Category object if found, None if not found.
     """
     return db.get_entity_by_field(
         type_entity=Category,
@@ -146,7 +146,7 @@ def get_users_count(ctx: RunContext[AgentDeps]) -> int:
     - ctx: execution context providing dependencies (e.g., DB session).
 
     Returns:
-    - int: total number of users in the database.
+        int: total number of users in the database.
     """
     return db.get_total_count(User, ctx.deps.session)
 
@@ -164,7 +164,7 @@ def get_user_by_id(ctx: RunContext[AgentDeps], user_id: int) -> User | None:
     - user_id: the unique identifier of the user.
 
     Returns:
-    - User | None: User object if found, None otherwise.
+        User | None: User object if found, None otherwise.
 
     User schema:
     - id: int
@@ -194,7 +194,7 @@ def get_user_by_email(ctx: RunContext[AgentDeps], email: str) -> User | None:
     - email: the email address to search for.
 
     Returns:
-    - User | None: User object if found, None otherwise.
+        User | None: User object if found, None otherwise.
     """
     return db.get_entity_by_field(
         type_entity=User,
@@ -220,7 +220,7 @@ def get_all_users(
     - limit: maximum number of users to return, default is 10.
 
     Returns:
-    - list[User]: list of User objects respecting pagination parameters.
+        list[User]: list of User objects respecting pagination parameters.
     """
     return db.get_db_entities(
         entity=User, offset=offset, limit=limit, session=ctx.deps.session
@@ -246,7 +246,7 @@ def get_all_transactions(
     - limit: maximum number of transactions to return, default is 10.
 
     Returns:
-    - list[Transaction]: list of Transaction objects.
+        list[Transaction]: list of Transaction objects.
 
     Transaction schema:
     - id: str (UUID)
@@ -283,7 +283,7 @@ def get_transactions_by_user(
     - limit: maximum number of transactions to return, default is 10.
 
     Returns:
-    - list[Transaction]: list of transactions belonging to the user.
+        list[Transaction]: list of transactions belonging to the user.
     """
     return db.get_entities_by_field(
         type_entity=Transaction,
@@ -312,7 +312,7 @@ def get_transactions_by_category(
     - limit: maximum number of transactions to return, default is 10.
 
     Returns:
-    - list[Transaction]: list of transactions in that category.
+        list[Transaction]: list of transactions in that category.
     """
     return db.get_entities_by_field(
         type_entity=Transaction,
@@ -339,7 +339,7 @@ def get_transaction_by_id(
     - transaction_id: the unique identifier (UUID) of the transaction.
 
     Returns:
-    - Transaction | None: Transaction object if found, None otherwise.
+        Transaction | None: Transaction object if found, None otherwise.
     """
     try:
         return db.get_entity_by_id(Transaction, transaction_id, ctx.deps.session)
@@ -359,7 +359,7 @@ def count_transactions(ctx: RunContext[AgentDeps]) -> int:
     - ctx: execution context providing dependencies (e.g., DB session).
 
     Returns:
-    - int: total number of transactions.
+        int: total number of transactions.
     """
     return db.get_total_count(Transaction, ctx.deps.session)
 
@@ -377,7 +377,7 @@ def count_user_transactions(ctx: RunContext[AgentDeps], user_id: int) -> int:
     - user_id: the ID of the user.
 
     Returns:
-    - int: number of transactions for the user.
+        int: number of transactions for the user.
     """
     count = ctx.deps.session.exec(
         select(func.count())
@@ -408,7 +408,7 @@ def calculate_total_amount(
     - category_id: optional category ID to filter by.
 
     Returns:
-    - float: total sum of transaction amounts matching the filters.
+        float: total sum of transaction amounts matching the filters.
 
     Examples:
     - calculate_total_amount(user_id=1) -> total for user 1
@@ -455,7 +455,7 @@ def get_transactions_by_date_range(
     - limit: maximum number of transactions to return, default is 10.
 
     Returns:
-    - list[Transaction]: transactions within the date range.
+        list[Transaction]: transactions within the date range.
 
     Example:
     - get_transactions_by_date_range("2024-01-01", "2024-01-31", user_id=1)
@@ -501,7 +501,7 @@ def calculate_amount_by_date_range(
     - category_id: optional category ID to filter by.
 
     Returns:
-    - float: total amount of transactions in the date range.
+        float: total amount of transactions in the date range.
 
     Example:
     - calculate_amount_by_date_range("2024-01-01", "2024-01-31", user_id=1)
@@ -543,7 +543,7 @@ def get_spending_by_category(ctx: RunContext[AgentDeps], user_id: int, limit: in
     - limit: maximum number of categories to return, default is 10.
 
     Returns:
-    - list[dict]: list of dictionaries with category_id, category_name, and total_amount.
+        list[dict]: list of dictionaries with category_id, category_name, and total_amount.
         Results are ordered by total_amount descending (highest spending first).
         Example: [{"category_id": 1, "category_name": "Food", "total_amount": 500.0}]
     """
