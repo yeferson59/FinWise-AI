@@ -35,7 +35,7 @@ react_agent = Agent(
     deps_type=AgentDeps,
     model_settings={"temperature": settings.temperature, "top_p": settings.top_p},
     system_prompt="""You are FinWise AI, an intelligent financial assistant specialized in personal finance management.
-    
+
 Your role is to help users understand and manage their finances by:
 - Providing insights into their transactions and spending patterns
 - Answering questions about their financial data (users, categories, transactions)
@@ -76,23 +76,23 @@ def get_all_categories(
     ctx: RunContext[AgentDeps], offset: int = 0, limit: int = 10
 ) -> list[Category]:
     """
-    Obtiene las categorías ya definidas en el proyecto.
+    Get all categories already defined in the project.
 
-    Usa esta herramienta cuando el agente necesite conocer las categorías disponibles
-    (por ejemplo, para mostrar opciones al usuario, clasificar elementos, o sugerir
-    categorías relevantes). Devuelve una lista paginada de instancias de la entidad
-    Category almacenadas en la base de datos.
+    Use this tool when the agent needs to know the available categories
+    (for example, to show options to the user, classify items, or suggest
+    relevant categories). Returns a paginated list of Category entity instances
+    stored in the database.
 
-    Parámetros:
-    - ctx: contexto de ejecución que provee dependencias (p. ej. sesión de BD).
-    - offset: desplazamiento para paginación (índice de inicio) por defecto es 0 pero puedes pasar cualquier número entero positivo.
-    - limit: número máximo de categorías a devolver por defecto es 10 pero puedes pasar cualquier número entero positivo.
+    Parameters:
+    - ctx: execution context providing dependencies (e.g., DB session).
+    - offset: offset for pagination (start index), default is 0 but you can pass any positive integer.
+    - limit: maximum number of categories to return, default is 10 but you can pass any positive integer.
 
-    Retorna:
-    - list[Category]: lista de objetos Category (pueden incluir categorías por defecto
-      y/o creadas por usuarios), respetando offset y limit.
+    Returns:
+    - list[Category]: list of Category objects (may include default categories
+      and/or user-created categories), respecting offset and limit.
 
-    Esquema de la tabla Category:
+    Category table schema:
     - id: int
     - name: str
     - description: str
@@ -109,18 +109,18 @@ def get_all_categories(
 @react_agent.tool
 def get_category_by_name(ctx: RunContext[AgentDeps], name: str) -> Category | None:
     """
-    Obtiene una categoría por su nombre.
+    Get a category by its name.
 
-    Usa esta herramienta cuando el agente necesita encontrar una categoría específica
-    por su nombre (por ejemplo, para mostrar detalles, clasificar elementos, o sugerir
-    categorías relacionadas).
+    Use this tool when the agent needs to find a specific category
+    by its name (for example, to show details, classify items, or suggest
+    related categories).
 
-    Parámetros:
-    - ctx: contexto de ejecución que provee dependencias (p. ej. sesión de BD).
-    - name: nombre de la categoría a buscar.
+    Parameters:
+    - ctx: execution context providing dependencies (e.g., DB session).
+    - name: name of the category to search for.
 
-    Retorna:
-    - Category | None: objeto Category si se encuentra, None si no se encuentra.
+    Returns:
+    - Category | None: Category object if found, None if not found.
     """
     return db.get_entity_by_field(
         type_entity=Category,
@@ -428,7 +428,7 @@ def calculate_total_amount(
         query = query.where(and_(*filters))
 
     result = ctx.deps.session.exec(query).one()
-    return float(result) if result is not None else 0.0
+    return result
 
 
 @react_agent.tool
@@ -529,9 +529,7 @@ def calculate_amount_by_date_range(
 
 
 @react_agent.tool
-def get_spending_by_category(
-    ctx: RunContext[AgentDeps], user_id: int, limit: int = 10
-) -> list[dict]:
+def get_spending_by_category(ctx: RunContext[AgentDeps], user_id: int, limit: int = 10):  # type: ignore
     """
     Analyze a user's spending breakdown by category.
 
@@ -549,16 +547,20 @@ def get_spending_by_category(
         Results are ordered by total_amount descending (highest spending first).
         Example: [{"category_id": 1, "category_name": "Food", "total_amount": 500.0}]
     """
+    sum_amount = func.sum(Transaction.amount)
+
     query = (
         select(
             Transaction.category_id,
-            Category.name.label("category_name"),
-            func.sum(Transaction.amount).label("total_amount"),
+            Category.name,
+            sum_amount,
         )
-        .join(Category, Transaction.category_id == Category.id)
+        .select_from(Transaction)
+        .join(Category)
         .where(Transaction.user_id == user_id)
-        .group_by(Transaction.category_id, Category.name)
-        .order_by(func.sum(Transaction.amount).desc())
+        .where(Transaction.category_id == Category.id)
+        .group_by("category_id", "name")
+        .order_by(sum_amount.desc())
         .limit(limit)
     )
 
