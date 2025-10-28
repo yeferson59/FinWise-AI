@@ -184,7 +184,8 @@ def init_categories() -> None:
     Initialize default global categories in the database.
     
     This function is idempotent - it will only create categories that don't exist yet,
-    based on the category name. It's safe to call multiple times.
+    based on the category name. Global categories are identified by having 
+    is_default=True and user_id=None. It's safe to call multiple times.
     
     Raises:
         Exception: If there's a database error during category initialization
@@ -193,9 +194,12 @@ def init_categories() -> None:
     
     try:
         with Session(engine) as session:
-            # Get all existing category names to avoid duplicates
+            # Get all existing global category names to avoid duplicates
+            # Global categories have is_default=True and user_id=None
             existing_categories = session.exec(
-                select(Category.name).where(Category.is_default == True)
+                select(Category.name).where(
+                    Category.is_default == True, Category.user_id == None
+                )
             ).all()
             existing_names = set(existing_categories)
             
@@ -206,7 +210,7 @@ def init_categories() -> None:
             ]
             
             if not categories_to_create:
-                logger.info("All default categories already exist. Skipping initialization.")
+                logger.info("All default global categories already exist. Skipping initialization.")
                 return
             
             # Add only new categories
@@ -214,10 +218,10 @@ def init_categories() -> None:
             session.commit()
             
             logger.info(
-                f"Successfully initialized {len(categories_to_create)} default categories. "
+                f"Successfully initialized {len(categories_to_create)} default global categories. "
                 f"Skipped {len(existing_names)} existing categories."
             )
             
     except Exception as e:
-        logger.error(f"Error initializing default categories: {str(e)}")
+        logger.error(f"Error initializing default global categories: {str(e)}")
         raise
