@@ -74,15 +74,16 @@ def test_init_categories_idempotent(mock_session_class):
     mock_session = MagicMock()
     mock_session_class.return_value.__enter__.return_value = mock_session
     
-    # Mock that all categories already exist
+    # Mock that all default categories already exist in the database
+    # The query returns only the names of existing global categories
     default_categories = get_default_categories()
-    existing_names = [cat.name for cat in default_categories]
-    mock_session.exec.return_value.all.return_value = existing_names
+    all_existing_names = [cat.name for cat in default_categories]
+    mock_session.exec.return_value.all.return_value = all_existing_names
     
     # Call the function
     init_categories()
     
-    # Verify that no categories were added
+    # Verify that no new categories were added since all already exist
     assert not mock_session.add_all.called
     assert not mock_session.commit.called
 
