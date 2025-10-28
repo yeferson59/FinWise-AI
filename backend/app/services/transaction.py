@@ -6,12 +6,12 @@ from app.schemas.transaction import CreateTransaction, UpdateTransaction
 
 async def get_all_transactions(session: SessionDep, offset: int = 0, limit: int = 100):
     """Get all transactions with pagination support.
-    
+
     Args:
         session: Database session
         offset: Number of records to skip (default: 0)
         limit: Maximum number of records to return (default: 100)
-    
+
     Returns:
         List of Transaction objects
     """

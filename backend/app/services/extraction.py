@@ -69,8 +69,8 @@ def extract_text_from_image(
     language = config.get_language()
 
     # Ensure image is in a compatible mode (some formats cause Tesseract errors)
-    if image.mode not in ('RGB', 'L', 'RGBA'):
-        image = image.convert('RGB')
+    if image.mode not in ("RGB", "L", "RGBA"):
+        image = image.convert("RGB")
 
     try:
         # Extract text with custom configuration
@@ -86,23 +86,23 @@ def extract_text_from_image(
         # Fallback: try with a converted image in case format is problematic
         try:
             # Convert to RGB if not already (though we should already be in a compatible mode)
-            if image.mode not in ('RGB', 'L'):
-                image = image.convert('RGB')
-            
+            if image.mode not in ("RGB", "L"):
+                image = image.convert("RGB")
+
             # Save to temporary file in PNG format (most compatible)
             import tempfile
             import os
-            
-            temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
+
+            temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
             try:
                 os.close(temp_fd)  # Close file descriptor before PIL writes
-                image.save(temp_path, format='PNG')
-                
+                image.save(temp_path, format="PNG")
+
                 # Try again with the temporary file
                 extracted_text = pytesseract.image_to_string(
                     Image.open(temp_path), lang=language, config=tesseract_config
                 )
-                
+
                 if isinstance(extracted_text, str):
                     return extracted_text.strip()
                 return ""
@@ -110,9 +110,11 @@ def extract_text_from_image(
                 # Ensure cleanup happens even if an exception occurs
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                    
+
         except Exception as fallback_error:
-            raise ValueError(f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}")
+            raise ValueError(
+                f"Error during OCR processing: {str(e)}. Fallback also failed: {str(fallback_error)}"
+            )
 
 
 def extract_text(

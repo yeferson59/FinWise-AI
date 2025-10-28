@@ -11,20 +11,84 @@ from app.ocr_config import DocumentType
 
 
 # Common Spanish words - defined at module level to avoid recreation
-_SPANISH_MARKERS = frozenset([
-    "de", "la", "el", "y", "en", "que", "es", "los", "del", "las",
-    "un", "una", "por", "con", "para", "su", "al", "como", "lo", "pero",
-    "más", "este", "ya", "está", "hasta", "muy", "sin", "año", "señor",
-    "también", "día", "sólo", "entre", "sobre",
-])
+_SPANISH_MARKERS = frozenset(
+    [
+        "de",
+        "la",
+        "el",
+        "y",
+        "en",
+        "que",
+        "es",
+        "los",
+        "del",
+        "las",
+        "un",
+        "una",
+        "por",
+        "con",
+        "para",
+        "su",
+        "al",
+        "como",
+        "lo",
+        "pero",
+        "más",
+        "este",
+        "ya",
+        "está",
+        "hasta",
+        "muy",
+        "sin",
+        "año",
+        "señor",
+        "también",
+        "día",
+        "sólo",
+        "entre",
+        "sobre",
+    ]
+)
 
 # Common English words - defined at module level to avoid recreation
-_ENGLISH_MARKERS = frozenset([
-    "the", "is", "at", "which", "on", "and", "or", "not", "but", "they",
-    "be", "to", "of", "as", "from", "with", "by", "this", "have", "that",
-    "for", "are", "was", "has", "been", "his", "all", "were", "when",
-    "their", "said", "can", "she", "each",
-])
+_ENGLISH_MARKERS = frozenset(
+    [
+        "the",
+        "is",
+        "at",
+        "which",
+        "on",
+        "and",
+        "or",
+        "not",
+        "but",
+        "they",
+        "be",
+        "to",
+        "of",
+        "as",
+        "from",
+        "with",
+        "by",
+        "this",
+        "have",
+        "that",
+        "for",
+        "are",
+        "was",
+        "has",
+        "been",
+        "his",
+        "all",
+        "were",
+        "when",
+        "their",
+        "said",
+        "can",
+        "she",
+        "each",
+    ]
+)
 
 
 def detect_language(text: str) -> str:
@@ -46,7 +110,7 @@ def detect_language(text: str) -> str:
     # Count occurrences more efficiently using frozenset intersection
     # Split text into words and check intersection with marker sets
     words = set(text_with_spaces.split())
-    
+
     spanish_count = len(words & _SPANISH_MARKERS)
     english_count = len(words & _ENGLISH_MARKERS)
 
