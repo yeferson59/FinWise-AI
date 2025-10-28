@@ -187,41 +187,44 @@ def extract_with_fallback(
     """
     # Build cache config
     cache_config = {
-        'document_type': document_type.value if document_type else None,
-        'language': language,
-        'version': '2.0'  # Increment when changing extraction logic
+        "document_type": document_type.value if document_type else None,
+        "language": language,
+        "version": "2.0",  # Increment when changing extraction logic
     }
-    
+
     # Check cache first
     if use_cache:
         cached = ocr_cache.get_cached_result(filepath, cache_config)
         if cached:
-            return cached.get('text', ''), cached.get('metadata', {})
-    
+            return cached.get("text", ""), cached.get("metadata", {})
+
     # Assess image quality
     quality_info = assess_image_quality(filepath)
-    
+
     corrected_path = None
     try:
         # Apply auto-correction if needed
-        if not quality_info['is_acceptable']:
+        if not quality_info["is_acceptable"]:
             image = cv2.imread(filepath)
             if image is not None:
                 corrected_image = auto_correct_image(image, quality_info)
-                
+
                 # Save corrected image to temp file
                 import tempfile
-                temp_fd, corrected_path = tempfile.mkstemp(suffix='.png', prefix='corrected_')
+
+                temp_fd, corrected_path = tempfile.mkstemp(
+                    suffix=".png", prefix="corrected_"
+                )
                 os.close(temp_fd)
                 cv2.imwrite(corrected_path, corrected_image)
-                
+
                 # Use corrected image for extraction
                 extraction_path = corrected_path
             else:
                 extraction_path = filepath
         else:
             extraction_path = filepath
-        
+
         # First attempt with default settings
         text, confidence = extract_text_with_confidence(extraction_path, document_type)
         avg_conf: float = float(confidence.get("average_confidence", 0))
@@ -279,7 +282,7 @@ def extract_with_fallback(
         # Clean the text
         best_text = str(best_result["text"])
         cleaned_text = clean_text(best_text)
-        
+
         # Apply post-processing corrections
         corrected_text = post_process_ocr_text(cleaned_text, document_type)
 
@@ -298,10 +301,9 @@ def extract_with_fallback(
 
         # Cache the result
         if use_cache:
-            ocr_cache.cache_result(filepath, cache_config, {
-                'text': corrected_text,
-                'metadata': metadata
-            })
+            ocr_cache.cache_result(
+                filepath, cache_config, {"text": corrected_text, "metadata": metadata}
+            )
 
         return corrected_text, metadata
 
@@ -320,7 +322,7 @@ def extract_with_fallback(
         }
 
         return corrected_text, metadata
-    
+
     finally:
         # Clean up temporary corrected image
         if corrected_path and os.path.exists(corrected_path):

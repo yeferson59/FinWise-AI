@@ -8,7 +8,10 @@ from app.ocr_config import (
     DocumentType,
     get_profile,
 )
-from app.services.tesseract_wrapper import extract_text_resilient, extract_text_with_confidence_resilient
+from app.services.tesseract_wrapper import (
+    extract_text_resilient,
+    extract_text_with_confidence_resilient,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,22 +82,20 @@ def extract_text_from_image(
     # Save to temporary PNG file for resilient processing
     import tempfile
     import os
-    
+
     temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
         os.close(temp_fd)
         image.save(temp_path, format="PNG")
         image.close()
-        
+
         # Use resilient wrapper to protect against crashes
         extracted_text = extract_text_resilient(
-            temp_path,
-            config_str=tesseract_config,
-            lang=language
+            temp_path, config_str=tesseract_config, lang=language
         )
-        
+
         return extracted_text if extracted_text else ""
-        
+
     except Exception as e:
         logger.error(f"Error during OCR processing: {e}")
         raise ValueError(f"Error during OCR processing: {str(e)}")
@@ -203,24 +204,22 @@ def extract_text_with_confidence(
     # Ensure image is in compatible mode
     if image.mode not in ("RGB", "L", "RGBA"):
         image = image.convert("RGB")
-    
+
     # Save to temporary PNG file for resilient processing
     import tempfile
     import os
-    
+
     temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
         os.close(temp_fd)
         image.save(temp_path, format="PNG")
         image.close()
-        
+
         # Use resilient wrapper with confidence
         text, confidence_data = extract_text_with_confidence_resilient(
-            temp_path,
-            config_str=tesseract_config,
-            lang=language
+            temp_path, config_str=tesseract_config, lang=language
         )
-        
+
         return text if text else "", confidence_data
 
     except Exception as e:
