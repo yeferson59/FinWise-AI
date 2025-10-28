@@ -37,6 +37,7 @@ spanish_count = len(words & _SPANISH_MARKERS)
 
 **Before: Hardcoded Limit**
 ```python
+# Transactions
 async def get_all_transactions(session: SessionDep):
     return db.get_db_entities(Transaction, 0, 10, session)
     # Always returns only 10 transactions, regardless of total
@@ -48,6 +49,7 @@ async def get_all_categories(session: SessionDep):
 
 **After: Flexible Pagination**
 ```python
+# Transactions
 async def get_all_transactions(
     session: SessionDep, 
     offset: int = 0, 
