@@ -5,9 +5,14 @@ common OCR errors and improve text quality.
 """
 
 import re
+import os
+import cv2
 from typing import Any
 from app.services.extraction import extract_text, extract_text_with_confidence
-from app.ocr_config import DocumentType
+from app.services.image_quality import assess_image_quality, auto_correct_image
+from app.services.ocr_corrections import post_process_ocr_text
+from app.services import ocr_cache
+from app.ocr_config import DocumentType, OCRConfig, PSMMode
 
 
 # Common Spanish words - defined at module level to avoid recreation
@@ -158,28 +163,67 @@ def extract_with_fallback(
     filepath: str,
     document_type: DocumentType | None = None,
     language: str | None = None,
+    use_cache: bool = True,
 ) -> tuple[str, dict[str, Any]]:
     """
     Extract text with fallback strategies for better accuracy.
 
     This function:
-    1. Tries extraction with the specified document type
-    2. If confidence is low, tries with alternative PSM modes
-    3. Returns the best result with metadata
+    1. Checks cache for previous results
+    2. Assesses image quality and applies corrections if needed
+    3. Tries extraction with the specified document type
+    4. If confidence is low, tries with alternative PSM modes
+    5. Applies post-processing corrections
+    6. Returns the best result with metadata
 
     Args:
         filepath: Path to the file
         document_type: Type of document
         language: Optional language override (e.g., 'eng', 'spa', 'eng+spa')
+        use_cache: Whether to use cached results
 
     Returns:
         Tuple of (best_text, metadata_dict)
     """
-    from app.ocr_config import OCRConfig, PSMMode
-
-    # First attempt with default settings
+    # Build cache config
+    cache_config = {
+        'document_type': document_type.value if document_type else None,
+        'language': language,
+        'version': '2.0'  # Increment when changing extraction logic
+    }
+    
+    # Check cache first
+    if use_cache:
+        cached = ocr_cache.get_cached_result(filepath, cache_config)
+        if cached:
+            return cached.get('text', ''), cached.get('metadata', {})
+    
+    # Assess image quality
+    quality_info = assess_image_quality(filepath)
+    
+    corrected_path = None
     try:
-        text, confidence = extract_text_with_confidence(filepath, document_type)
+        # Apply auto-correction if needed
+        if not quality_info['is_acceptable']:
+            image = cv2.imread(filepath)
+            if image is not None:
+                corrected_image = auto_correct_image(image, quality_info)
+                
+                # Save corrected image to temp file
+                import tempfile
+                temp_fd, corrected_path = tempfile.mkstemp(suffix='.png', prefix='corrected_')
+                os.close(temp_fd)
+                cv2.imwrite(corrected_path, corrected_image)
+                
+                # Use corrected image for extraction
+                extraction_path = corrected_path
+            else:
+                extraction_path = filepath
+        else:
+            extraction_path = filepath
+        
+        # First attempt with default settings
+        text, confidence = extract_text_with_confidence(extraction_path, document_type)
         avg_conf: float = float(confidence.get("average_confidence", 0))
 
         results = [
@@ -198,14 +242,13 @@ def extract_with_fallback(
                 custom_config = OCRConfig(
                     psm_mode=PSMMode.SPARSE_TEXT, language=language or "eng+spa"
                 )
-                alt_text = extract_text(filepath, ocr_config=custom_config)
+                alt_text = extract_text(extraction_path, ocr_config=custom_config)
                 results.append(
                     {
                         "text": alt_text,
                         "confidence": {"note": "Alternative PSM mode"},
                         "method": "sparse_text",
-                        "avg_confidence": avg_conf
-                        * 0.9,  # Slight penalty for comparison
+                        "avg_confidence": avg_conf * 0.9,
                     }
                 )
             except Exception:
@@ -216,14 +259,13 @@ def extract_with_fallback(
                 custom_config = OCRConfig(
                     psm_mode=PSMMode.SINGLE_BLOCK, language=language or "eng+spa"
                 )
-                alt_text = extract_text(filepath, ocr_config=custom_config)
+                alt_text = extract_text(extraction_path, ocr_config=custom_config)
                 results.append(
                     {
                         "text": alt_text,
                         "confidence": {"note": "Single block mode"},
                         "method": "single_block",
-                        "avg_confidence": avg_conf
-                        * 0.95,  # Slight penalty for comparison
+                        "avg_confidence": avg_conf * 0.95,
                     }
                 )
             except Exception:
@@ -237,33 +279,55 @@ def extract_with_fallback(
         # Clean the text
         best_text = str(best_result["text"])
         cleaned_text = clean_text(best_text)
+        
+        # Apply post-processing corrections
+        corrected_text = post_process_ocr_text(cleaned_text, document_type)
 
         # Detect language in the result
-        detected_lang = detect_language(cleaned_text)
+        detected_lang = detect_language(corrected_text)
 
         metadata = {
             "original_confidence": best_result["confidence"],
             "method_used": best_result["method"],
             "detected_language": detected_lang,
-            "text_length": len(cleaned_text),
+            "text_length": len(corrected_text),
             "alternatives_tried": len(results),
+            "quality_assessment": quality_info,
+            "auto_corrected": corrected_path is not None,
         }
 
-        return cleaned_text, metadata
+        # Cache the result
+        if use_cache:
+            ocr_cache.cache_result(filepath, cache_config, {
+                'text': corrected_text,
+                'metadata': metadata
+            })
+
+        return corrected_text, metadata
 
     except Exception as e:
         # Fallback to basic extraction
         raw_text = extract_text(filepath, document_type)
         cleaned_text = clean_text(str(raw_text))
+        corrected_text = post_process_ocr_text(cleaned_text, document_type)
 
         metadata = {
             "method_used": "fallback",
             "error": str(e),
-            "detected_language": detect_language(cleaned_text),
-            "text_length": len(cleaned_text),
+            "detected_language": detect_language(corrected_text),
+            "text_length": len(corrected_text),
+            "quality_assessment": quality_info,
         }
 
-        return cleaned_text, metadata
+        return corrected_text, metadata
+    
+    finally:
+        # Clean up temporary corrected image
+        if corrected_path and os.path.exists(corrected_path):
+            try:
+                os.unlink(corrected_path)
+            except Exception:
+                pass
 
 
 def extract_text_intelligent(
