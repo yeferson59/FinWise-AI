@@ -4,8 +4,18 @@ from app.models.category import Category
 from app.schemas.category import CreateCategory, UpdateCategory
 
 
-async def get_all_categories(session: SessionDep):
-    return db.get_db_entities(Category, 0, 10, session)
+async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 100):
+    """Get all categories with pagination support.
+
+    Args:
+        session: Database session
+        offset: Number of records to skip (default: 0)
+        limit: Maximum number of records to return (default: 100)
+
+    Returns:
+        List of Category objects
+    """
+    return db.get_db_entities(Category, offset, limit, session)
 
 
 async def create_category(session: SessionDep, create_category: CreateCategory):
