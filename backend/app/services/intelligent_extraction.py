@@ -15,6 +15,14 @@ from app.services import ocr_cache
 from app.ocr_config import DocumentType, OCRConfig, PSMMode
 
 
+# Pre-compiled regex patterns for clean_text() - improves performance
+_WHITESPACE_PATTERN = re.compile(r"\s+")
+_MULTIPLE_PIPES_PATTERN = re.compile(r"[|]{2,}")
+_MULTIPLE_UNDERSCORES_PATTERN = re.compile(r"[_]{3,}")
+_MULTIPLE_CARETS_PATTERN = re.compile(r"[\^]{2,}")
+_MULTIPLE_NEWLINES_PATTERN = re.compile(r"\n{3,}")
+
+
 # Common Spanish words - defined at module level to avoid recreation
 _SPANISH_MARKERS = frozenset(
     [
@@ -141,16 +149,16 @@ def clean_text(text: str) -> str:
     if not text:
         return ""
 
-    # Remove excessive whitespace
-    text = re.sub(r"\s+", " ", text)
+    # Remove excessive whitespace (using pre-compiled pattern)
+    text = _WHITESPACE_PATTERN.sub(" ", text)
 
-    # Remove common OCR artifacts
-    text = re.sub(r"[|]{2,}", "", text)  # Multiple pipes
-    text = re.sub(r"[_]{3,}", "", text)  # Multiple underscores
-    text = re.sub(r"[\^]{2,}", "", text)  # Multiple carets
+    # Remove common OCR artifacts (using pre-compiled patterns)
+    text = _MULTIPLE_PIPES_PATTERN.sub("", text)  # Multiple pipes
+    text = _MULTIPLE_UNDERSCORES_PATTERN.sub("", text)  # Multiple underscores
+    text = _MULTIPLE_CARETS_PATTERN.sub("", text)  # Multiple carets
 
-    # Normalize line breaks
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    # Normalize line breaks (using pre-compiled pattern)
+    text = _MULTIPLE_NEWLINES_PATTERN.sub("\n\n", text)
 
     # Trim leading/trailing whitespace on each line
     lines = [line.strip() for line in text.split("\n")]
