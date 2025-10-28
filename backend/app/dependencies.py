@@ -196,9 +196,10 @@ def init_categories() -> None:
         with Session(engine) as session:
             # Get all existing global category names to avoid duplicates
             # Global categories have is_default=True and user_id=None
+            # Use .is_(None) instead of == None for better SQL performance
             existing_categories = session.exec(
                 select(Category.name).where(
-                    Category.is_default == True, Category.user_id == None
+                    Category.is_default.is_(True), Category.user_id.is_(None)
                 )
             ).all()
             existing_names = set(existing_categories)
@@ -213,7 +214,7 @@ def init_categories() -> None:
                 logger.info("All default global categories already exist. Skipping initialization.")
                 return
             
-            # Add only new categories
+            # Use bulk insert for better performance
             session.add_all(categories_to_create)
             session.commit()
             

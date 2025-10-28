@@ -358,7 +358,16 @@ async def get_supported_languages():
     }
 
 
-model_audio = WhisperModel("base", device="cpu")
+# Lazy load Whisper model to avoid loading it at import time
+_whisper_model = None
+
+
+def get_whisper_model():
+    """Get or initialize the Whisper model lazily."""
+    global _whisper_model
+    if _whisper_model is None:
+        _whisper_model = WhisperModel("base", device="cpu")
+    return _whisper_model
 
 
 @router.post("/audio/extract-text")
@@ -366,6 +375,7 @@ async def transcribe_audio(file: UploadFile):
     """Extract text from audio file using speech recognition."""
     file_identifier = await storage.save_file(file)
     async with storage.get_local_path(file_identifier) as local_path:
-        segments, _ = model_audio.transcribe(audio=local_path)
+        model = get_whisper_model()
+        segments, _ = model.transcribe(audio=local_path)
         full_text = " ".join([segment.text for segment in segments])
     return {"text": full_text.strip()}

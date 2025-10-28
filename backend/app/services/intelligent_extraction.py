@@ -10,6 +10,23 @@ from app.services.extraction import extract_text, extract_text_with_confidence
 from app.ocr_config import DocumentType
 
 
+# Common Spanish words - defined at module level to avoid recreation
+_SPANISH_MARKERS = frozenset([
+    "de", "la", "el", "y", "en", "que", "es", "los", "del", "las",
+    "un", "una", "por", "con", "para", "su", "al", "como", "lo", "pero",
+    "más", "este", "ya", "está", "hasta", "muy", "sin", "año", "señor",
+    "también", "día", "sólo", "entre", "sobre",
+])
+
+# Common English words - defined at module level to avoid recreation
+_ENGLISH_MARKERS = frozenset([
+    "the", "is", "at", "which", "on", "and", "or", "not", "but", "they",
+    "be", "to", "of", "as", "from", "with", "by", "this", "have", "that",
+    "for", "are", "was", "has", "been", "his", "all", "were", "when",
+    "their", "said", "can", "she", "each",
+])
+
+
 def detect_language(text: str) -> str:
     """
     Detect if text is primarily Spanish or English based on common words.
@@ -23,91 +40,15 @@ def detect_language(text: str) -> str:
     if not text or len(text.strip()) < 10:
         return "eng+spa"
 
-    text_lower = text.lower()
+    # Prepare text once with word boundaries
+    text_with_spaces = f" {text.lower()} "
 
-    # Common Spanish words
-    spanish_markers = [
-        "de",
-        "la",
-        "el",
-        "y",
-        "en",
-        "que",
-        "es",
-        "los",
-        "del",
-        "las",
-        "un",
-        "una",
-        "por",
-        "con",
-        "para",
-        "su",
-        "al",
-        "como",
-        "lo",
-        "pero",
-        "más",
-        "este",
-        "ya",
-        "está",
-        "hasta",
-        "muy",
-        "sin",
-        "año",
-        "señor",
-        "también",
-        "día",
-        "sólo",
-        "entre",
-        "sobre",
-    ]
-
-    # Common English words
-    english_markers = [
-        "the",
-        "is",
-        "at",
-        "which",
-        "on",
-        "and",
-        "or",
-        "not",
-        "but",
-        "they",
-        "be",
-        "to",
-        "of",
-        "as",
-        "from",
-        "with",
-        "by",
-        "this",
-        "have",
-        "that",
-        "for",
-        "are",
-        "was",
-        "has",
-        "been",
-        "his",
-        "all",
-        "were",
-        "when",
-        "their",
-        "said",
-        "can",
-        "she",
-        "each",
-    ]
-
-    # Count occurrences
-    spanish_count = sum(
-        1 for word in spanish_markers if f" {word} " in f" {text_lower} "
-    )
-    english_count = sum(
-        1 for word in english_markers if f" {word} " in f" {text_lower} "
-    )
+    # Count occurrences more efficiently using frozenset intersection
+    # Split text into words and check intersection with marker sets
+    words = set(text_with_spaces.split())
+    
+    spanish_count = len(words & _SPANISH_MARKERS)
+    english_count = len(words & _ENGLISH_MARKERS)
 
     # Determine language
     if spanish_count > english_count * 1.5:
