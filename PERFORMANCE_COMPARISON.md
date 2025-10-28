@@ -33,13 +33,17 @@ spanish_count = len(words & _SPANISH_MARKERS)
 
 ---
 
-### 2. Transaction Pagination
+### 2. API Pagination (Transactions & Categories)
 
 **Before: Hardcoded Limit**
 ```python
 async def get_all_transactions(session: SessionDep):
     return db.get_db_entities(Transaction, 0, 10, session)
     # Always returns only 10 transactions, regardless of total
+
+async def get_all_categories(session: SessionDep):
+    return db.get_db_entities(Category, 0, 10, session)
+    # Always returns only 10 categories, regardless of total
 ```
 
 **After: Flexible Pagination**
@@ -56,6 +60,19 @@ async def get_all_transactions(
         limit: Max records to return (default: 100, max: 1000)
     """
     return db.get_db_entities(Transaction, offset, limit, session)
+
+async def get_all_categories(
+    session: SessionDep,
+    offset: int = 0,
+    limit: int = 100
+):
+    """Get categories with pagination.
+    
+    Args:
+        offset: Number of records to skip (default: 0)
+        limit: Max records to return (default: 100, max: 1000)
+    """
+    return db.get_db_entities(Category, offset, limit, session)
 ```
 
 **API Usage:**
@@ -68,9 +85,13 @@ GET /api/v1/transactions?offset=100&limit=100
 
 # Get all transactions (up to 1000)
 GET /api/v1/transactions?limit=1000
+
+# Same for categories
+GET /api/v1/categories?offset=0&limit=100
+GET /api/v1/categories?limit=1000
 ```
 
-**Result:** 100x more capacity (10 → 1000 records), efficient data retrieval
+**Result:** 100x more capacity (10 → 1000 records), efficient data retrieval, consistent API design
 
 ---
 

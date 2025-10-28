@@ -4,20 +4,22 @@ This document outlines the performance optimizations implemented in FinWise-AI a
 
 ## Implemented Improvements ✅
 
-### 1. Transaction Pagination (High Impact)
-**File:** `app/services/transaction.py`, `app/api/v1/endpoints/transactions.py`
+### 1. API Pagination (High Impact)
+**Files:** `app/services/transaction.py`, `app/api/v1/endpoints/transactions.py`, `app/services/category.py`, `app/api/v1/endpoints/categories.py`
 
-**Problem:** The `get_all_transactions` function had a hardcoded limit of 10 records, regardless of the actual number of transactions in the database.
+**Problem:** The `get_all_transactions` and `get_all_categories` functions had hardcoded limits of 10 records, regardless of the actual number of entities in the database.
 
 **Solution:**
 - Added `offset` and `limit` parameters to support proper pagination
 - Increased default limit to 100 with a maximum of 1000
-- Updated API endpoint to accept pagination query parameters
+- Updated API endpoints to accept pagination query parameters
+- Applied consistently across transactions and categories
 
 **Impact:**
-- Allows clients to fetch all transactions efficiently
+- Allows clients to fetch all entities efficiently
 - Reduces memory usage by limiting results
 - Improves API response time for large datasets
+- Consistent API design across endpoints
 
 **Usage Example:**
 ```python
@@ -26,6 +28,10 @@ GET /api/v1/transactions?offset=0&limit=100
 
 # Get next 100 transactions
 GET /api/v1/transactions?offset=100&limit=100
+
+# Same for categories
+GET /api/v1/categories?offset=0&limit=100
+GET /api/v1/categories?offset=100&limit=100
 ```
 
 ### 2. Language Detection Optimization (Medium Impact)
