@@ -77,9 +77,19 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 - ✅ Transaction state management (pending, completed, etc.)
 
 **5. Category Management**
+- ✅ 60+ default global categories organized by type:
+  - **Income**: Salary, Bonus, Interest Income, Investment Income, Rental Income, Business Income, Gift Received, Refunds, Other Income
+  - **Expenses**: Groceries, Dining Out, Utilities, Rent, Mortgage, Transportation, Fuel, Insurance, Healthcare, Medical Expenses, Education, Childcare, Entertainment, Subscriptions, Clothing, Personal Care, Travel, Vacation, Phone & Internet, Taxes, Donations, Pet Care, Home Maintenance, Electronics, Shopping, Miscellaneous
+  - **Savings**: Emergency Fund, Retirement Savings, College Fund, Investment Savings, Short-term Savings
+  - **Investments**: Stocks, Bonds, Mutual Funds, Real Estate, Cryptocurrency, Other Investments
+  - **Debt**: Credit Card Payment, Loan Payment, Mortgage Payment, Student Loan, Car Loan, Other Debt
+  - **Other**: Uncategorized, Transfers, Fees, Adjustments
+- ✅ Idempotent category initialization (`init_categories()` function)
+- ✅ Support for global (default) and user-specific categories
 - ✅ Category CRUD operations
 - ✅ Unique category names with descriptions
 - ✅ Full integration with transaction system
+- ✅ `is_default` flag to distinguish global from user categories
 
 #### 🚧 Partially Implemented Features
 
@@ -186,6 +196,7 @@ The backend follows a **clean architecture** pattern with clear separation of co
   
 - **`app/models/`**: Database models using SQLModel
   - `user.py`, `transaction.py`, `category.py`, `auth.py`
+  - Category model supports both global (default) and user-specific categories
   
 - **`app/schemas/`**: Pydantic models for API validation
   - Request/response DTOs for each domain
@@ -198,6 +209,10 @@ The backend follows a **clean architecture** pattern with clear separation of co
 - **`app/db/`**: Database connection and session management
   - `session.py`: SQLModel engine and session factory
   - `base.py`: Base models and utilities
+
+- **`app/dependencies.py`**: Application dependencies and startup logic
+  - `init_categories()`: Idempotent initialization of 60+ global categories
+  - `get_default_categories()`: Returns default category definitions
 
 - **`app/ocr_config/`**: OCR configuration profiles
   - Document-specific OCR settings
@@ -337,12 +352,28 @@ LOCAL_STORAGE_PATH=uploads
 
 ### 4. Initialize Database
 
-The database is automatically created on first run. Tables are initialized via SQLModel's `create_all()` in the application startup event.
+The database and default categories are automatically created on first run via the application's lifespan event handler:
+
+1. **Database Tables**: Created via SQLModel's `create_all()` function
+2. **Default Categories**: 60+ global categories are initialized via `init_categories()` function
+   - The initialization is idempotent - safe to run multiple times
+   - Only creates categories that don't already exist
+   - Categories are identified by `is_default=True` and `user_id=None`
+
+**Application Startup Sequence:**
+```python
+# In app/main.py
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    create_db_and_tables()  # Create database tables
+    init_categories()        # Initialize default global categories
+    yield
+```
 
 **Manual migration (if needed):**
 ```bash
 # The app handles this automatically, but for reference:
-uv run python -c "from app.db.session import init_db; init_db()"
+uv run python -c "from app.db.base import create_db_and_tables; from app.dependencies import init_categories; create_db_and_tables(); init_categories()"
 ```
 
 ### 5. Verify Installation
@@ -507,6 +538,16 @@ curl -X POST "http://localhost:8000/api/v1/transactions/" \
 #### Categories
 
 **Base Path**: `/api/v1/categories`
+
+The category system provides 60+ pre-configured global categories covering all common financial scenarios. Global categories (identified by `is_default=True` and `user_id=None`) are automatically initialized on application startup. Users can also create custom categories for their specific needs.
+
+**Category Organization:**
+- **Income** (9 categories): Salary, Bonus, Interest Income, Investment Income, etc.
+- **Expenses** (26 categories): Groceries, Dining Out, Utilities, Rent, Transportation, etc.
+- **Savings** (5 categories): Emergency Fund, Retirement Savings, College Fund, etc.
+- **Investments** (6 categories): Stocks, Bonds, Mutual Funds, Real Estate, Cryptocurrency, etc.
+- **Debt** (6 categories): Credit Card Payment, Loan Payment, Student Loan, etc.
+- **Other** (4 categories): Uncategorized, Transfers, Fees, Adjustments
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
