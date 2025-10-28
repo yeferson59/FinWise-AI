@@ -539,20 +539,15 @@ def get_spending_by_category(
     across different categories. This is useful for budget analysis and
     identifying major expense categories.
 
-    Parameters:
-    - ctx: execution context providing dependencies (e.g., DB session).
-    - user_id: the ID of the user to analyze.
-    - limit: maximum number of categories to return, default is 10.
+    Args:
+        ctx: execution context providing dependencies (e.g., DB session).
+        user_id: the ID of the user to analyze.
+        limit: maximum number of categories to return, default is 10.
 
     Returns:
-    - list[dict]: list of dictionaries with category_id, category_name, and total_amount.
-      Results are ordered by total_amount descending (highest spending first).
-
-    Example result:
-    [
-        {"category_id": 1, "category_name": "Food", "total_amount": 500.0},
-        {"category_id": 2, "category_name": "Transport", "total_amount": 200.0}
-    ]
+        list[dict]: list of dictionaries with category_id, category_name, and total_amount.
+            Results are ordered by total_amount descending (highest spending first).
+            Example: [{"category_id": 1, "category_name": "Food", "total_amount": 500.0}]
     """
     query = (
         select(
