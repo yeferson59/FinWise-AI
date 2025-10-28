@@ -7,3 +7,9 @@ class Category(Base, table=True):
     description: str | None = Field(
         default=None, description="Category description", max_length=255
     )
+    is_default: bool = Field(default=True, description="Is default category")
+    user_id: int | None = Field(
+        default=None,
+        foreign_key="user.id",
+        description="User ID",
+    )
