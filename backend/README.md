@@ -77,13 +77,13 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 - ✅ Transaction state management (pending, completed, etc.)
 
 **5. Category Management**
-- ✅ 60+ default global categories organized by type:
-  - **Income**: Salary, Bonus, Interest Income, Investment Income, Rental Income, Business Income, Gift Received, Refunds, Other Income
-  - **Expenses**: Groceries, Dining Out, Utilities, Rent, Mortgage, Transportation, Fuel, Insurance, Healthcare, Medical Expenses, Education, Childcare, Entertainment, Subscriptions, Clothing, Personal Care, Travel, Vacation, Phone & Internet, Taxes, Donations, Pet Care, Home Maintenance, Electronics, Shopping, Miscellaneous
-  - **Savings**: Emergency Fund, Retirement Savings, College Fund, Investment Savings, Short-term Savings
-  - **Investments**: Stocks, Bonds, Mutual Funds, Real Estate, Cryptocurrency, Other Investments
-  - **Debt**: Credit Card Payment, Loan Payment, Mortgage Payment, Student Loan, Car Loan, Other Debt
-  - **Other**: Uncategorized, Transfers, Fees, Adjustments
+- ✅ 56 default global categories organized by type:
+  - **Income** (9): Salary, Bonus, Interest Income, Investment Income, Rental Income, Business Income, Gift Received, Refunds, Other Income
+  - **Expenses** (26): Groceries, Dining Out, Utilities, Rent, Mortgage, Transportation, Fuel, Insurance, Healthcare, Medical Expenses, Education, Childcare, Entertainment, Subscriptions, Clothing, Personal Care, Travel, Vacation, Phone & Internet, Taxes, Donations, Pet Care, Home Maintenance, Electronics, Shopping, Miscellaneous
+  - **Savings** (5): Emergency Fund, Retirement Savings, College Fund, Investment Savings, Short-term Savings
+  - **Investments** (6): Stocks, Bonds, Mutual Funds, Real Estate, Cryptocurrency, Other Investments
+  - **Debt** (6): Credit Card Payment, Loan Payment, Mortgage Payment, Student Loan, Car Loan, Other Debt
+  - **Other** (4): Uncategorized, Transfers, Fees, Adjustments
 - ✅ Idempotent category initialization (`init_categories()` function)
 - ✅ Support for global (default) and user-specific categories
 - ✅ Category CRUD operations
@@ -211,7 +211,7 @@ The backend follows a **clean architecture** pattern with clear separation of co
   - `base.py`: Base models and utilities
 
 - **`app/dependencies.py`**: Application dependencies and startup logic
-  - `init_categories()`: Idempotent initialization of 60+ global categories
+  - `init_categories()`: Idempotent initialization of 56 global categories
   - `get_default_categories()`: Returns default category definitions
 
 - **`app/ocr_config/`**: OCR configuration profiles
@@ -355,7 +355,7 @@ LOCAL_STORAGE_PATH=uploads
 The database and default categories are automatically created on first run via the application's lifespan event handler:
 
 1. **Database Tables**: Created via SQLModel's `create_all()` function
-2. **Default Categories**: 60+ global categories are initialized via `init_categories()` function
+2. **Default Categories**: 56 global categories are initialized via `init_categories()` function
    - The initialization is idempotent - safe to run multiple times
    - Only creates categories that don't already exist
    - Categories are identified by `is_default=True` and `user_id=None`
@@ -539,7 +539,7 @@ curl -X POST "http://localhost:8000/api/v1/transactions/" \
 
 **Base Path**: `/api/v1/categories`
 
-The category system provides 60+ pre-configured global categories covering all common financial scenarios. Global categories (identified by `is_default=True` and `user_id=None`) are automatically initialized on application startup. Users can also create custom categories for their specific needs.
+The category system provides 56 pre-configured global categories covering all common financial scenarios. Global categories (identified by `is_default=True` and `user_id=None`) are automatically initialized on application startup. Users can also create custom categories for their specific needs.
 
 **Category Organization:**
 - **Income** (9 categories): Salary, Bonus, Interest Income, Investment Income, etc.

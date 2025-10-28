@@ -45,7 +45,7 @@ FinWise-AI is a full-stack personal finance application consisting of:
   - Transaction state management (pending, completed, etc.)
 
 - **Category Management**
-  - 60+ default global categories organized by type (Income, Expenses, Savings, Investments, Debt, Other)
+  - 56 default global categories organized by type (Income, Expenses, Savings, Investments, Debt, Other)
   - Custom user-specific category creation
   - Idempotent category initialization (safe to run multiple times)
   - Support for both global (default) and user-specific categories
