@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build environment
 # -----------------------------------------------------------------------------
-FROM ghcr.io/astral-sh/uv:latest AS builder
+FROM ghcr.io/astral-sh/uv:debian-slim AS builder
 
 # Install system dependencies required for building Python packages
 # These include compilers, headers, and build tools
