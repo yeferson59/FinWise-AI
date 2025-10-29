@@ -49,6 +49,9 @@ async def register(session: SessionDep, register_data: auth.Register) -> str:
     if register_data.password != register_data.confirm_password:
         return "No successfully"
 
+    if register_data.terms_and_conditions is False:
+        return "Terms and conditions must be accepted"
+
     user_create = user_schemas.CreateUser(
         first_name=register_data.first_name,
         last_name=register_data.last_name,
