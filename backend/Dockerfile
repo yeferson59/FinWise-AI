@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build environment
 # -----------------------------------------------------------------------------
-FROM python:3.13-slim AS builder
+FROM ghcr.io/astral-sh/uv:latest AS builder
 
 # Install system dependencies required for building Python packages
 # These include compilers, headers, and build tools
@@ -16,9 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   libgomp1 \
   && rm -rf /var/lib/apt/lists/*
-
-# Install uv - fast Python package installer
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Set working directory
 WORKDIR /app
@@ -72,6 +69,8 @@ RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
 
 # Create data directory for SQLite database with proper permissions
 RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
+
+RUN mkdir -p /app/cache && chown -R appuser:appuser /app/cache
 
 # Create numba cache directory to fix caching issues with Python 3.13
 RUN mkdir -p /tmp/numba_cache && chmod -R 777 /tmp/numba_cache
