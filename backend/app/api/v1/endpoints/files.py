@@ -216,7 +216,7 @@ async def extract_text(
             import os
 
             os.close(temp_fd)
-            cv2.imwrite(temp_corrected, corrected)
+            _ = cv2.imwrite(temp_corrected, corrected)
             local_path = temp_corrected
             correction_applied = True
 
