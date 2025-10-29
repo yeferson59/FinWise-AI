@@ -76,11 +76,11 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 - ✅ Date tracking and amount validation
 - ✅ Transaction state management (pending, completed, etc.)
 - ✅ Advanced filtering capabilities:
-  - Filter by user, category, source, and state
-  - Date range filtering (start_date, end_date)
-  - Amount range filtering (min_amount, max_amount)
-  - Sorting options (by date, amount, created_at, updated_at)
-  - Ascending/descending order support
+    - Filter by user, category, source, and state
+    - Date range filtering (start_date, end_date)
+    - Amount range filtering (min_amount, max_amount)
+    - Sorting options (by date, amount, created_at, updated_at)
+    - Ascending/descending order support
 - ✅ Pagination support with offset and limit
 
 **5. Category Management**
@@ -562,7 +562,8 @@ curl -X POST "http://localhost:8000/api/v1/transactions/" \
 
 **Example: Filter Transactions by User and Date Range**
 ```bash
-curl -X GET "http://localhost:8000/api/v1/transactions/?user_id=1&start_date=2024-01-01T00:00:00Z&end_date=2024-12-31T23:59:59Z&sort_by=date&sort_desc=true" \
+# Get transactions for user 1 in the year 2025
+curl -X GET "http://localhost:8000/api/v1/transactions/?user_id=1&start_date=2025-01-01T00:00:00Z&end_date=2025-12-31T23:59:59Z&sort_by=date&sort_desc=true" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -579,7 +580,7 @@ curl -X GET "http://localhost:8000/api/v1/transactions/?user_id=1&state=complete
 ```
 
 **Common Filter Combinations:**
-- Get all transactions for a user in the current month: `?user_id=1&start_date=2024-01-01T00:00:00Z&end_date=2024-01-31T23:59:59Z`
+- Get all transactions for a user in a specific month: `?user_id=1&start_date=YYYY-MM-01T00:00:00Z&end_date=YYYY-MM-31T23:59:59Z`
 - Get high-value completed transactions: `?state=completed&min_amount=1000&sort_by=amount&sort_desc=true`
 - Get recent grocery expenses: `?category_id=1&sort_by=date&sort_desc=true&limit=20`
 - Get transactions within budget: `?min_amount=0&max_amount=200&state=completed`
