@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build environment
 # -----------------------------------------------------------------------------
-FROM ghcr.io/astral-sh/uv:debian-slim AS builder
+FROM python:3.13-slim AS builder
 
 # Install system dependencies required for building Python packages
 # These include compilers, headers, and build tools
@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   libgomp1 \
   && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Set working directory
 WORKDIR /app
@@ -33,7 +35,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime - Minimal production image
 # -----------------------------------------------------------------------------
-FROM python:3.13-slim
+FROM builder
 
 # Install runtime system dependencies
 # Tesseract OCR with English and Spanish language packs
