@@ -117,25 +117,25 @@ async def extract_text(
     This is the main endpoint that automatically applies the best strategy:
 
     **Phase 1 - Quality & Caching (Always Active)**:
-    - ✅ Image quality assessment (blur/brightness/contrast)
-    - ✅ Automatic quality correction when needed
-    - ✅ Intelligent caching (SHA256, <100ms on cache hits)
-    - ✅ Post-processing error corrections (O→0, l→1, etc.)
+    - Image quality assessment (blur/brightness/contrast)
+    - Automatic quality correction when needed
+    - Intelligent caching (SHA256, <100ms on cache hits)
+    - Post-processing error corrections (O→0, l→1, etc.)
 
     **Phase 2 - Advanced Strategies (Auto-Applied When Needed)**:
-    - ✅ Multiple binarization methods when quality is poor
-    - ✅ Automatic orientation detection & correction
-    - ✅ Multi-strategy voting for difficult images
+    - Multiple binarization methods when quality is poor
+    - Automatic orientation detection & correction
+    - Multi-strategy voting for difficult images
 
     **Phase 3 - Optimizations (Auto-Applied When Needed)**:
-    - ✅ Incremental processing for large images (>4000px)
-    - ✅ Parallel execution for maximum speed
+    - Incremental processing for large images (>4000px)
+    - Parallel execution for maximum speed
 
     **Automatic Strategy Selection**:
-    - ⚡ Cached result: <100ms (95% faster)
-    - 📏 Large images (>4000px): Incremental processing
-    - ⚠️  Poor quality/low confidence: Advanced voting strategies
-    - ✅ Good quality: Fast standard processing
+    - Cached result: <100ms (95% faster)
+    - Large images (>4000px): Incremental processing
+    - Poor quality/low confidence: Advanced voting strategies
+    - Good quality: Fast standard processing
 
     **Performance**: 90-98% accuracy (vs 70-85% baseline)
 
@@ -199,8 +199,6 @@ async def extract_text(
 
         # Determine image characteristics
         image = cv2.imread(local_path)
-        if image is None:
-            raise ValueError("Failed to read image file")
 
         height, width = image.shape[:2]
         is_large = height > 4000 or width > 4000
@@ -209,7 +207,6 @@ async def extract_text(
         # Phase 1: Apply quality correction if needed
         correction_applied = False
         if is_poor_quality:
-            print(f"⚠️  Quality issues detected, applying auto-correction...")
             corrected = auto_correct_image(image, quality_info)
             import tempfile
 
@@ -694,7 +691,7 @@ async def extract_text_optimized(
             description="Optimization mode: 'parallel' (fastest), 'regions' (sparse text), 'incremental' (large images)"
         ),
     ] = "parallel",
-    file: UploadFile = None,
+    file: UploadFile | None = None,
 ):
     """
     Extract text using Phase 3 advanced optimizations.
@@ -711,6 +708,9 @@ async def extract_text_optimized(
         extract_text_by_regions,
         process_large_image_incrementally,
     )
+
+    if file is None:
+        raise HTTPException(status_code=400, detail="No file provided")
 
     validate_file_format(file.filename, image_only=True)
 
