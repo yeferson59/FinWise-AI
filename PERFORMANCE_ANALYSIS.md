@@ -41,35 +41,46 @@ This document provides a comprehensive analysis of the FinWise-AI codebase for p
 
 ## Issues Found and Resolved
 
-### Issue 1: Category Pagination ⚡ (NEW - Fixed in this PR)
+### Issue 1: Session User ID Index ⚡ (NEW - Fixed in this PR)
 **Severity**: Medium  
-**Impact**: High for production systems with many categories
+**Impact**: High for authentication performance
 
 **Problem**:
 ```python
-# Before - hardcoded limit
-async def get_all_categories(session: SessionDep):
-    return db.get_db_entities(Category, 0, 10, session)
+# Before - missing index on foreign key
+class Session(Base, table=True):
+    user_id: int = Field(description="User ID", foreign_key="user.id", nullable=False)
 ```
+
+The `user_id` field is queried on every authenticated request in `get_current_user()` but lacked an index, causing slower lookups as the session table grows.
 
 **Solution**:
 ```python
-# After - configurable pagination
-async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 100):
-    """Get all categories with pagination support."""
-    return db.get_db_entities(Category, offset, limit, session)
+# After - indexed foreign key
+class Session(Base, table=True):
+    user_id: int = Field(
+        description="User ID", foreign_key="user.id", index=True, nullable=False
+    )
 ```
 
 **Metrics**:
-- Capacity increase: 10 → 1000 records (100x improvement)
-- Memory efficiency: Controlled pagination prevents memory overflow
-- API consistency: Matches transaction endpoint pattern
+- Query performance: O(log n) with index vs O(n) without
+- Impact: Every authenticated API request benefits
+- Consistency: Matches index pattern on other models (Transaction, Category)
 
 ---
 
-## Previously Resolved Issues (PR #50)
+## Previously Resolved Issues (Prior PRs)
 
-### Issue 2: Language Detection Algorithm 🚀
+### Issue 2: Category Pagination ⚡
+**Severity**: Medium  
+**Impact**: High for production systems with many categories
+
+**Problem**: Hardcoded limit of 10 records
+**Solution**: Configurable pagination with offset/limit parameters (default: 100, max: 1000)
+**Improvement**: 100x capacity increase, controlled memory usage
+
+### Issue 3: Language Detection Algorithm 🚀
 **Severity**: Medium  
 **Impact**: High for OCR-heavy workloads
 
@@ -77,7 +88,7 @@ async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 
 **Solution**: O(n) complexity using frozenset intersection
 **Benchmark**: 281x faster (4.6ms → 0.016ms for 100 iterations)
 
-### Issue 3: Whisper Model Loading 💤
+### Issue 4: Whisper Model Loading 💤
 **Severity**: Low  
 **Impact**: High for startup time
 
@@ -85,7 +96,7 @@ async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 
 **Solution**: Lazy loading pattern with get_whisper_model()
 **Improvement**: 2-5 second startup time reduction
 
-### Issue 4: Database Indexes 📊
+### Issue 5: Database Indexes 📊
 **Severity**: Medium  
 **Impact**: High for growing datasets
 
@@ -93,7 +104,7 @@ async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 
 **Solution**: Added indexes to category.user_id and category.is_default
 **Improvement**: 4x faster queries, scales better
 
-### Issue 5: SQL Query Optimization 🎯
+### Issue 6: SQL Query Optimization 🎯
 **Severity**: Low  
 **Impact**: Medium for query performance
 
@@ -101,7 +112,7 @@ async def get_all_categories(session: SessionDep, offset: int = 0, limit: int = 
 **Solution**: Proper SQLAlchemy NULL checks
 **Improvement**: Better SQL generation, follows best practices
 
-### Issue 6: Resource Management 🔧
+### Issue 7: Resource Management 🔧
 **Severity**: High  
 **Impact**: Medium (prevents memory leaks)
 
@@ -217,6 +228,7 @@ Create a benchmark script to measure:
 | Language detection speed | < 1ms per call | 0.016ms | ✅ |
 | Startup time (without audio) | < 5s | ~3s | ✅ |
 | Database indexes | All FK fields | Complete | ✅ |
+| Session auth performance | Indexed lookups | Indexed | ✅ |
 | Resource leak prevention | Zero leaks | Zero leaks | ✅ |
 
 ---

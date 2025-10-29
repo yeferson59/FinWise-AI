@@ -5,37 +5,42 @@ This PR implements several key performance optimizations for the FinWise-AI back
 
 ## Key Improvements
 
-### 1. API Pagination ⚡
+### 1. Session Authentication Index ⚡ 🆕
+- **Issue**: Missing index on `Session.user_id` foreign key
+- **Fix**: Added database index to `user_id` field
+- **Impact**: Faster authentication lookups on every API request, O(log n) vs O(n) query performance
+
+### 2. API Pagination ⚡
 - **Issue**: Hardcoded limit of 10 for transactions and categories
 - **Fix**: Added configurable pagination with offset/limit parameters (default: 100, max: 1000)
 - **Impact**: Enables efficient retrieval of large datasets, consistent API design
 
-### 2. Language Detection Optimization 🚀
+### 3. Language Detection Optimization 🚀
 - **Issue**: O(n*m) string search complexity for every document processed
 - **Fix**: Replaced with O(n) set intersection using frozensets
 - **Impact**: **281x faster** in benchmark tests (4.6ms → 0.016ms for 100 iterations)
 
-### 3. Lazy Loading for AI Models 💤
+### 4. Lazy Loading for AI Models 💤
 - **Issue**: Whisper model loaded at application startup even if never used
 - **Fix**: Implemented lazy loading pattern
 - **Impact**: 2-5 second reduction in startup time, lower memory footprint
 
-### 4. Database Indexing 📊
+### 5. Database Indexing 📊
 - **Issue**: Missing indexes on frequently queried fields
 - **Fix**: Added indexes to `category.user_id` and `category.is_default`
 - **Impact**: 4x faster category queries as data grows
 
-### 5. Resource Management 🔧
+### 6. Resource Management 🔧
 - **Issue**: Potential resource leaks in image processing
 - **Fix**: Proper try-finally blocks for cleanup, consolidated image conversions
 - **Impact**: More reliable, prevents memory leaks
 
-### 6. SQL Query Optimization 🎯
+### 7. SQL Query Optimization 🎯
 - **Issue**: Suboptimal NULL checks in SQLAlchemy queries
 - **Fix**: Changed `== None` to `.is_(None)`
 - **Impact**: Better SQL generation, follows best practices
 
-### 7. Regex Pattern Pre-compilation ⚡ 🆕
+### 8. Regex Pattern Pre-compilation ⚡
 - **Issue**: Regex patterns compiled on every function call during OCR processing
 - **Fix**: Pre-compiled 35+ regex patterns at module level
 - **Impact**: 10-20% performance improvement for OCR text processing
@@ -44,6 +49,7 @@ This PR implements several key performance optimizations for the FinWise-AI back
 
 | File | Changes | Impact |
 |------|---------|--------|
+| `app/models/auth.py` | Added index to Session.user_id | High |
 | `app/services/transaction.py` | Added pagination | High |
 | `app/services/category.py` | Added pagination | High |
 | `app/api/v1/endpoints/transactions.py` | Added pagination params | High |
