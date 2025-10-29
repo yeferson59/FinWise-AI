@@ -70,11 +70,18 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 - ✅ Confidence scoring for extraction accuracy
 - ✅ Support for PDFs and images (JPG, PNG, TIFF, etc.)
 
-**4. Transaction Management (Basic CRUD)**
+**4. Transaction Management**
 - ✅ Transaction model with user, category, and source relations
-- ✅ CRUD endpoints for transactions
+- ✅ Full CRUD endpoints for transactions
 - ✅ Date tracking and amount validation
 - ✅ Transaction state management (pending, completed, etc.)
+- ✅ Advanced filtering capabilities:
+    - Filter by user, category, source, and state
+    - Date range filtering (start_date, end_date)
+    - Amount range filtering (min_amount, max_amount)
+    - Sorting options (by date, amount, created_at, updated_at)
+    - Ascending/descending order support
+- ✅ Pagination support with offset and limit
 
 **5. Category Management**
 - ✅ 56 default global categories organized by type:
@@ -93,9 +100,8 @@ Based on [Issue #1 - Phase Requirements](https://github.com/yeferson59/FinWise-A
 
 #### 🚧 Partially Implemented Features
 
-**Transaction Classification & Reporting**
+**Transaction Classification**
 - ⚠️ Category structure ready, automatic classification pending
-- ⚠️ Transaction endpoints functional, advanced filtering not yet implemented
 - ⚠️ No automated expense/income categorization via AI yet
 
 **Reports Generation**
@@ -513,11 +519,30 @@ curl -X POST "http://localhost:8000/api/v1/auth/login" \
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| GET | `/transactions/` | List all transactions | ✅ |
+| GET | `/transactions/` | List transactions with advanced filters | ✅ |
 | POST | `/transactions/` | Create transaction | ✅ |
 | GET | `/transactions/{id}` | Get transaction by ID | ✅ |
 | PUT | `/transactions/{id}` | Update transaction | ✅ |
 | DELETE | `/transactions/{id}` | Delete transaction | ✅ |
+
+**Advanced Filtering Parameters (GET /transactions/)**
+
+The transactions listing endpoint supports comprehensive filtering and sorting:
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `offset` | int | Number of records to skip (pagination) | `offset=0` |
+| `limit` | int | Maximum records to return (max: 1000) | `limit=100` |
+| `user_id` | int | Filter by user ID | `user_id=1` |
+| `category_id` | int | Filter by category ID | `category_id=5` |
+| `source_id` | int | Filter by source ID | `source_id=2` |
+| `state` | string | Filter by transaction state | `state=completed` |
+| `start_date` | datetime | Filter by start date (inclusive) | `start_date=2024-01-01T00:00:00Z` |
+| `end_date` | datetime | Filter by end date (inclusive) | `end_date=2024-12-31T23:59:59Z` |
+| `min_amount` | float | Filter by minimum amount | `min_amount=100` |
+| `max_amount` | float | Filter by maximum amount | `max_amount=500` |
+| `sort_by` | string | Field to sort by (date, amount, created_at, updated_at) | `sort_by=date` |
+| `sort_desc` | boolean | Sort in descending order | `sort_desc=true` |
 
 **Example: Create Transaction**
 ```bash
@@ -534,6 +559,31 @@ curl -X POST "http://localhost:8000/api/v1/transactions/" \
     "state": "completed"
   }'
 ```
+
+**Example: Filter Transactions by User and Date Range**
+```bash
+# Get transactions for user 1 in the year 2025
+curl -X GET "http://localhost:8000/api/v1/transactions/?user_id=1&start_date=2025-01-01T00:00:00Z&end_date=2025-12-31T23:59:59Z&sort_by=date&sort_desc=true" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Example: Filter by Amount Range and Category**
+```bash
+curl -X GET "http://localhost:8000/api/v1/transactions/?category_id=5&min_amount=100&max_amount=500&sort_by=amount&sort_desc=false" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Example: Get Completed Transactions for a Specific User**
+```bash
+curl -X GET "http://localhost:8000/api/v1/transactions/?user_id=1&state=completed&limit=50" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Common Filter Combinations:**
+- Get all transactions for a user in a specific month: `?user_id=1&start_date=YYYY-MM-01T00:00:00Z&end_date=YYYY-MM-31T23:59:59Z`
+- Get high-value completed transactions: `?state=completed&min_amount=1000&sort_by=amount&sort_desc=true`
+- Get recent grocery expenses: `?category_id=1&sort_by=date&sort_desc=true&limit=20`
+- Get transactions within budget: `?min_amount=0&max_amount=200&state=completed`
 
 #### Categories
 
@@ -695,7 +745,8 @@ OPENAI_API_KEY=test-key-or-real-key-for-integration-tests
 | Authentication | ✅ High | Stable |
 | AI Agents | ⚠️ Partial | Needs mocking |
 | OCR Services | ✅ Good | Integration tests exist |
-| Transactions | ❌ Low | Needs tests |
+| Transaction Service | ✅ High | Comprehensive filter tests |
+| Transaction API | ⚠️ Partial | Needs integration tests |
 | Categories | ❌ Low | Needs tests |
 
 ### OCR Testing
@@ -978,11 +1029,11 @@ jobs:
 ### Short-Term Priorities (Next 1-2 Sprints)
 
 #### High Priority
-- [ ] **Complete Transaction Management**
+- [ ] **Transaction Statistics and Aggregation**
   - Owner: TBD
-  - Add filtering by date range, category, user
-  - Implement pagination for transaction listing
-  - Add transaction statistics endpoints
+  - Add transaction statistics endpoints (totals, averages, counts)
+  - Implement aggregation by category, user, and date ranges
+  - Add spending trends analysis
 
 - [ ] **Implement Reports System**
   - Owner: TBD
@@ -993,10 +1044,10 @@ jobs:
 
 - [ ] **Add Test Coverage**
   - Owner: TBD
-  - Transaction endpoint tests
   - Category endpoint tests
   - Integration tests for OCR
   - Authentication flow tests
+  - Transaction API endpoint tests (integration tests)
 
 #### Medium Priority
 - [ ] **Notifications/Reminders**
@@ -1066,7 +1117,10 @@ jobs:
 - [x] User management CRUD
 - [x] AI agent integration (ReAct pattern)
 - [x] Multi-language OCR (English + Spanish)
-- [x] Transaction and Category basic CRUD
+- [x] Transaction and Category CRUD with advanced filtering
+- [x] Advanced transaction filtering (by user, category, date range, amount range, state)
+- [x] Transaction sorting and pagination
+- [x] Comprehensive transaction service tests
 - [x] API documentation (OpenAPI)
 - [x] Development environment setup (uv)
 - [x] Code quality tools (Ruff, Zuban)
