@@ -38,7 +38,6 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
     )
 
     return auth.LoginResponse(
-        success=True,
         user_id=user_data.id,
         user_email=user_data.email,
         access_token=access_token,
