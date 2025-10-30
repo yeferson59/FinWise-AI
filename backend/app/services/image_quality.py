@@ -46,7 +46,7 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
         blur_score = float(laplacian.var())
 
         # 2. Brightness analysis
-        brightness = float(np.mean(gray))
+        brightness = float(np.mean(gray))  # type: ignore[call-overload]
 
         # 3. Contrast analysis (standard deviation)
         contrast = float(gray.std())
@@ -139,14 +139,14 @@ def auto_correct_image(image: np.ndarray, quality_info: dict[str, Any]) -> np.nd
         if contrast < 40:
             # Use CLAHE on LAB color space for better results
             lab = cv2.cvtColor(corrected, cv2.COLOR_BGR2LAB)
-            l, a, b = cv2.split(lab)
+            lab_l, lab_a, lab_b = cv2.split(lab)
 
             # Apply CLAHE to L channel
             clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-            l = clahe.apply(l)
+            lab_l = clahe.apply(lab_l)
 
             # Merge channels and convert back
-            corrected = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
+            corrected = cv2.cvtColor(cv2.merge([lab_l, lab_a, lab_b]), cv2.COLOR_LAB2BGR)
 
         # 4. Apply sharpening if moderately blurry
         if 100 < blur_score < 300:

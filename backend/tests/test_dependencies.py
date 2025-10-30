@@ -1,7 +1,7 @@
 """Tests for the dependencies module, specifically category initialization."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from app.dependencies import init_categories, get_default_categories
 from app.models.category import Category
 

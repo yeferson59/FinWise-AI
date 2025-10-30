@@ -200,14 +200,14 @@ async def extract_text(
         # Determine image characteristics
         image = cv2.imread(local_path)
 
-        height, width = image.shape[:2]
+        height, width = image.shape[:2]  # type: ignore[union-attr]
         is_large = height > 4000 or width > 4000
         is_poor_quality = not quality_info["is_acceptable"]
 
         # Phase 1: Apply quality correction if needed
         correction_applied = False
         if is_poor_quality:
-            corrected = auto_correct_image(image, quality_info)
+            corrected = auto_correct_image(image, quality_info)  # type: ignore[arg-type]
             import tempfile
 
             temp_fd, temp_corrected = tempfile.mkstemp(
@@ -291,7 +291,7 @@ async def extract_text(
                 "raw_text": final_text,
                 "document_type": document_type or "general",
                 "file_type": "image",
-                "metadata": {
+                "metadata": {  # type: ignore[dict-item]
                     **metadata,
                     "strategy_used": strategy_used,
                     "image_size": {"width": width, "height": height},
@@ -338,7 +338,7 @@ async def extract_text(
                 "raw_text": final_text,
                 "document_type": document_type or "general",
                 "file_type": "image",
-                "metadata": {
+                "metadata": {  # type: ignore[dict-item]
                     "method_used": "basic_fallback",
                     "note": "Advanced strategies unavailable, used basic extraction",
                 },
@@ -776,6 +776,7 @@ def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         _whisper_model = WhisperModel("base", device="cpu")
+    assert _whisper_model is not None
     return _whisper_model
 
 

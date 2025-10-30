@@ -97,7 +97,6 @@ class TestPreprocessing:
 
         # Should not raise an error
         preprocessing.cleanup_temp_file("/nonexistent/file.png")
-        preprocessing.cleanup_temp_file(None)
         preprocessing.cleanup_temp_file("")
 
 
@@ -123,7 +122,7 @@ class TestStorageService:
                 mock_get_storage.return_value = mock_storage
 
                 # Save file without custom filename
-                result = await storage.save_file_from_path(tmp_path)
+                await storage.save_file_from_path(tmp_path)
 
                 # Verify save_file was called
                 assert mock_storage.save_file.called
@@ -161,7 +160,7 @@ class TestStorageService:
 
                 # Save file with custom filename
                 custom_name = "preprocessed_test.jpg"
-                result = await storage.save_file_from_path(
+                await storage.save_file_from_path(
                     tmp_path, filename=custom_name
                 )
 

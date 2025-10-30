@@ -1,4 +1,3 @@
-import pytesseract
 from PIL import Image
 import fitz  # PyMuPDF
 from typing import Any
@@ -28,8 +27,8 @@ def extract_text_from_pdf(filepath: str) -> str:
     """
     text = ""
     try:
-        pdf_document = fitz.open(filepath)
-        for page in pdf_document:
+        pdf_document: fitz.Document = fitz.open(filepath)
+        for page in pdf_document:  # type: ignore[attr-defined]
             page_text = page.get_text("text")
             if isinstance(page_text, str):
                 text += page_text
@@ -104,7 +103,7 @@ def extract_text_from_image(
         if os.path.exists(temp_path):
             try:
                 os.unlink(temp_path)
-            except:
+            except Exception:
                 pass
 
 
@@ -230,5 +229,5 @@ def extract_text_with_confidence(
         if os.path.exists(temp_path):
             try:
                 os.unlink(temp_path)
-            except:
+            except Exception:
                 pass

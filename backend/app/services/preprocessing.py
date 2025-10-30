@@ -278,7 +278,7 @@ def multi_binarization(gray_image: np.ndarray) -> list[tuple[np.ndarray, str]]:
     Returns:
         List of tuples (binarized_image, method_name)
     """
-    results = []
+    results: list[tuple[np.ndarray, str]] = []
 
     # 1. Adaptive Gaussian Threshold (current default)
     try:
@@ -336,7 +336,7 @@ def multi_binarization(gray_image: np.ndarray) -> list[tuple[np.ndarray, str]]:
     except Exception as e:
         print(f"Simple threshold failed: {e}")
 
-    return results
+    return results  # type: ignore[return-value]
 
 
 def detect_text_orientation(image: np.ndarray) -> int:
@@ -363,7 +363,7 @@ def detect_text_orientation(image: np.ndarray) -> int:
             osd = pytesseract.image_to_osd(
                 pil_image, output_type=pytesseract.Output.DICT
             )
-            rotation = osd.get("rotate", 0)
+            rotation = osd.get("rotate", 0)  # type: ignore[union-attr]
 
             # Normalize to 0, 90, 180, 270
             rotation = int(rotation)

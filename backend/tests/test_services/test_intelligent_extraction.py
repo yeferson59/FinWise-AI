@@ -10,19 +10,6 @@ def test_language_detection_optimization_concept():
     This test demonstrates the performance improvement from using
     frozenset intersection instead of nested string searches.
     """
-    # Simulate the old approach (inefficient)
-    spanish_markers_list = [
-        "de",
-        "la",
-        "el",
-        "y",
-        "en",
-        "que",
-        "es",
-        "los",
-        "del",
-        "las",
-    ]
     english_markers_list = [
         "the",
         "is",

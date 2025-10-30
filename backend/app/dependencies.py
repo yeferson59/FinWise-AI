@@ -199,7 +199,7 @@ def init_categories() -> None:
             # Use .is_(None) instead of == None for better SQL performance
             existing_categories = session.exec(
                 select(Category.name).where(
-                    Category.is_default.is_(True), Category.user_id.is_(None)
+                    Category.is_default.is_(True), Category.user_id.is_(None)  # type: ignore[attr-defined, union-attr]
                 )
             ).all()
             existing_names = set(existing_categories)
