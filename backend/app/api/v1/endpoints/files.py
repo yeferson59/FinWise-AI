@@ -776,7 +776,7 @@ def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         _whisper_model = WhisperModel("base", device="cpu")
-    assert _whisper_model is not None
+    assert _whisper_model is not None  # Satisfy type checker
     return _whisper_model
 
 

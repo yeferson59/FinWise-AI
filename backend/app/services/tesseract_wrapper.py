@@ -298,8 +298,7 @@ def get_tesseract_wrapper() -> TesseractWrapper:
     global _tesseract_wrapper
     if _tesseract_wrapper is None:
         _tesseract_wrapper = TesseractWrapper()
-    assert _tesseract_wrapper is not None
-    return _tesseract_wrapper
+    return _tesseract_wrapper  # type: ignore[return-value]
 
 
 def extract_text_resilient(
