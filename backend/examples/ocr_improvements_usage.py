@@ -18,7 +18,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.image_quality import (
     assess_image_quality,
     should_process_image,
-    auto_correct_image_from_path,
 )
 from app.services.intelligent_extraction import extract_with_fallback
 from app.services import ocr_cache
@@ -43,7 +42,7 @@ def example_1_quality_assessment():
     quality_info = assess_image_quality(demo_image)
     should_process, reason = should_process_image(quality_info)
 
-    print(f"\n📊 Quality Metrics:")
+    print("\n📊 Quality Metrics:")
     print(f"   Blur Score: {quality_info['blur_score']:.2f} (>100 is good)")
     print(f"   Brightness: {quality_info['brightness']:.2f} (100-150 is optimal)")
     print(f"   Contrast: {quality_info['contrast']:.2f} (>30 is good)")
@@ -54,7 +53,7 @@ def example_1_quality_assessment():
     print(f"   Reason: {reason}")
 
     if quality_info["recommendations"]:
-        print(f"\n💡 Recommendations:")
+        print("\n💡 Recommendations:")
         for rec in quality_info["recommendations"]:
             print(f"   • {rec}")
 
@@ -88,7 +87,7 @@ def example_2_extraction_with_cache():
 
     print(f"   Text length: {len(text2)} characters")
     print(f"   Same result: {text1 == text2}")
-    print(f"   ⚡ Cache hit: Much faster!")
+    print("   ⚡ Cache hit: Much faster!")
 
 
 def example_3_cache_management():
@@ -100,15 +99,15 @@ def example_3_cache_management():
     # Get cache statistics
     stats = ocr_cache.get_cache_stats()
 
-    print(f"\n📦 Cache Statistics:")
+    print("\n📦 Cache Statistics:")
     print(f"   Total files: {stats.get('total_files', 0)}")
     print(f"   Total size: {stats.get('total_size_mb', 0)} MB")
     print(f"   Oldest file: {stats.get('oldest_file_age_days', 0):.1f} days")
     print(f"   Newest file: {stats.get('newest_file_age_days', 0):.1f} days")
 
     # Option to clear old cache
-    print(f"\n🧹 Clear old cache (>7 days)?")
-    print(f"   To clear: ocr_cache.clear_cache(max_age_days=7)")
+    print("\n🧹 Clear old cache (>7 days)?")
+    print("   To clear: ocr_cache.clear_cache(max_age_days=7)")
 
     # Uncomment to actually clear:
     # removed, errors = ocr_cache.clear_cache(max_age_days=7)
@@ -168,21 +167,21 @@ def example_5_auto_correction_demo():
     # Check quality
     quality_info = assess_image_quality(demo_image)
 
-    print(f"\n📊 Original Image Quality:")
+    print("\n📊 Original Image Quality:")
     print(f"   Brightness: {quality_info['brightness']:.2f}")
     print(f"   Contrast: {quality_info['contrast']:.2f}")
     print(f"   Acceptable: {quality_info['is_acceptable']}")
 
     if not quality_info["is_acceptable"]:
-        print(f"\n🔧 Auto-correction will be applied!")
-        print(f"   • Adjusting brightness")
-        print(f"   • Enhancing contrast")
-        print(f"   • Sharpening if needed")
+        print("\n🔧 Auto-correction will be applied!")
+        print("   • Adjusting brightness")
+        print("   • Enhancing contrast")
+        print("   • Sharpening if needed")
 
     # Extract with auto-correction
     text, metadata = extract_with_fallback(filepath=demo_image, use_cache=False)
 
-    print(f"\n✅ Extraction Complete:")
+    print("\n✅ Extraction Complete:")
     print(f"   Auto-corrected: {metadata.get('auto_corrected', False)}")
     print(f"   Text length: {len(text)}")
 

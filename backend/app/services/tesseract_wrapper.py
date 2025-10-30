@@ -9,7 +9,6 @@ environment variables (OMP_THREAD_LIMIT=1) for stable operation.
 """
 
 import os
-import sys
 import subprocess
 import tempfile
 from typing import Dict, Optional, Tuple
@@ -88,7 +87,7 @@ class TesseractWrapper:
         # Clean up
         image.close()
 
-        return text.strip()
+        return text.strip()  # type: ignore[union-attr]
 
     def _extract_subprocess(self, image_path: str, config_str: str, lang: str) -> str:
         """
@@ -163,7 +162,7 @@ class TesseractWrapper:
             try:
                 if os.path.exists(output_path):
                     os.unlink(output_path)
-            except:
+            except Exception:
                 pass
 
     def extract_with_confidence_safe(
@@ -219,9 +218,9 @@ class TesseractWrapper:
         text_parts = []
         confidences = []
 
-        for i in range(len(data["text"])):
-            word = data["text"][i].strip()
-            conf = int(data["conf"][i])
+        for i in range(len(data["text"])):  # type: ignore[arg-type, index, call-overload]
+            word = data["text"][i].strip()  # type: ignore[index, call-overload]
+            conf = int(data["conf"][i])  # type: ignore[index, call-overload]
 
             if word and conf > 0:
                 text_parts.append(word)
@@ -299,7 +298,7 @@ def get_tesseract_wrapper() -> TesseractWrapper:
     global _tesseract_wrapper
     if _tesseract_wrapper is None:
         _tesseract_wrapper = TesseractWrapper()
-    return _tesseract_wrapper
+    return _tesseract_wrapper  # type: ignore[return-value]
 
 
 def extract_text_resilient(

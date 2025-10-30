@@ -125,7 +125,6 @@ class TestOrientationDetection:
     def test_rotate_image_preserves_dimensions(self):
         """Test that rotation maintains reasonable dimensions"""
         image = self.create_rotated_image(0)
-        original_size = image.shape[:2]
 
         rotated, _ = rotate_image_to_correct_orientation(image)
 

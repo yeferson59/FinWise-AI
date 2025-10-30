@@ -353,7 +353,7 @@ class TestStorageIntegration:
             assert retrieved_content == file_content
 
             # Get local path
-            with storage_service.get_local_path(file_identifier) as local_path:
+            async with storage_service.get_local_path(file_identifier) as local_path:
                 assert os.path.exists(local_path)
                 with open(local_path, "rb") as f:
                     assert f.read() == file_content

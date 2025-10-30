@@ -66,7 +66,7 @@ class FileStorageInterface(ABC):
         pass
 
     @abstractmethod
-    def get_local_path(self, file_identifier: str):
+    def get_local_path(self, file_identifier: str):  # type: ignore[func-returns-value]
         """
         Async context manager that provides a local file path for reading.
 
@@ -218,7 +218,7 @@ class S3FileStorage(FileStorageInterface):
         self.bucket_name = bucket_name
         self.endpoint_url = endpoint_url
 
-        client_config = Config(
+        client_config: Config = Config(
             signature_version=signature_version, s3={"addressing_style": "path"}
         )
 
@@ -233,7 +233,7 @@ class S3FileStorage(FileStorageInterface):
         if endpoint_url:
             self.client_params["endpoint_url"] = endpoint_url
 
-        self.session = aioboto3.Session()
+        self.session: aioboto3.Session = aioboto3.Session()
 
     async def save_file(
         self,

@@ -42,7 +42,7 @@ def detect_text_regions_mser(
             gray = image
 
         # Create MSER detector
-        mser = cv2.MSER_create(
+        mser = cv2.MSER_create(  # type: ignore[attr-defined]
             _delta=5,
             _min_area=min_area,
             _max_area=int(gray.shape[0] * gray.shape[1] * 0.5),
@@ -343,7 +343,7 @@ async def extract_parallel_strategies(
 
                 # Estimate confidence
                 if isinstance(metadata, dict):
-                    conf = metadata.get("confidence", 0) or metadata.get(
+                    conf = metadata.get("confidence", 0) or metadata.get(  # type: ignore[union-attr, call-overload]
                         "original_confidence", {}
                     ).get("average_confidence", 0)
                 else:
@@ -362,9 +362,9 @@ async def extract_parallel_strategies(
         raise ValueError("All parallel strategies failed")
 
     # Select best result
-    best = max(valid_results, key=lambda x: (x["confidence"], len(x["text"])))
+    best = max(valid_results, key=lambda x: (x["confidence"], len(x["text"])))  # type: ignore[arg-type]
 
-    return best["text"], {
+    return best["text"], {  # type: ignore[return-value]
         "best_strategy": best["strategy"],
         "strategies_tried": len(strategies),
         "successful_strategies": len(valid_results),

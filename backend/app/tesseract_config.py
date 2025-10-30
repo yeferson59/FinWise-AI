@@ -6,7 +6,6 @@ It configures the environment variables needed for stable Tesseract operation.
 """
 
 import os
-import sys
 
 # CRITICAL: Set these BEFORE importing pytesseract
 # OMP_THREAD_LIMIT=1 prevents multi-threading issues that cause SIGSEGV

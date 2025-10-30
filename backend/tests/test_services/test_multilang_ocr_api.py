@@ -319,9 +319,9 @@ class TestQualityValidation:
 def client():
     """Create a test client for the FastAPI application"""
     from fastapi.testclient import TestClient
-    from app.main import app
+    from app.main import application
 
-    return TestClient(app)
+    return TestClient(application)
 
 
 if __name__ == "__main__":

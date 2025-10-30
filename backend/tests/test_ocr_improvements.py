@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 import pytest
 import tempfile
-from pathlib import Path
 
 from app.services.image_quality import (
     assess_image_quality,
