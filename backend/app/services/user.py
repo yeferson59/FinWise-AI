@@ -44,11 +44,10 @@ async def update_user(
     user_id: int, update_user: UpdateUser, session: SessionDep
 ) -> User:
     # Hash password if it's being updated
-    update_data = update_user.model_dump(exclude_unset=True)
-    if "password" in update_data and isinstance(update_data["password"], str):
-        update_data["password"] = await hash_password(update_data["password"])
+    if update_user.password is not None:
+        hashed_password = await hash_password(update_user.password)
         # Create a new UpdateUser with the hashed password
-        update_user = UpdateUser(**update_data)
+        update_user = update_user.model_copy(update={"password": hashed_password})
 
     return await _user_crud.update(session, user_id, update_user)
 
