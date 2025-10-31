@@ -10,8 +10,12 @@ import numpy as np
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-import tempfile
-import os
+from app.utils.image import (
+    load_image,
+    to_grayscale,
+    save_temp_image,
+    cleanup_temp_files,
+)
 
 
 # ============================================================================
@@ -87,10 +91,7 @@ def detect_text_regions_contours(
     """
     try:
         # Convert to grayscale
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
+        gray = to_grayscale(image)
 
         # Apply threshold
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -242,9 +243,7 @@ def extract_text_by_regions(
             region_img = image[y1:y2, x1:x2]
 
             # Save to temp file
-            temp_fd, temp_path = tempfile.mkstemp(suffix=f"_region_{i}.png")
-            os.close(temp_fd)
-            cv2.imwrite(temp_path, region_img)
+            temp_path = save_temp_image(region_img, suffix=f"_region_{i}.png")
             temp_files.append(temp_path)
 
             # Extract text from region
@@ -273,11 +272,7 @@ def extract_text_by_regions(
 
     finally:
         # Cleanup temp files
-        for temp_path in temp_files:
-            try:
-                os.unlink(temp_path)
-            except Exception:
-                pass
+        cleanup_temp_files(temp_files)
 
 
 # ============================================================================
@@ -397,10 +392,7 @@ def process_large_image_incrementally(
     """
     from app.services.extraction import extract_text
 
-    image = cv2.imread(filepath)
-    if image is None:
-        raise ValueError("Failed to read image")
-
+    image = load_image(filepath)
     h, w = image.shape[:2]
 
     # Check if image needs tiling
@@ -427,9 +419,7 @@ def process_large_image_incrementally(
                     continue
 
                 # Save tile
-                temp_fd, temp_path = tempfile.mkstemp(suffix=f"_tile_{x}_{y}.png")
-                os.close(temp_fd)
-                cv2.imwrite(temp_path, tile)
+                temp_path = save_temp_image(tile, suffix=f"_tile_{x}_{y}.png")
                 temp_files.append(temp_path)
 
                 # Extract text from tile
@@ -459,11 +449,7 @@ def process_large_image_incrementally(
 
     finally:
         # Cleanup temp files
-        for temp_path in temp_files:
-            try:
-                os.unlink(temp_path)
-            except Exception:
-                pass
+        cleanup_temp_files(temp_files)
 
 
 def deduplicate_tile_texts(texts: list[str]) -> str:
