@@ -36,8 +36,11 @@ async def get_user(user_id: int, session: SessionDep) -> User:
 
 async def create_user(create_user: CreateUser, session: SessionDep) -> User:
     # Hash password before creating user
-    create_user.password = await hash_password(create_user.password)
-    return await _user_crud.create(session, create_user)
+    hashed_password = await hash_password(create_user.password)
+    create_user_with_hashed_password = create_user.model_copy(
+        update={"password": hashed_password}
+    )
+    return await _user_crud.create(session, create_user_with_hashed_password)
 
 
 async def update_user(
