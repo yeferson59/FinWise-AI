@@ -3,9 +3,7 @@ Advanced OCR strategies with multiple attempts and voting system
 Combines different preprocessing and OCR approaches to get the best result
 """
 
-import os
 import cv2
-import tempfile
 from typing import Any
 from collections import Counter
 
@@ -13,11 +11,11 @@ from app.services.extraction import extract_text, extract_text_with_confidence
 from app.services.preprocessing import (
     preprocess_with_multiple_binarizations,
     rotate_image_to_correct_orientation,
-    cleanup_temp_file,
 )
 from app.services.ocr_corrections import post_process_ocr_text
 from app.services.image_quality import assess_image_quality, auto_correct_image
 from app.ocr_config import DocumentType, OCRConfig, PSMMode
+from app.utils.image import save_temp_image, cleanup_temp_file, cleanup_temp_files, load_image
 
 
 def extract_with_multiple_strategies(
@@ -64,31 +62,26 @@ def extract_with_multiple_strategies(
 
         # Strategy 2: Orientation correction
         try:
-            image = cv2.imread(filepath)
-            if image is not None:
-                rotated, rotation = rotate_image_to_correct_orientation(image)
+            image = load_image(filepath)
+            rotated, rotation = rotate_image_to_correct_orientation(image)
 
-                if rotation != 0:  # Only if rotation was applied
-                    temp_fd, temp_path = tempfile.mkstemp(
-                        suffix=".png", prefix="rotated_"
-                    )
-                    os.close(temp_fd)
-                    cv2.imwrite(temp_path, rotated)
-                    temp_files.append(temp_path)
+            if rotation != 0:  # Only if rotation was applied
+                temp_path = save_temp_image(rotated, suffix=".png", prefix="rotated_")
+                temp_files.append(temp_path)
 
-                    text2, conf2 = extract_text_with_confidence(
-                        temp_path, document_type
-                    )
-                    avg_conf = conf2.get("average_confidence", 0)
-                    results.append(
-                        {
-                            "text": text2,
-                            "confidence": avg_conf
-                            * 1.05,  # Bonus for orientation correction
-                            "strategy": f"orientation_corrected_{rotation}deg",
-                            "metadata": conf2,
-                        }
-                    )
+                text2, conf2 = extract_text_with_confidence(
+                    temp_path, document_type
+                )
+                avg_conf = conf2.get("average_confidence", 0)
+                results.append(
+                    {
+                        "text": text2,
+                        "confidence": avg_conf
+                        * 1.05,  # Bonus for orientation correction
+                        "strategy": f"orientation_corrected_{rotation}deg",
+                        "metadata": conf2,
+                    }
+                )
         except Exception as e:
             print(f"Strategy 2 (orientation) failed: {e}")
 
@@ -96,30 +89,24 @@ def extract_with_multiple_strategies(
         try:
             quality_info = assess_image_quality(filepath)
             if not quality_info["is_acceptable"]:
-                image = cv2.imread(filepath)
-                if image is not None:
-                    corrected = auto_correct_image(image, quality_info)
+                image = load_image(filepath)
+                corrected = auto_correct_image(image, quality_info)
+                temp_path = save_temp_image(corrected, suffix=".png", prefix="corrected_")
+                temp_files.append(temp_path)
 
-                    temp_fd, temp_path = tempfile.mkstemp(
-                        suffix=".png", prefix="corrected_"
-                    )
-                    os.close(temp_fd)
-                    cv2.imwrite(temp_path, corrected)
-                    temp_files.append(temp_path)
-
-                    text3, conf3 = extract_text_with_confidence(
-                        temp_path, document_type
-                    )
-                    avg_conf = conf3.get("average_confidence", 0)
-                    results.append(
-                        {
-                            "text": text3,
-                            "confidence": avg_conf
-                            * 1.1,  # Bonus for quality correction
-                            "strategy": "quality_corrected",
-                            "metadata": conf3,
-                        }
-                    )
+                text3, conf3 = extract_text_with_confidence(
+                    temp_path, document_type
+                )
+                avg_conf = conf3.get("average_confidence", 0)
+                results.append(
+                    {
+                        "text": text3,
+                        "confidence": avg_conf
+                        * 1.1,  # Bonus for quality correction
+                        "strategy": "quality_corrected",
+                        "metadata": conf3,
+                    }
+                )
         except Exception as e:
             print(f"Strategy 3 (quality correction) failed: {e}")
 
@@ -197,8 +184,7 @@ def extract_with_multiple_strategies(
 
     finally:
         # Cleanup temporary files
-        for temp_file in temp_files:
-            cleanup_temp_file(temp_file)
+        cleanup_temp_files(temp_files)
 
 
 def estimate_text_quality(text: str) -> float:

@@ -5,14 +5,13 @@ common OCR errors and improve text quality.
 """
 
 import re
-import os
-import cv2
 from typing import Any
 from app.services.extraction import extract_text, extract_text_with_confidence
 from app.services.image_quality import assess_image_quality, auto_correct_image
 from app.services.ocr_corrections import post_process_ocr_text
 from app.services import ocr_cache
 from app.ocr_config import DocumentType, OCRConfig, PSMMode
+from app.utils.image import load_image, save_temp_image, cleanup_temp_file
 
 
 # Pre-compiled regex patterns for clean_text() - improves performance
@@ -213,23 +212,10 @@ def extract_with_fallback(
     try:
         # Apply auto-correction if needed
         if not quality_info["is_acceptable"]:
-            image = cv2.imread(filepath)
-            if image is not None:
-                corrected_image = auto_correct_image(image, quality_info)
-
-                # Save corrected image to temp file
-                import tempfile
-
-                temp_fd, corrected_path = tempfile.mkstemp(
-                    suffix=".png", prefix="corrected_"
-                )
-                os.close(temp_fd)
-                cv2.imwrite(corrected_path, corrected_image)
-
-                # Use corrected image for extraction
-                extraction_path = corrected_path
-            else:
-                extraction_path = filepath
+            image = load_image(filepath)
+            corrected_image = auto_correct_image(image, quality_info)
+            corrected_path = save_temp_image(corrected_image, suffix=".png", prefix="corrected_")
+            extraction_path = corrected_path
         else:
             extraction_path = filepath
 
@@ -333,11 +319,8 @@ def extract_with_fallback(
 
     finally:
         # Clean up temporary corrected image
-        if corrected_path and os.path.exists(corrected_path):
-            try:
-                os.unlink(corrected_path)
-            except Exception:
-                pass
+        if corrected_path:
+            cleanup_temp_file(corrected_path)
 
 
 def extract_text_intelligent(
