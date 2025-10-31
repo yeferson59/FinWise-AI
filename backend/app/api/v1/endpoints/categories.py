@@ -2,7 +2,8 @@ from typing import Annotated
 from app.models.category import Category
 from app.services import category
 from app.db.session import SessionDep
-from fastapi import APIRouter, Path, Query
+from app.api.deps import PaginationParams
+from fastapi import APIRouter, Path
 from app.schemas.category import CreateCategory, UpdateCategory
 
 router = APIRouter()
@@ -11,20 +12,20 @@ router = APIRouter()
 @router.get("")
 async def get_categories(
     session: SessionDep,
-    offset: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    pagination: PaginationParams,
 ) -> list[Category]:
     """Get all categories with pagination support.
 
     Args:
         session: Database session
-        offset: Number of records to skip (default: 0)
-        limit: Maximum number of records to return (default: 100, max: 1000)
+        pagination: Pagination parameters (offset, limit)
 
     Returns:
         List of Category objects
     """
-    return await category.get_all_categories(session, offset, limit)
+    return await category.get_all_categories(
+        session, pagination["offset"], pagination["limit"]
+    )
 
 
 @router.post("")

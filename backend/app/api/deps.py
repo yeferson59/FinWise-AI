@@ -1,6 +1,6 @@
 from typing import Annotated
 from datetime import datetime, timezone
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials
 import jwt
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError, DecodeError
@@ -11,6 +11,27 @@ from app.db.session import SessionDep
 from app.utils.db import get_entity_by_id
 from app.models.auth import Session
 from app.models.user import User
+
+
+# Common pagination parameters
+def pagination_params(
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+) -> dict[str, int]:
+    """
+    Common pagination parameters for API endpoints.
+    
+    Args:
+        offset: Number of records to skip (default: 0)
+        limit: Maximum number of records to return (default: 100, max: 1000)
+    
+    Returns:
+        Dictionary with offset and limit
+    """
+    return {"offset": offset, "limit": limit}
+
+
+PaginationParams = Annotated[dict[str, int], Depends(pagination_params)]
 
 
 async def get_current_session(

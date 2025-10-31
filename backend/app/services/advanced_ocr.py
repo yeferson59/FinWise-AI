@@ -69,19 +69,19 @@ def extract_with_multiple_strategies(
                 temp_path = save_temp_image(rotated, suffix=".png", prefix="rotated_")
                 temp_files.append(temp_path)
 
-                    text2, conf2 = extract_text_with_confidence(
-                        temp_path, document_type
-                    )
-                    avg_conf = conf2.get("average_confidence", 0)
-                    results.append(
-                        {
-                            "text": text2,
-                            "confidence": avg_conf
-                            * 1.05,  # Bonus for orientation correction
-                            "strategy": f"orientation_corrected_{rotation}deg",
-                            "metadata": conf2,
-                        }
-                    )
+                text2, conf2 = extract_text_with_confidence(
+                    temp_path, document_type
+                )
+                avg_conf = conf2.get("average_confidence", 0)
+                results.append(
+                    {
+                        "text": text2,
+                        "confidence": avg_conf
+                        * 1.05,  # Bonus for orientation correction
+                        "strategy": f"orientation_corrected_{rotation}deg",
+                        "metadata": conf2,
+                    }
+                )
         except Exception as e:
             print(f"Strategy 2 (orientation) failed: {e}")
 
@@ -94,19 +94,19 @@ def extract_with_multiple_strategies(
                 temp_path = save_temp_image(corrected, suffix=".png", prefix="corrected_")
                 temp_files.append(temp_path)
 
-                    text3, conf3 = extract_text_with_confidence(
-                        temp_path, document_type
-                    )
-                    avg_conf = conf3.get("average_confidence", 0)
-                    results.append(
-                        {
-                            "text": text3,
-                            "confidence": avg_conf
-                            * 1.1,  # Bonus for quality correction
-                            "strategy": "quality_corrected",
-                            "metadata": conf3,
-                        }
-                    )
+                text3, conf3 = extract_text_with_confidence(
+                    temp_path, document_type
+                )
+                avg_conf = conf3.get("average_confidence", 0)
+                results.append(
+                    {
+                        "text": text3,
+                        "confidence": avg_conf
+                        * 1.1,  # Bonus for quality correction
+                        "strategy": "quality_corrected",
+                        "metadata": conf3,
+                    }
+                )
         except Exception as e:
             print(f"Strategy 3 (quality correction) failed: {e}")
 
