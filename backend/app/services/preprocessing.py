@@ -1,12 +1,18 @@
 import cv2
 import numpy as np
-import tempfile
 import os
 from pathlib import Path
 from typing import Any
 from PIL import Image
 from rembg import remove
 from app.ocr_config import PreprocessingConfig, DocumentType, get_profile
+from app.utils.image import (
+    load_image,
+    to_grayscale,
+    save_temp_image,
+    cleanup_temp_file,
+    get_image_dimensions,
+)
 
 try:
     import pytesseract
@@ -144,14 +150,7 @@ def preprocess_image(
     Returns:
         Path to the preprocessed image
     """
-    image = cv2.imread(filepath)
-    if image is None:
-        if os.path.exists(filepath):
-            raise ValueError(
-                "Invalid image file: file exists but cannot be read as image"
-            )
-        else:
-            raise ValueError("Invalid image file or file does not exist.")
+    image = load_image(filepath)
 
     # Get configuration
     if config is None:
@@ -176,7 +175,7 @@ def preprocess_image(
         image = deskew_image(image)
 
     # Step 4: Convert to Grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = to_grayscale(image)
 
     # Step 5: Noise Removal
     if config.denoise_strength > 0:
@@ -221,17 +220,13 @@ def preprocess_image(
         # Create a temporary file with the same extension
         original_path = Path(filepath)
         suffix = original_path.suffix if original_path.suffix else ".png"
-
-        # Create temp file with delete=False so we can return the path
-        temp_fd, preprocessed_path = tempfile.mkstemp(
-            suffix=f"_preprocessed{suffix}", prefix="ocr_"
+        preprocessed_path = save_temp_image(
+            final_image, suffix=f"_preprocessed{suffix}", prefix="ocr_"
         )
-        os.close(temp_fd)  # Close file descriptor as cv2 will write to path
     else:
         # Save alongside original (legacy behavior)
         preprocessed_path = filepath.replace(".", "_preprocessed.")
-
-    _ = cv2.imwrite(preprocessed_path, final_image)
+        cv2.imwrite(preprocessed_path, final_image)
 
     return preprocessed_path
 
@@ -246,19 +241,7 @@ def preprocess_image_simple(filepath: str) -> str:
     )
 
 
-def cleanup_temp_file(filepath: str) -> None:
-    """
-    Remove a temporary file if it exists.
 
-    Args:
-        filepath: Path to the file to remove
-    """
-    try:
-        if filepath and os.path.exists(filepath):
-            os.unlink(filepath)
-    except Exception as e:
-        # Log but don't fail if cleanup doesn't work
-        print(f"Warning: Failed to cleanup temp file {filepath}: {e}")
 
 
 # ============================================================================
@@ -376,9 +359,7 @@ def detect_text_orientation(image: np.ndarray) -> int:
 
     # Fallback: Edge-based orientation detection
     try:
-        gray = (
-            cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
-        )
+        gray = to_grayscale(image)
 
         # Apply edge detection
         edges = cv2.Canny(gray, 50, 150, apertureSize=3)
@@ -484,9 +465,7 @@ def preprocess_with_multiple_binarizations(
     Returns:
         List of tuples (preprocessed_path, method_name)
     """
-    image = cv2.imread(filepath)
-    if image is None:
-        raise ValueError("Invalid image file or file does not exist.")
+    image = load_image(filepath)
 
     # Get configuration
     if config is None:
@@ -508,7 +487,7 @@ def preprocess_with_multiple_binarizations(
         image = deskew_image(image)
 
     # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = to_grayscale(image)
 
     # Apply denoising
     if config.denoise_strength > 0:
@@ -548,12 +527,9 @@ def preprocess_with_multiple_binarizations(
             final_image = bin_image
 
         # Save to temporary file
-        temp_fd, temp_path = tempfile.mkstemp(
-            suffix=f"_{method_name}.png", prefix="ocr_multi_"
+        temp_path = save_temp_image(
+            final_image, suffix=f"_{method_name}.png", prefix="ocr_multi_"
         )
-        os.close(temp_fd)
-        cv2.imwrite(temp_path, final_image)
-
         results.append((temp_path, method_name))
 
     return results

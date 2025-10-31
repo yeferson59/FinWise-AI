@@ -6,8 +6,14 @@ from app.schemas.transaction import (
     UpdateTransaction,
     TransactionFilters,
 )
+from app.utils.crud import CRUDService
 from sqlmodel import select, col
 from typing import cast
+
+# Initialize CRUD service for Transaction
+_transaction_crud = CRUDService[Transaction, CreateTransaction, UpdateTransaction](
+    Transaction
+)
 
 
 async def get_all_transactions(
@@ -76,16 +82,14 @@ async def get_all_transactions(
 
 
 async def create_transaction(session: SessionDep, transaction: CreateTransaction):
-    trs = Transaction(**transaction.model_dump())
-    db.create_db_entity(trs, session)
-    return trs
+    return await _transaction_crud.create(session, transaction)
 
 
 async def get_transaction(
     session: SessionDep,
     transaction_id: int,
 ):
-    return db.get_entity_by_id(Transaction, transaction_id, session)
+    return await _transaction_crud.get_by_id(session, transaction_id)
 
 
 async def update_transaction(
@@ -93,11 +97,8 @@ async def update_transaction(
     id: int,
     transaction: UpdateTransaction,
 ):
-    update_data = transaction.model_dump(exclude_unset=True)
-    return db.update_db_entity(Transaction, id, update_data, session)
+    return await _transaction_crud.update(session, id, transaction)
 
 
 async def delete_transaction(session: SessionDep, id: int):
-    transaction = await get_transaction(session, id)
-    db.delete_db_entity(Transaction, id, session)
-    return transaction
+    return await _transaction_crud.delete(session, id)

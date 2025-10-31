@@ -6,6 +6,7 @@ Analyzes image quality and applies automatic corrections for better OCR results.
 import cv2
 import numpy as np
 from typing import Any
+from app.utils.image import load_image, to_grayscale
 
 
 def assess_image_quality(image_path: str) -> dict[str, Any]:
@@ -27,19 +28,10 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
         }
     """
     try:
-        image = cv2.imread(image_path)
-        if image is None:
-            return {
-                "blur_score": 0,
-                "brightness": 0,
-                "contrast": 0,
-                "resolution": (0, 0),
-                "is_acceptable": False,
-                "recommendations": ["Failed to read image file"],
-            }
+        image = load_image(image_path)
 
         # Convert to grayscale for analysis
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = to_grayscale(image)
 
         # 1. Blur detection using Laplacian variance
         laplacian = cv2.Laplacian(gray, cv2.CV_64F)
@@ -175,9 +167,7 @@ def auto_correct_image_from_path(
     Returns:
         Auto-corrected image as numpy array
     """
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Failed to read image from {image_path}")
+    image = load_image(image_path)
 
     # Assess quality if not provided
     if quality_info is None:
