@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import os
 from pathlib import Path
 from typing import Any
 from PIL import Image
@@ -10,8 +9,6 @@ from app.utils.image import (
     load_image,
     to_grayscale,
     save_temp_image,
-    cleanup_temp_file,
-    get_image_dimensions,
 )
 
 try:
@@ -239,9 +236,6 @@ def preprocess_image_simple(filepath: str) -> str:
     return preprocess_image(
         filepath, document_type=DocumentType.GENERAL, save_to_temp=False
     )
-
-
-
 
 
 # ============================================================================
@@ -533,3 +527,26 @@ def preprocess_with_multiple_binarizations(
         results.append((temp_path, method_name))
 
     return results
+
+
+def cleanup_temp_file(file_path: str) -> None:
+    """
+    Safely clean up a temporary file.
+
+    Args:
+        file_path: Path to the file to delete
+
+    Note:
+        This function does not raise exceptions if the file doesn't exist
+        or cannot be deleted, to prevent test failures.
+    """
+    if not file_path:
+        return
+
+    try:
+        path = Path(file_path)
+        if path.exists():
+            path.unlink()
+    except Exception:
+        # Silently ignore cleanup errors to prevent test failures
+        pass

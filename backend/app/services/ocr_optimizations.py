@@ -16,7 +16,10 @@ from app.utils.image import (
     save_temp_image,
     cleanup_temp_files,
 )
-
+from app.services.extraction import extract_text
+from app.services.intelligent_extraction import extract_with_fallback
+from app.services.advanced_ocr import extract_with_multiple_strategies
+from app.ocr_config import OCRConfig, PSMMode
 
 # ============================================================================
 # 1. TEXT REGION DETECTION
@@ -208,7 +211,6 @@ def extract_text_by_regions(
     Returns:
         Tuple of (extracted_text, metadata)
     """
-    from app.services.extraction import extract_text
 
     image = cv2.imread(filepath)
     if image is None:
@@ -294,10 +296,6 @@ async def extract_parallel_strategies(
     Returns:
         Tuple of (best_text, metadata)
     """
-    from app.services.intelligent_extraction import extract_with_fallback
-    from app.services.advanced_ocr import extract_with_multiple_strategies
-    from app.ocr_config import OCRConfig, PSMMode
-    from app.services.extraction import extract_text
 
     # Define strategies
     def strategy_standard():
@@ -390,7 +388,6 @@ def process_large_image_incrementally(
     Returns:
         Tuple of (extracted_text, metadata)
     """
-    from app.services.extraction import extract_text
 
     image = load_image(filepath)
     h, w = image.shape[:2]

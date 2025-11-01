@@ -11,8 +11,10 @@ environment variables (OMP_THREAD_LIMIT=1) for stable operation.
 import os
 import subprocess
 import tempfile
-from typing import Dict, Optional, Tuple
 import logging
+import pytesseract
+from PIL import Image
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class TesseractWrapper:
 
     def extract_text_safe(
         self, image_path: str, config_str: str = "", lang: str = "eng+spa"
-    ) -> Tuple[str, bool]:
+    ) -> tuple[str, bool]:
         """
         Extract text using Tesseract with crash protection.
 
@@ -70,9 +72,6 @@ class TesseractWrapper:
 
     def _extract_direct(self, image_path: str, config_str: str, lang: str) -> str:
         """Direct extraction using pytesseract (can crash)."""
-        import pytesseract
-        from PIL import Image
-
         # Load image
         image = Image.open(image_path)
 
@@ -87,7 +86,7 @@ class TesseractWrapper:
         # Clean up
         image.close()
 
-        return text.strip()  # type: ignore[union-attr]
+        return text.strip()  # type: ignore[union-attr,return-value]
 
     def _extract_subprocess(self, image_path: str, config_str: str, lang: str) -> str:
         """
@@ -167,7 +166,7 @@ class TesseractWrapper:
 
     def extract_with_confidence_safe(
         self, image_path: str, config_str: str = "", lang: str = "eng+spa"
-    ) -> Tuple[str, Dict, bool]:
+    ) -> tuple[str, dict[str, Any], bool]:
         """
         Extract text with confidence scores, with crash protection.
 
@@ -197,11 +196,8 @@ class TesseractWrapper:
 
     def _extract_with_confidence_direct(
         self, image_path: str, config_str: str, lang: str
-    ) -> Tuple[str, Dict]:
+    ) -> tuple[str, dict[str, Any]]:
         """Direct extraction with confidence (can crash)."""
-        import pytesseract
-        from PIL import Image
-
         image = Image.open(image_path)
 
         # Build config
@@ -247,7 +243,7 @@ class TesseractWrapper:
 
         return text, conf_dict
 
-    def _estimate_confidence(self, text: str) -> Dict:
+    def _estimate_confidence(self, text: str) -> dict[str, Any]:
         """
         Estimate confidence based on text characteristics.
 
@@ -284,7 +280,7 @@ class TesseractWrapper:
         self._error_count = 0
         self._last_error = None
 
-    def get_last_error(self) -> Optional[str]:
+    def get_last_error(self) -> str | None:
         """Get the last error message."""
         return self._last_error
 
@@ -328,7 +324,7 @@ def extract_text_resilient(
 
 def extract_text_with_confidence_resilient(
     image_path: str, config_str: str = "", lang: str = "eng+spa"
-) -> Tuple[str, Dict]:
+) -> tuple[str, dict[str, Any]]:
     """
     Extract text with confidence scores and automatic crash recovery.
 

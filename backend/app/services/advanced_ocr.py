@@ -3,7 +3,6 @@ Advanced OCR strategies with multiple attempts and voting system
 Combines different preprocessing and OCR approaches to get the best result
 """
 
-import cv2
 from typing import Any
 from collections import Counter
 
@@ -15,7 +14,7 @@ from app.services.preprocessing import (
 from app.services.ocr_corrections import post_process_ocr_text
 from app.services.image_quality import assess_image_quality, auto_correct_image
 from app.ocr_config import DocumentType, OCRConfig, PSMMode
-from app.utils.image import save_temp_image, cleanup_temp_file, cleanup_temp_files, load_image
+from app.utils.image import save_temp_image, cleanup_temp_files, load_image
 
 
 def extract_with_multiple_strategies(

@@ -11,6 +11,8 @@ from app.services.tesseract_wrapper import (
     extract_text_resilient,
     extract_text_with_confidence_resilient,
 )
+import tempfile
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +81,6 @@ def extract_text_from_image(
         image = image.convert("RGB")
 
     # Save to temporary PNG file for resilient processing
-    import tempfile
-    import os
 
     temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
@@ -205,8 +205,6 @@ def extract_text_with_confidence(
         image = image.convert("RGB")
 
     # Save to temporary PNG file for resilient processing
-    import tempfile
-    import os
 
     temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
     try:
