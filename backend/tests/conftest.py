@@ -48,6 +48,12 @@ def test_db():
     """Create a test database session"""
     from app.db.base import engine
     from sqlmodel import Session, SQLModel
+    
+    # Import all models to ensure they are registered with SQLModel
+    from app.models.user import User
+    from app.models.category import Category
+    from app.models.transaction import Transaction, Source
+    from app.models.auth import Session as AuthSession
 
     # Create all tables
     SQLModel.metadata.create_all(engine)
