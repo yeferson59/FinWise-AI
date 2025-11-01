@@ -1,7 +1,7 @@
 """Tests for auth service."""
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock
 from app.services import auth
 from app.models.user import User
 from app.models.auth import Session
@@ -161,9 +161,13 @@ async def test_logout(test_db):
     test_db.commit()
     test_db.refresh(test_session)
     
-    # Mock current_session
-    current_session = Mock()
-    current_session.id = test_session.id
+    # Use real session instance
+    current_session = Session(
+        id=test_session.id,
+        user_id=test_session.user_id,
+        token=test_session.token,
+        expires_at=test_session.expires_at
+    )
     
     # Logout
     result = await auth.logout(test_db, current_session)

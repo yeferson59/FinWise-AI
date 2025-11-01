@@ -3,8 +3,6 @@ import os
 import cv2
 import tempfile
 import numpy as np
-from pathlib import Path
-from typing import Any
 
 
 def load_image(filepath: str) -> np.ndarray:
@@ -22,12 +20,11 @@ def load_image(filepath: str) -> np.ndarray:
     """
     image = cv2.imread(filepath)
     if image is None:
-        if os.path.exists(filepath):
-            raise ValueError(
-                "Invalid image file: file exists but cannot be read as image"
-            )
-        else:
-            raise ValueError("Invalid image file or file does not exist.")
+        raise ValueError(
+            "Invalid image file: file exists but cannot be read as image"
+            if os.path.exists(filepath)
+            else "Invalid image file or file does not exist."
+        )
     return image
 
 

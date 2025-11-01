@@ -48,7 +48,7 @@ async def get_user_by_email(
         Path(
             max_length=300,
             min_length=1,
-            regex=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
+            pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
         ),
     ],
 ) -> User | None:

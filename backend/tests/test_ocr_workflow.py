@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 from io import BytesIO
 from PIL import Image
+from app.services import file as file_service
 
 
 def create_test_image(width: int = 400, height: int = 300) -> BytesIO:
@@ -44,7 +45,8 @@ class TestPreprocessing:
             assert os.path.exists(preprocessed_path)
 
             # Verify it's in temp directory
-            assert "/tmp/" in preprocessed_path or "\\Temp\\" in preprocessed_path
+            temp_dir = tempfile.gettempdir()
+            assert preprocessed_path.startswith(temp_dir)
 
             # Verify it's different from original
             assert preprocessed_path != tmp_path
@@ -220,11 +222,10 @@ class TestWorkflowIntegration:
 
     def test_workflow_critical_operations(self):
         """Verify that critical workflow operations are present in endpoints"""
-        from app.api.v1.endpoints import files
         import inspect
 
         # Check extract_text endpoint
-        extract_text_source = inspect.getsource(files.extract_text)
+        extract_text_source = inspect.getsource(file_service.extract_text)
 
         # Verify critical operations are present
         assert "save_file_locally" in extract_text_source
@@ -235,10 +236,11 @@ class TestWorkflowIntegration:
         assert "finally:" in extract_text_source
 
         # Verify helper functions exist
-        assert hasattr(files, "validate_file_format")
-        assert hasattr(files, "parse_document_type")
-        assert hasattr(files, "upload_to_s3_if_configured")
-        assert hasattr(files, "cleanup_files")
+        # Note: Helper functions are now in file_service module
+        assert hasattr(file_service, "validate_file_format")
+        assert hasattr(file_service, "parse_document_type")
+        assert hasattr(file_service, "upload_to_s3_if_configured")
+        assert hasattr(file_service, "cleanup_files")
 
 
 if __name__ == "__main__":

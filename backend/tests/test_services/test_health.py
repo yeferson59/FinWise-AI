@@ -1,6 +1,5 @@
 """Tests for health service."""
 
-import pytest
 from app.services import health
 
 

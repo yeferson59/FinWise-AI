@@ -40,7 +40,7 @@ class TestLocalFileStorage:
         file_identifier = await storage.save_file(file_content, filename)
 
         # Verify file was saved
-        assert file_identifier == str(Path(temp_storage_dir) / filename)
+        assert file_identifier == os.path.realpath(str(Path(temp_storage_dir) / filename))
         assert os.path.exists(file_identifier)
 
         # Verify content
@@ -67,7 +67,8 @@ class TestLocalFileStorage:
         with pytest.raises(FileNotFoundError):
             await storage.retrieve_file("/nonexistent/path/file.txt")
 
-    def test_get_local_path(self, storage, temp_storage_dir):
+    @pytest.mark.asyncio
+    async def test_get_local_path(self, storage, temp_storage_dir):
         """Test get_local_path context manager for local storage."""
         file_content = b"Test file content"
         filename = "test.txt"
@@ -78,7 +79,7 @@ class TestLocalFileStorage:
             f.write(file_content)
 
         # Use get_local_path
-        with storage.get_local_path(str(test_path)) as local_path:
+        async with storage.get_local_path(str(test_path)) as local_path:
             assert os.path.exists(local_path)
             with open(local_path, "rb") as f:
                 assert f.read() == file_content
@@ -86,10 +87,11 @@ class TestLocalFileStorage:
         # File should still exist after context (no cleanup for local)
         assert os.path.exists(str(test_path))
 
-    def test_get_local_path_nonexistent(self, storage):
+    @pytest.mark.asyncio
+    async def test_get_local_path_nonexistent(self, storage):
         """Test get_local_path with nonexistent file."""
         with pytest.raises(FileNotFoundError):
-            with storage.get_local_path("/nonexistent/file.txt"):
+            async with storage.get_local_path("/nonexistent/file.txt"):
                 pass
 
     @pytest.mark.asyncio
@@ -249,7 +251,8 @@ class TestS3FileStorage:
         result = await storage.file_exists("nonexistent.txt")
         assert result is False
 
-    def test_get_local_path(self, storage, mock_s3_client):
+    @pytest.mark.asyncio
+    async def test_get_local_path(self, storage, mock_s3_client):
         """Test get_local_path downloads file to temp location."""
         file_content = b"Test file content"
         filename = "test.txt"
@@ -260,7 +263,7 @@ class TestS3FileStorage:
         ) as mock_retrieve:
             mock_retrieve.return_value = file_content
 
-            with storage.get_local_path(filename) as local_path:
+            async with storage.get_local_path(filename) as local_path:
                 # Verify a temporary file was created
                 assert os.path.exists(local_path)
                 assert local_path.endswith(".txt")

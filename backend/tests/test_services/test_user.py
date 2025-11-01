@@ -24,6 +24,7 @@ async def test_create_user(test_db):
     assert result.email == "john.doe@example.com"
     assert result.id is not None
     # Password should be hashed
+    assert result.password is not None
     assert result.password != "SecurePass123!@"
     assert len(result.password) > 20  # Hashed passwords are longer
 
@@ -148,6 +149,7 @@ async def test_update_user_password(test_db):
     
     assert result is not None
     assert result.password != old_password  # Password changed
+    assert result.password is not None
     assert result.password != "NewSecurePass123!@"  # Password is hashed
     assert len(result.password) > 20  # Hashed passwords are longer
 
