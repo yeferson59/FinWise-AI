@@ -23,16 +23,18 @@ dependencies = [
     "rembg>=2.0.67",
     "onnxruntime>=1.23.2",
     "faster-whisper>=1.2.0",
-    "uvicorn>=0.38.0",
-    "psycopg2-binary>=2.9.11",
     "aioboto3>=15.4.0",
-    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.4.2",
+    "httpx>=0.28.1",
     "pytest-asyncio>=1.2.0",
     "ruff>=0.14.0",
     "zuban>=0.1.0",
+]
+prod = [
+    "uvicorn>=0.38.0",
+    "psycopg2-binary>=2.9.11",
 ]

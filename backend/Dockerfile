@@ -30,7 +30,7 @@ COPY pyproject.toml uv.lock ./
 # --frozen: use exact versions from uv.lock
 # Increase timeout and add retry for network issues
 ENV UV_HTTP_TIMEOUT=300
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --group prod --no-install-project
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime - Minimal production image
