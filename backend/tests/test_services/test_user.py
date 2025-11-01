@@ -173,9 +173,10 @@ async def test_delete_user(test_db):
     assert result is not None
     assert result.id == user_id
     
-    # Verify user is deleted
-    deleted_user = await user.get_user(user_id, test_db)
-    assert deleted_user is None
+    # Verify user is deleted - should raise NoResultFound exception
+    from sqlalchemy.exc import NoResultFound
+    with pytest.raises(NoResultFound):
+        await user.get_user(user_id, test_db)
 
 
 @pytest.mark.asyncio
@@ -222,4 +223,7 @@ async def test_get_users_paginated(test_db):
     result = await user.get_users_paginated(test_db, page=1, limit=5)
     
     assert result is not None
-    assert len(result) == 5
+    assert len(result.data) == 5
+    assert result.pagination.page == 1
+    assert result.pagination.limit == 5
+    assert result.pagination.total == 10

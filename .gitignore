@@ -58,3 +58,4 @@ venv/
 build/
 dist/
 cache/
+.coverage

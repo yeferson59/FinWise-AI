@@ -107,6 +107,7 @@ async def test_delete_category(test_db):
     assert result is not None
     assert result.id == category_id
     
-    # Verify it's deleted
-    deleted_category = await category.get_category(test_db, category_id)
-    assert deleted_category is None
+    # Verify it's deleted - should raise NoResultFound exception
+    from sqlalchemy.exc import NoResultFound
+    with pytest.raises(NoResultFound):
+        await category.get_category(test_db, category_id)
