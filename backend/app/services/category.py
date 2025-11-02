@@ -2,6 +2,9 @@ from app.db.session import SessionDep
 from app.models.category import Category
 from app.schemas.category import CreateCategory, UpdateCategory
 from app.utils.crud import CRUDService
+from fastapi import UploadFile
+from app.services.file import extract_text
+from app.core.agent import react_agent, AgentDeps
 
 # Initialize CRUD service for Category
 _category_crud = CRUDService[Category, CreateCategory, UpdateCategory](Category)
@@ -37,3 +40,16 @@ async def update_category(
 
 async def delete_category(session: SessionDep, id: int):
     return await _category_crud.delete(session, id)
+
+
+async def classification(session: SessionDep, document_type: str, file: UploadFile):
+    data = await extract_text(document_type, file)
+    deps = AgentDeps(session)
+
+    response = await react_agent.run(
+        f"You are an excellent categorizer of information from images and documents. Your task is to classify the provided text into one of the existing categories in the finWise application. First, retrieve the list of all existing categories from the database using the available tools. Then, analyze the following text extracted from the document or image: '{str(data['raw_text'])}'. Determine which category it best fits into based on its content. Finally, return exactly the name of the matching category as it is stored in the database, without any additional text, explanation, or formatting.",
+        deps=deps,
+        output_type=CreateCategory,
+    )
+
+    return response.output

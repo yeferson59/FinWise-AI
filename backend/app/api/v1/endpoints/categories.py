@@ -3,7 +3,7 @@ from app.models.category import Category
 from app.services import category
 from app.db.session import SessionDep
 from app.api.deps import PaginationParams
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, UploadFile
 from app.schemas.category import CreateCategory, UpdateCategory
 
 router = APIRouter()
@@ -56,3 +56,12 @@ async def delete_category(
     session: SessionDep, category_id: Annotated[int, Path]
 ) -> Category:
     return await category.delete_category(session, category_id)
+
+
+@router.post("/classify")
+async def classify_document(
+    session: SessionDep,
+    document_type: str,
+    file: UploadFile,
+):
+    return await category.classification(session, document_type, file)
