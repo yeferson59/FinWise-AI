@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     transactions,
     categories,
     files,
+    source,
 )
 
 router = APIRouter()
@@ -30,3 +31,4 @@ router.include_router(
 )
 router.include_router(categories.router, prefix="/categories", tags=["categories"])
 router.include_router(files.router, prefix="/files", tags=["files"])
+router.include_router(source.router, prefix="/sources", tags=["sources"])
