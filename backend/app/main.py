@@ -8,7 +8,7 @@ import app.tesseract_config  # noqa: F401
 from app.api.v1.router import router
 from app.config import get_settings
 from app.db.base import create_db_and_tables
-from app.dependencies import init_categories
+from app.dependencies import init_categories, init_sources
 
 settings = get_settings()
 
@@ -17,6 +17,7 @@ settings = get_settings()
 async def lifespan(_app: FastAPI):
     create_db_and_tables()
     init_categories()
+    init_sources()
     yield
 
 

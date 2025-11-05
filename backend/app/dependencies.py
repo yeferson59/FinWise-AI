@@ -1,5 +1,6 @@
 import logging
 from app.models.category import Category
+from app.models.transaction import Source
 from sqlmodel import Session, select
 from app.db.session import engine
 
@@ -228,4 +229,102 @@ def init_categories() -> None:
 
     except Exception as e:
         logger.error(f"Error initializing default global categories: {str(e)}")
+        raise
+
+
+def get_default_sources() -> list[Source]:
+    """
+    Returns the list of default global sources.
+
+    Returns:
+        List of Source instances with default sources for the application
+    """
+    return [
+        # Banking
+        Source(name="Bank Account", description="Primary bank account", is_default=True),
+        Source(name="Savings Account", description="Savings account", is_default=True),
+        Source(name="Checking Account", description="Checking account", is_default=True),
+        Source(name="Credit Card", description="Credit card account", is_default=True),
+        Source(name="Debit Card", description="Debit card account", is_default=True),
+
+        # Digital Wallets
+        Source(name="PayPal", description="PayPal account", is_default=True),
+        Source(name="Venmo", description="Venmo account", is_default=True),
+        Source(name="Cash App", description="Cash App account", is_default=True),
+        Source(name="Apple Pay", description="Apple Pay", is_default=True),
+        Source(name="Google Pay", description="Google Pay", is_default=True),
+
+        # Cryptocurrency
+        Source(name="Bitcoin Wallet", description="Bitcoin cryptocurrency wallet", is_default=True),
+        Source(name="Ethereum Wallet", description="Ethereum cryptocurrency wallet", is_default=True),
+        Source(name="Crypto Exchange", description="Cryptocurrency exchange account", is_default=True),
+
+        # Investment
+        Source(name="Brokerage Account", description="Investment brokerage account", is_default=True),
+        Source(name="Retirement Account", description="401k or IRA account", is_default=True),
+        Source(name="Investment App", description="Investment application account", is_default=True),
+
+        # Cash and Physical
+        Source(name="Cash", description="Physical cash", is_default=True),
+        Source(name="Check", description="Check payments", is_default=True),
+
+        # Business
+        Source(name="Business Account", description="Business bank account", is_default=True),
+        Source(name="Client Payment", description="Payments from clients", is_default=True),
+
+        # Other
+        Source(name="Other", description="Other payment sources", is_default=True),
+        Source(name="Unknown", description="Unknown payment source", is_default=True),
+    ]
+
+
+def init_sources() -> None:
+    """
+    Initialize default global sources in the database.
+
+    This function is idempotent - it will only create sources that don't exist yet,
+    based on the source name. Global sources are identified by having
+    is_default=True and user_id=None. It's safe to call multiple times.
+
+    Raises:
+        Exception: If there's a database error during source initialization
+    """
+    default_sources = get_default_sources()
+
+    try:
+        with Session(engine) as session:
+            # Get all existing global source names to avoid duplicates
+            # Global sources have is_default=True and user_id=None
+            # Use .is_(None) instead of == None for better SQL performance
+            existing_sources = session.exec(
+                select(Source.name).where(
+                    Source.is_default.is_(True), Source.user_id.is_(None)  # type: ignore[attr-defined, union-attr]
+                )
+            ).all()
+            existing_names = set(existing_sources)
+
+            # Filter out sources that already exist
+            sources_to_create = [
+                source
+                for source in default_sources
+                if source.name not in existing_names
+            ]
+
+            if not sources_to_create:
+                logger.info(
+                    "All default global sources already exist. Skipping initialization."
+                )
+                return
+
+            # Use bulk insert for better performance
+            session.add_all(sources_to_create)
+            session.commit()
+
+            logger.info(
+                f"Successfully initialized {len(sources_to_create)} default global sources. "
+                f"Skipped {len(existing_names)} existing sources."
+            )
+
+    except Exception as e:
+        logger.error(f"Error initializing default global sources: {str(e)}")
         raise
