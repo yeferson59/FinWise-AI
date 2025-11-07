@@ -54,3 +54,17 @@ class TransactionFilters(BaseModel):
     sort_desc: bool = Field(
         default=True, description="Sort in descending order (default: True)"
     )
+
+
+class CreateSource(BaseModel):
+    name: str = Field(description="Source name", min_length=1, max_length=100)
+    description: str | None = Field(
+        default=None, description="Source description", max_length=255
+    )
+    user_id: int | None = Field(default=None, description="User ID", ge=1)
+
+
+class UpdateSource(BaseModel):
+    name: str | None = Field(default=None, description="Source name", min_length=1, max_length=100)
+    description: str | None = Field(default=None, description="Source description", max_length=255)
+    user_id: int | None = Field(default=None, description="User ID", ge=1)
