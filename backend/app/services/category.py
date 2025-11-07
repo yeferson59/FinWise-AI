@@ -6,6 +6,7 @@ from fastapi import UploadFile
 from app.services.file import extract_text
 from app.core.agent import react_agent, AgentDeps
 from app.utils import db
+from sqlmodel import select, func
 
 # Initialize CRUD service for Category
 _category_crud = CRUDService[Category, CreateCategory, UpdateCategory](Category)
@@ -46,10 +47,8 @@ async def delete_category(session: SessionDep, id: int):
 async def classification(session: SessionDep, document_type: str, file: UploadFile):
     # Check if categories exist before attempting classification
     # Optimization: Use count query instead of fetching records
-    from app.models.category import Category as CategoryModel
-    from sqlmodel import select, func
 
-    category_count = session.exec(select(func.count()).select_from(CategoryModel)).one()
+    category_count = session.exec(select(func.count()).select_from(Category)).one()
 
     if category_count == 0:
         raise ValueError(
@@ -102,10 +101,8 @@ async def classify_text(
     """
     # Check if categories exist before attempting classification
     # Optimization: Use count query instead of fetching records
-    from app.models.category import Category as CategoryModel
-    from sqlmodel import select, func
 
-    category_count = session.exec(select(func.count()).select_from(CategoryModel)).one()
+    category_count = session.exec(select(func.count()).select_from(Category)).one()
 
     if category_count == 0:
         raise ValueError(
