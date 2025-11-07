@@ -48,13 +48,13 @@ async def classification(session: SessionDep, document_type: str, file: UploadFi
     # Optimization: Use count query instead of fetching records
     from app.models.category import Category as CategoryModel
     from sqlmodel import select, func
-    
-    category_count = session.exec(
-        select(func.count()).select_from(CategoryModel)
-    ).one()
-    
+
+    category_count = session.exec(select(func.count()).select_from(CategoryModel)).one()
+
     if category_count == 0:
-        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+        raise ValueError(
+            "No categories found in the database. Please create categories before classifying documents."
+        )
 
     data = await extract_text(document_type, file)
     deps = AgentDeps(session)
@@ -67,17 +67,23 @@ async def classification(session: SessionDep, document_type: str, file: UploadFi
 
     category_name = response.output.strip()
     if not category_name:
-        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+        raise ValueError(
+            "Unable to classify the document. The AI agent could not determine an appropriate category."
+        )
 
     # Verify the returned category actually exists
     category = db.get_entity_by_field(Category, "name", category_name, session)
     if not category:
-        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+        raise ValueError(
+            f"The classified category '{category_name}' does not exist in the database."
+        )
 
     return category
 
 
-async def classify_text(session: SessionDep, text: str, document_type: str = "general") -> Category:
+async def classify_text(
+    session: SessionDep, text: str, document_type: str = "general"
+) -> Category:
     """
     Classify extracted text directly into a category.
 
@@ -98,13 +104,13 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
     # Optimization: Use count query instead of fetching records
     from app.models.category import Category as CategoryModel
     from sqlmodel import select, func
-    
-    category_count = session.exec(
-        select(func.count()).select_from(CategoryModel)
-    ).one()
-    
+
+    category_count = session.exec(select(func.count()).select_from(CategoryModel)).one()
+
     if category_count == 0:
-        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+        raise ValueError(
+            "No categories found in the database. Please create categories before classifying documents."
+        )
 
     deps = AgentDeps(session)
 
@@ -116,11 +122,15 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
 
     category_name = response.output.strip()
     if not category_name:
-        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+        raise ValueError(
+            "Unable to classify the document. The AI agent could not determine an appropriate category."
+        )
 
     # Verify the returned category actually exists
     category = db.get_entity_by_field(Category, "name", category_name, session)
     if not category:
-        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+        raise ValueError(
+            f"The classified category '{category_name}' does not exist in the database."
+        )
 
     return category

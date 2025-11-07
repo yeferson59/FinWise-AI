@@ -84,9 +84,7 @@ def extract_with_multiple_strategies(
                 temp_path = save_temp_image(rotated, suffix=".png", prefix="rotated_")
                 temp_files.append(temp_path)
 
-                text2, conf2 = extract_text_with_confidence(
-                    temp_path, document_type
-                )
+                text2, conf2 = extract_text_with_confidence(temp_path, document_type)
                 avg_conf = conf2.get("average_confidence", 0)
                 adjusted_conf = avg_conf * 1.05  # Bonus for orientation correction
                 results.append(
@@ -106,7 +104,9 @@ def extract_with_multiple_strategies(
                         "strategies_tried": 2,
                         "all_strategies": [r["strategy"] for r in results],
                         "early_stopped": True,
-                        "voting_analysis": {"note": "Early stopped due to high confidence"},
+                        "voting_analysis": {
+                            "note": "Early stopped due to high confidence"
+                        },
                     }
                     return final_text, metadata
         except Exception as e:
@@ -118,12 +118,12 @@ def extract_with_multiple_strategies(
             if not quality_info["is_acceptable"]:
                 image = load_image(filepath)
                 corrected = auto_correct_image(image, quality_info)
-                temp_path = save_temp_image(corrected, suffix=".png", prefix="corrected_")
+                temp_path = save_temp_image(
+                    corrected, suffix=".png", prefix="corrected_"
+                )
                 temp_files.append(temp_path)
 
-                text3, conf3 = extract_text_with_confidence(
-                    temp_path, document_type
-                )
+                text3, conf3 = extract_text_with_confidence(temp_path, document_type)
                 avg_conf = conf3.get("average_confidence", 0)
                 adjusted_conf = avg_conf * 1.1  # Bonus for quality correction
                 results.append(
@@ -143,7 +143,9 @@ def extract_with_multiple_strategies(
                         "strategies_tried": len(results),
                         "all_strategies": [r["strategy"] for r in results],
                         "early_stopped": True,
-                        "voting_analysis": {"note": "Early stopped due to high confidence"},
+                        "voting_analysis": {
+                            "note": "Early stopped due to high confidence"
+                        },
                     }
                     return final_text, metadata
         except Exception as e:

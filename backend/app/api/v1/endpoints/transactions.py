@@ -122,7 +122,7 @@ async def classify_text_simple(session: SessionDep, text: str) -> Category:
     """
     Simple text classification based on keywords.
     Returns the first matching category or a default one.
-    
+
     Performance Optimization: Uses in-memory cache for category lookups.
     """
     # Convert text to lowercase for matching
@@ -161,11 +161,9 @@ async def classify_text_simple(session: SessionDep, text: str) -> Category:
                 cached_category = _category_cache[cache_key]
                 if cached_category:
                     return cached_category
-            
+
             # Try to find the category in the database
-            category = db.get_entity_by_field(
-                Category, "name", cache_key, session
-            )
+            category = db.get_entity_by_field(Category, "name", cache_key, session)
             if category:
                 _category_cache[cache_key] = category
                 return category

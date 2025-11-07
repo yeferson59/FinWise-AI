@@ -27,7 +27,7 @@ async def get_all_transactions(
     Performance Note: This function builds efficient queries with proper WHERE clauses
     and ordering. Ensure database indexes exist on frequently filtered columns:
     - user_id, category_id, source_id, state, date, amount
-    
+
     Args:
         session: Database session
         offset: Number of records to skip (default: 0)
