@@ -4,6 +4,9 @@ import pytest
 from app.services import category
 from app.models.category import Category
 from app.schemas.category import CreateCategory, UpdateCategory
+from fastapi import UploadFile
+import io
+from unittest.mock import patch, MagicMock, AsyncMock
 
 
 @pytest.mark.asyncio
@@ -111,3 +114,103 @@ async def test_delete_category(test_db):
     from sqlalchemy.exc import NoResultFound
     with pytest.raises(NoResultFound):
         await category.get_category(test_db, category_id)
+
+
+@pytest.mark.asyncio
+async def test_classification_success(test_db):
+    """Test successful document classification."""
+    # Create test categories
+    food_category = Category(name="Food", description="Food expenses")
+    transport_category = Category(name="Transport", description="Transport expenses")
+    test_db.add(food_category)
+    test_db.add(transport_category)
+    test_db.commit()
+
+    # Mock extract_text to return sample text
+    with patch("app.services.category.extract_text") as mock_extract:
+        mock_extract.return_value = {"raw_text": "Restaurant bill for lunch"}
+
+        # Mock agent response
+        with patch("app.services.category.react_agent") as mock_agent:
+            mock_response = MagicMock()
+            mock_response.output = "Food"
+            mock_agent.run = AsyncMock(return_value=mock_response)
+
+            # Create a mock file
+            file_content = b"fake image content"
+            file = UploadFile(filename="test.jpg", file=io.BytesIO(file_content))
+
+            # Test classification
+            result = await category.classification(test_db, "receipt", file)
+
+            assert isinstance(result, Category)
+            assert result.name == "Food"
+            assert result.description == "Food expenses"
+            mock_extract.assert_called_once_with("receipt", file)
+            mock_agent.run.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_classification_no_categories(test_db):
+    """Test classification fails when no categories exist."""
+    # Create a mock file
+    file_content = b"fake image content"
+    file = UploadFile(filename="test.jpg", file=io.BytesIO(file_content))
+
+    # Test classification with no categories
+    with pytest.raises(ValueError, match="No categories found in the database"):
+        await category.classification(test_db, "receipt", file)
+
+
+@pytest.mark.asyncio
+async def test_classification_category_not_found(test_db):
+    """Test classification fails when agent returns non-existent category."""
+    # Create test categories
+    food_category = Category(name="Food", description="Food expenses")
+    test_db.add(food_category)
+    test_db.commit()
+
+    # Mock extract_text
+    with patch("app.services.category.extract_text") as mock_extract:
+        mock_extract.return_value = {"raw_text": "Some document text"}
+
+        # Mock agent response with non-existent category
+        with patch("app.services.category.react_agent") as mock_agent:
+            mock_response = MagicMock()
+            mock_response.output = "NonExistentCategory"
+            mock_agent.run = AsyncMock(return_value=mock_response)
+
+            # Create a mock file
+            file_content = b"fake image content"
+            file = UploadFile(filename="test.jpg", file=io.BytesIO(file_content))
+
+            # Test classification
+            with pytest.raises(ValueError, match="The classified category 'NonExistentCategory' does not exist"):
+                await category.classification(test_db, "receipt", file)
+
+
+@pytest.mark.asyncio
+async def test_classification_empty_response(test_db):
+    """Test classification fails when agent returns empty string."""
+    # Create test categories
+    food_category = Category(name="Food", description="Food expenses")
+    test_db.add(food_category)
+    test_db.commit()
+
+    # Mock extract_text
+    with patch("app.services.category.extract_text") as mock_extract:
+        mock_extract.return_value = {"raw_text": "Some document text"}
+
+        # Mock agent response with empty string
+        with patch("app.services.category.react_agent") as mock_agent:
+            mock_response = MagicMock()
+            mock_response.output = ""
+            mock_agent.run = AsyncMock(return_value=mock_response)
+
+            # Create a mock file
+            file_content = b"fake image content"
+            file = UploadFile(filename="test.jpg", file=io.BytesIO(file_content))
+
+            # Test classification
+            with pytest.raises(ValueError, match="Unable to classify the document"):
+                await category.classification(test_db, "receipt", file)

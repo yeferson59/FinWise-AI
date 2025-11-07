@@ -214,7 +214,9 @@ def extract_with_fallback(
         if not quality_info["is_acceptable"]:
             image = load_image(filepath)
             corrected_image = auto_correct_image(image, quality_info)
-            corrected_path = save_temp_image(corrected_image, suffix=".png", prefix="corrected_")
+            corrected_path = save_temp_image(
+                corrected_image, suffix=".png", prefix="corrected_"
+            )
             extraction_path = corrected_path
         else:
             extraction_path = filepath
