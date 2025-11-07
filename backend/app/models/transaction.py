@@ -4,7 +4,19 @@ from datetime import datetime
 
 
 class Source(Base, table=True):
-    name: str = Field(description="Source name", index=True)
+    name: str = Field(unique=True, description="Source name", max_length=100)
+    description: str | None = Field(
+        default=None, description="Source description", max_length=255
+    )
+    is_default: bool = Field(
+        default=True, description="Is default source", index=True
+    )
+    user_id: int | None = Field(
+        default=None,
+        foreign_key="user.id",
+        description="User ID",
+        index=True,
+    )
 
 
 class Transaction(BaseUuid, table=True):
