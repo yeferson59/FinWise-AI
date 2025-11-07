@@ -63,5 +63,21 @@ async def classify_document(
     session: SessionDep,
     document_type: str,
     file: UploadFile,
-):
+) -> Category:
+    """Classify a document or image into an existing category using AI.
+
+    This endpoint extracts text from the uploaded file and uses an AI agent
+    to classify it into one of the existing categories in the database.
+
+    Args:
+        session: Database session
+        document_type: Type of document (e.g., "receipt", "invoice", "general")
+        file: Uploaded file (image or PDF)
+
+    Returns:
+        Category: The matching category object
+
+    Raises:
+        HTTPException: If no categories exist, classification fails, or category not found
+    """
     return await category.classification(session, document_type, file)
