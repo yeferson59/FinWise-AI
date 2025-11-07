@@ -5,6 +5,7 @@ from app.utils.crud import CRUDService
 from fastapi import UploadFile
 from app.services.file import extract_text
 from app.core.agent import react_agent, AgentDeps
+from app.utils import db
 
 # Initialize CRUD service for Category
 _category_crud = CRUDService[Category, CreateCategory, UpdateCategory](Category)
@@ -43,13 +44,67 @@ async def delete_category(session: SessionDep, id: int):
 
 
 async def classification(session: SessionDep, document_type: str, file: UploadFile):
+    # Check if categories exist before attempting classification
+    existing_categories = await get_all_categories(session, offset=0, limit=1)
+    if not existing_categories:
+        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+
     data = await extract_text(document_type, file)
     deps = AgentDeps(session)
 
     response = await react_agent.run(
-        f"You are an excellent categorizer of information from images and documents. Your task is to classify the provided text into one of the existing categories in the finWise application. First, retrieve the list of all existing categories from the database using the available tools. Then, analyze the following text extracted from the document or image: '{str(data['raw_text'])}'. Determine which category it best fits into based on its content. Finally, return exactly the name of the matching category as it is stored in the database, without any additional text, explanation, or formatting.",
+        f"You are an excellent categorizer of information from images and documents. Your task is to classify the provided text into one of the existing categories in the finWise application. The document type is: '{document_type}'. First, retrieve the list of all existing categories from the database using the available tools. Then, analyze the following text extracted from the document or image: '{str(data['raw_text'])}'. Determine which category it best fits into based on its content and the document type. Finally, return exactly the name of the matching category as it is stored in the database, without any additional text, explanation, or formatting.",
         deps=deps,
-        output_type=CreateCategory,
+        output_type=str,
     )
 
-    return response.output
+    category_name = response.output.strip()
+    if not category_name:
+        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+
+    # Verify the returned category actually exists
+    category = db.get_entity_by_field(Category, "name", category_name, session)
+    if not category:
+        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+
+    return category
+
+
+async def classify_text(session: SessionDep, text: str, document_type: str = "general") -> Category:
+    """
+    Classify extracted text directly into a category.
+
+    Args:
+        session: Database session
+        text: The text to classify
+        document_type: Type of document for context
+
+    Returns:
+        Category object
+
+    Raises:
+        ValueError: If no categories exist or classification fails
+    """
+    # Check if categories exist before attempting classification
+    existing_categories = await get_all_categories(session, offset=0, limit=1)
+    if not existing_categories:
+        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+
+    deps = AgentDeps(session)
+
+    response = await react_agent.run(
+        f"You are an excellent categorizer of information from images and documents. Your task is to classify the provided text into one of the existing categories in the finWise application. The document type is: '{document_type}'. First, retrieve the list of all existing categories from the database using the available tools. Then, analyze the following text extracted from the document or image: '{str(text)}'. Determine which category it best fits into based on its content and the document type. Finally, return exactly the name of the matching category as it is stored in the database, without any additional text, explanation, or formatting.",
+        deps=deps,
+        output_type=str,
+    )
+
+    category_name = response.output.strip()
+    if not category_name:
+        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+
+    # Verify the returned category actually exists
+    category = db.get_entity_by_field(Category, "name", category_name, session)
+    if not category:
+        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+
+    return category
