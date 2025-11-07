@@ -257,13 +257,18 @@ def entity_exists_by_id(
 def bulk_create_entities(
     entities: list[Base | BaseUuid],
     session: SessionDep,
+    refresh: bool = True,
 ) -> list[Base | BaseUuid]:
     """
     Create multiple entities in a single transaction.
 
+    Performance Optimization: Optional refresh to avoid N individual database queries.
+
     Args:
         entities: List of entities to create
         session: Database session
+        refresh: Whether to refresh entities after commit (default: True).
+                Set to False for better performance if you don't need the refreshed data.
 
     Returns:
         List of created entities
@@ -271,9 +276,12 @@ def bulk_create_entities(
     Example:
         users = [User(name="User1"), User(name="User2")]
         created = bulk_create_entities(users, session)
+        # Or for better performance when refresh not needed:
+        created = bulk_create_entities(users, session, refresh=False)
     """
     session.add_all(entities)
     session.commit()
-    for entity in entities:
-        session.refresh(entity)
+    if refresh:
+        for entity in entities:
+            session.refresh(entity)
     return entities

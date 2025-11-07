@@ -45,8 +45,15 @@ async def delete_category(session: SessionDep, id: int):
 
 async def classification(session: SessionDep, document_type: str, file: UploadFile):
     # Check if categories exist before attempting classification
-    existing_categories = await get_all_categories(session, offset=0, limit=1)
-    if not existing_categories:
+    # Optimization: Use count query instead of fetching records
+    from app.models.category import Category as CategoryModel
+    from sqlmodel import select, func
+    
+    category_count = session.exec(
+        select(func.count()).select_from(CategoryModel)
+    ).one()
+    
+    if category_count == 0:
         raise ValueError("No categories found in the database. Please create categories before classifying documents.")
 
     data = await extract_text(document_type, file)
@@ -74,6 +81,8 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
     """
     Classify extracted text directly into a category.
 
+    Performance Optimization: Uses efficient count query instead of fetching categories.
+
     Args:
         session: Database session
         text: The text to classify
@@ -86,8 +95,15 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
         ValueError: If no categories exist or classification fails
     """
     # Check if categories exist before attempting classification
-    existing_categories = await get_all_categories(session, offset=0, limit=1)
-    if not existing_categories:
+    # Optimization: Use count query instead of fetching records
+    from app.models.category import Category as CategoryModel
+    from sqlmodel import select, func
+    
+    category_count = session.exec(
+        select(func.count()).select_from(CategoryModel)
+    ).one()
+    
+    if category_count == 0:
         raise ValueError("No categories found in the database. Please create categories before classifying documents.")
 
     deps = AgentDeps(session)
