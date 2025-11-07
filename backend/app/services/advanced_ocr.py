@@ -21,6 +21,7 @@ def extract_with_multiple_strategies(
     filepath: str,
     document_type: DocumentType | None = None,
     max_strategies: int = 5,
+    confidence_threshold: float = 90.0,
 ) -> tuple[str, dict[str, Any]]:
     """
     Extract text using multiple strategies and combine results intelligently.
@@ -32,10 +33,13 @@ def extract_with_multiple_strategies(
     4. Different PSM modes
     5. Auto-corrected image + OCR
 
+    Performance Optimization: Stops early if confidence threshold is reached.
+
     Args:
         filepath: Path to the image file
         document_type: Type of document for optimization
         max_strategies: Maximum number of strategies to try
+        confidence_threshold: Stop trying new strategies if confidence exceeds this (default: 90.0)
 
     Returns:
         Tuple of (best_text, metadata_dict)
@@ -56,6 +60,18 @@ def extract_with_multiple_strategies(
                     "metadata": conf1,
                 }
             )
+            # Early stopping: if confidence is high enough, skip other strategies
+            if avg_conf >= confidence_threshold:
+                final_text = post_process_ocr_text(text1, document_type)
+                metadata = {
+                    "best_strategy": "standard",
+                    "confidence": avg_conf,
+                    "strategies_tried": 1,
+                    "all_strategies": ["standard"],
+                    "early_stopped": True,
+                    "voting_analysis": {"note": "Early stopped due to high confidence"},
+                }
+                return final_text, metadata
         except Exception as e:
             print(f"Strategy 1 (standard) failed: {e}")
 
@@ -68,19 +84,31 @@ def extract_with_multiple_strategies(
                 temp_path = save_temp_image(rotated, suffix=".png", prefix="rotated_")
                 temp_files.append(temp_path)
 
-                text2, conf2 = extract_text_with_confidence(
-                    temp_path, document_type
-                )
+                text2, conf2 = extract_text_with_confidence(temp_path, document_type)
                 avg_conf = conf2.get("average_confidence", 0)
+                adjusted_conf = avg_conf * 1.05  # Bonus for orientation correction
                 results.append(
                     {
                         "text": text2,
-                        "confidence": avg_conf
-                        * 1.05,  # Bonus for orientation correction
+                        "confidence": adjusted_conf,
                         "strategy": f"orientation_corrected_{rotation}deg",
                         "metadata": conf2,
                     }
                 )
+                # Early stopping check
+                if adjusted_conf >= confidence_threshold:
+                    final_text = post_process_ocr_text(text2, document_type)
+                    metadata = {
+                        "best_strategy": f"orientation_corrected_{rotation}deg",
+                        "confidence": adjusted_conf,
+                        "strategies_tried": 2,
+                        "all_strategies": [r["strategy"] for r in results],
+                        "early_stopped": True,
+                        "voting_analysis": {
+                            "note": "Early stopped due to high confidence"
+                        },
+                    }
+                    return final_text, metadata
         except Exception as e:
             print(f"Strategy 2 (orientation) failed: {e}")
 
@@ -90,22 +118,36 @@ def extract_with_multiple_strategies(
             if not quality_info["is_acceptable"]:
                 image = load_image(filepath)
                 corrected = auto_correct_image(image, quality_info)
-                temp_path = save_temp_image(corrected, suffix=".png", prefix="corrected_")
+                temp_path = save_temp_image(
+                    corrected, suffix=".png", prefix="corrected_"
+                )
                 temp_files.append(temp_path)
 
-                text3, conf3 = extract_text_with_confidence(
-                    temp_path, document_type
-                )
+                text3, conf3 = extract_text_with_confidence(temp_path, document_type)
                 avg_conf = conf3.get("average_confidence", 0)
+                adjusted_conf = avg_conf * 1.1  # Bonus for quality correction
                 results.append(
                     {
                         "text": text3,
-                        "confidence": avg_conf
-                        * 1.1,  # Bonus for quality correction
+                        "confidence": adjusted_conf,
                         "strategy": "quality_corrected",
                         "metadata": conf3,
                     }
                 )
+                # Early stopping check
+                if adjusted_conf >= confidence_threshold:
+                    final_text = post_process_ocr_text(text3, document_type)
+                    metadata = {
+                        "best_strategy": "quality_corrected",
+                        "confidence": adjusted_conf,
+                        "strategies_tried": len(results),
+                        "all_strategies": [r["strategy"] for r in results],
+                        "early_stopped": True,
+                        "voting_analysis": {
+                            "note": "Early stopped due to high confidence"
+                        },
+                    }
+                    return final_text, metadata
         except Exception as e:
             print(f"Strategy 3 (quality correction) failed: {e}")
 
@@ -176,6 +218,7 @@ def extract_with_multiple_strategies(
             "confidence": best_result["confidence"],
             "strategies_tried": len(results),
             "all_strategies": [r["strategy"] for r in results],
+            "early_stopped": False,
             "voting_analysis": analyze_results(results),
         }
 

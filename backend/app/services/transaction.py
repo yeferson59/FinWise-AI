@@ -24,6 +24,10 @@ async def get_all_transactions(
 ):
     """Get all transactions with pagination and filtering support.
 
+    Performance Note: This function builds efficient queries with proper WHERE clauses
+    and ordering. Ensure database indexes exist on frequently filtered columns:
+    - user_id, category_id, source_id, state, date, amount
+
     Args:
         session: Database session
         offset: Number of records to skip (default: 0)
@@ -36,10 +40,11 @@ async def get_all_transactions(
     if filters is None:
         return db.get_db_entities(Transaction, offset, limit, session)
 
-    # Build query with filters
+    # Build query with filters (efficient WHERE clauses)
     query = select(Transaction)
 
-    # Apply filters
+    # Apply filters - order matters for query optimization
+    # Most selective filters first (user_id, category_id typically have good selectivity)
     if filters.user_id is not None:
         query = query.where(Transaction.user_id == filters.user_id)
 
@@ -73,7 +78,7 @@ async def get_all_transactions(
             else:
                 query = query.order_by(sort_field)
 
-    # Apply pagination
+    # Apply pagination (LIMIT/OFFSET should be last)
     query = query.offset(offset).limit(limit)
 
     # Execute query

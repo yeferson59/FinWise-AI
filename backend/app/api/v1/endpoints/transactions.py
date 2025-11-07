@@ -114,10 +114,16 @@ async def delete_transaction(
     return await transaction.delete_transaction(session, transaction_id)
 
 
+# Module-level cache for category lookups to avoid repeated database queries
+_category_cache: dict[str, Category | None] = {}
+
+
 async def classify_text_simple(session: SessionDep, text: str) -> Category:
     """
     Simple text classification based on keywords.
     Returns the first matching category or a default one.
+
+    Performance Optimization: Uses in-memory cache for category lookups.
     """
     # Convert text to lowercase for matching
     text_lower = text.lower()
@@ -149,19 +155,34 @@ async def classify_text_simple(session: SessionDep, text: str) -> Category:
     # Try to find a matching category
     for category_name, keywords in keyword_mappings.items():
         if any(keyword in text_lower for keyword in keywords):
+            # Check cache first
+            cache_key = category_name.title()
+            if cache_key in _category_cache:
+                cached_category = _category_cache[cache_key]
+                if cached_category:
+                    return cached_category
+
             # Try to find the category in the database
-            category = db.get_entity_by_field(
-                Category, "name", category_name.title(), session
-            )
+            category = db.get_entity_by_field(Category, "name", cache_key, session)
             if category:
+                _category_cache[cache_key] = category
                 return category
+            else:
+                _category_cache[cache_key] = None
 
     # If no match found, return a default category
-    default_category = db.get_entity_by_field(
-        Category, "name", "Miscellaneous", session
-    )
-    if default_category:
-        return default_category
+    if "Miscellaneous" in _category_cache:
+        default_category = _category_cache["Miscellaneous"]
+        if default_category:
+            return default_category
+    else:
+        default_category = db.get_entity_by_field(
+            Category, "name", "Miscellaneous", session
+        )
+        if default_category:
+            _category_cache["Miscellaneous"] = default_category
+            return default_category
+        _category_cache["Miscellaneous"] = None
 
     # If even Miscellaneous doesn't exist, get the first available category
     categories = db.get_db_entities(Category, offset=0, limit=1, session=session)

@@ -6,6 +6,7 @@ from fastapi import UploadFile
 from app.services.file import extract_text
 from app.core.agent import react_agent, AgentDeps
 from app.utils import db
+from sqlmodel import select, func
 
 # Initialize CRUD service for Category
 _category_crud = CRUDService[Category, CreateCategory, UpdateCategory](Category)
@@ -45,9 +46,14 @@ async def delete_category(session: SessionDep, id: int):
 
 async def classification(session: SessionDep, document_type: str, file: UploadFile):
     # Check if categories exist before attempting classification
-    existing_categories = await get_all_categories(session, offset=0, limit=1)
-    if not existing_categories:
-        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+    # Optimization: Use count query instead of fetching records
+
+    category_count = session.exec(select(func.count()).select_from(Category)).one()
+
+    if category_count == 0:
+        raise ValueError(
+            "No categories found in the database. Please create categories before classifying documents."
+        )
 
     data = await extract_text(document_type, file)
     deps = AgentDeps(session)
@@ -60,19 +66,27 @@ async def classification(session: SessionDep, document_type: str, file: UploadFi
 
     category_name = response.output.strip()
     if not category_name:
-        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+        raise ValueError(
+            "Unable to classify the document. The AI agent could not determine an appropriate category."
+        )
 
     # Verify the returned category actually exists
     category = db.get_entity_by_field(Category, "name", category_name, session)
     if not category:
-        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+        raise ValueError(
+            f"The classified category '{category_name}' does not exist in the database."
+        )
 
     return category
 
 
-async def classify_text(session: SessionDep, text: str, document_type: str = "general") -> Category:
+async def classify_text(
+    session: SessionDep, text: str, document_type: str = "general"
+) -> Category:
     """
     Classify extracted text directly into a category.
+
+    Performance Optimization: Uses efficient count query instead of fetching categories.
 
     Args:
         session: Database session
@@ -86,9 +100,14 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
         ValueError: If no categories exist or classification fails
     """
     # Check if categories exist before attempting classification
-    existing_categories = await get_all_categories(session, offset=0, limit=1)
-    if not existing_categories:
-        raise ValueError("No categories found in the database. Please create categories before classifying documents.")
+    # Optimization: Use count query instead of fetching records
+
+    category_count = session.exec(select(func.count()).select_from(Category)).one()
+
+    if category_count == 0:
+        raise ValueError(
+            "No categories found in the database. Please create categories before classifying documents."
+        )
 
     deps = AgentDeps(session)
 
@@ -100,11 +119,15 @@ async def classify_text(session: SessionDep, text: str, document_type: str = "ge
 
     category_name = response.output.strip()
     if not category_name:
-        raise ValueError("Unable to classify the document. The AI agent could not determine an appropriate category.")
+        raise ValueError(
+            "Unable to classify the document. The AI agent could not determine an appropriate category."
+        )
 
     # Verify the returned category actually exists
     category = db.get_entity_by_field(Category, "name", category_name, session)
     if not category:
-        raise ValueError(f"The classified category '{category_name}' does not exist in the database.")
+        raise ValueError(
+            f"The classified category '{category_name}' does not exist in the database."
+        )
 
     return category
