@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Query, Path, Depends
 from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, Query
+
+from app.api.deps import get_current_user
 from app.db.session import SessionDep
 from app.models.user import User
-from app.schemas.user import FilterPagination, UserListResponse, CreateUser, UpdateUser
+from app.schemas.user import CreateUser, FilterPagination, UpdateUser, UserListResponse
 from app.services import user
-from app.api.deps import get_current_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("")
 async def get_users(
-    session: SessionDep, filter_pagination: Annotated[FilterPagination, Query]
+    session: SessionDep, filter_pagination: Annotated[FilterPagination, Query()]
 ) -> UserListResponse:
     return await user.get_users(session, filter_pagination)
 
