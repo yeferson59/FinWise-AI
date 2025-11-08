@@ -96,7 +96,6 @@ async def extract_text_from_file(
     """
     try:
         if file_type in [FileType.IMAGE, FileType.DOCUMENT]:
-            # Try intelligent OCR extraction first
             try:
                 result = await file_service.extract_text(
                     document_type=document_type,
@@ -110,7 +109,6 @@ async def extract_text_from_file(
                     "extraction_method": "intelligent_ocr",
                 }
             except Exception as e:
-                # Fallback to basic OCR
                 try:
                     result = await file_service.extract_text(document_type, file)
                     return {
@@ -127,8 +125,7 @@ async def extract_text_from_file(
                         detail=f"OCR extraction failed for {file_type}: {str(fallback_e)}. Original error: {str(e)}",
                     )
 
-        elif file_type == FileType.AUDIO:
-            # Use speech-to-text for audio files
+        if file_type == FileType.AUDIO:
             try:
                 result = await file_service.transcribe_audio(file)
                 return {
@@ -142,13 +139,12 @@ async def extract_text_from_file(
                     status_code=500, detail=f"Audio transcription failed: {str(e)}"
                 )
 
-        else:
-            raise HTTPException(
-                status_code=400, detail=f"Unsupported file type: {file_type}"
-            )
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported file type: {file_type}"
+        )
 
     except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Text extraction failed: {str(e)}")
 
