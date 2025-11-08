@@ -1,10 +1,12 @@
 from typing import Annotated
-from app.models.category import Category
-from app.services import category
-from app.db.session import SessionDep
-from app.api.deps import PaginationParams
+
 from fastapi import APIRouter, Path, UploadFile
+
+from app.api.deps import PaginationParams
+from app.db.session import SessionDep
+from app.models.category import Category
 from app.schemas.category import CreateCategory, UpdateCategory
+from app.services import category
 
 router = APIRouter()
 
