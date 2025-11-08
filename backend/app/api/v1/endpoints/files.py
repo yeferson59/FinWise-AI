@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.post("/extract-text")
 async def extract_text(
-    document_type: Annotated[str | None, Query],
+    document_type: Annotated[str | None, Query()],
     file: UploadFile,
 ):
     """
