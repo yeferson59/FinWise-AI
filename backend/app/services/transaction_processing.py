@@ -4,7 +4,9 @@ Orchestrates the complete flow: file upload -> text extraction -> classification
 """
 
 import os
+import re
 from datetime import datetime, timezone
+from io import BytesIO
 from typing import Any, Dict
 
 from fastapi import HTTPException, UploadFile
@@ -96,9 +98,8 @@ async def extract_text_from_file(
         if file_type in [FileType.IMAGE, FileType.DOCUMENT]:
             # Try intelligent OCR extraction first
             try:
-                result = await file_service.extract_text_intelligent_endpoint(
+                result = await file_service.extract_text(
                     document_type=document_type,
-                    language=None,  # Auto-detect
                     file=file,
                 )
                 return {
@@ -171,7 +172,6 @@ async def classify_extracted_text(
     """
     try:
         # Create a temporary file-like object for classification
-        from io import BytesIO
 
         temp_file = UploadFile(filename="temp.txt", file=BytesIO(text.encode("utf-8")))
 
@@ -199,8 +199,6 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
     """
     # Basic parsing logic - extract amount, date, description
     # This can be enhanced with more sophisticated parsing
-    import re
-    from datetime import datetime
 
     parsed_data = {
         "description": text[:200],  # First 200 chars as description
