@@ -165,7 +165,7 @@ async def process_transaction_from_file_endpoint(
         HTTPException: If processing fails at any step
     """
     # Inline implementation to avoid import issues
-    return transaction_processing.process_transaction_from_file(
+    return await transaction_processing.process_transaction_from_file(
         session,
         file,
         user_id,
