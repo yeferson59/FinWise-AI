@@ -21,27 +21,21 @@ class Register(BaseModel):
         examples=["jhondoe@mail.com"],
         max_length=255,
         min_length=2,
-        pattern=__import__("re").compile(
-            r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
-        ),
+        pattern=r"^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$",
     )
     password: str = Field(
         description="password for user register",
         examples=["example"],
         min_length=8,
         max_length=20,
-        pattern=__import__("re").compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
-        ),
+        pattern=r"^[A-Za-z\d@#$!%*?&]{8,20}$",
     )
     confirm_password: str = Field(
         description="confirm password for user register",
         examples=["example"],
         min_length=8,
         max_length=20,
-        pattern=__import__("re").compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
-        ),
+        pattern=r"^[A-Za-z\d@#$!%*?&]{8,20}$",
     )
     terms_and_conditions: bool = Field(
         description="terms and conditions for user register",
