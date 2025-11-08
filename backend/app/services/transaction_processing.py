@@ -269,18 +269,13 @@ async def process_transaction_from_file(
         HTTPException: If any step in the process fails
     """
     try:
-        # Step 1: Detect file type
         if not file.filename:
             raise HTTPException(status_code=400, detail="File must have a filename")
         file_type = detect_file_type(file.filename, getattr(file, "content_type", None))
-
-        # Step 2: Extract text from file
         try:
-            extraction_result = await extract_text_from_file(
-                file, file_type, document_type
-            )
+            extraction_result = await file_service.extract_text(document_type, file)
         except HTTPException:
-            raise  # Re-raise HTTP exceptions from extraction
+            raise
         except Exception as e:
             raise HTTPException(
                 status_code=500,
