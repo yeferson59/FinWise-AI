@@ -12,7 +12,7 @@ easyocr==1.7.2
 paddleocr==3.3.0
 doctr==1.9.0
 python-multipart==0.0.20
-pymupdf==1.26.5
+pymupdf==1.26.6
 rembg==2.0.67
 onnxruntime==1.23.2
 faster-whisper==1.2.0
