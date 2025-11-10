@@ -1,5 +1,5 @@
 fastapi[standard]==0.121.1
-pydantic-ai-slim[openai]==1.9.1
+pydantic-ai-slim[openai]==1.13.0
 pydantic-settings==2.12.0
 sqlmodel==0.0.27
 pwdlib[argon2]==0.3.0
