@@ -16,4 +16,4 @@ pymupdf==1.26.6
 rembg==2.0.67
 onnxruntime==1.23.2
 faster-whisper==1.2.0
-aioboto3==15.4.0
+aioboto3==15.5.0
