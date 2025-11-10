@@ -15,5 +15,5 @@ python-multipart==0.0.20
 pymupdf==1.26.5
 rembg==2.0.67
 onnxruntime==1.23.2
-faster-whisper==1.2.0
+faster-whisper==1.2.1
 aioboto3==15.4.0
