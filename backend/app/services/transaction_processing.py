@@ -11,12 +11,15 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, UploadFile
 
+from app.core.agent import get_agent
 from app.db.session import SessionDep
 from app.models.category import Category
 from app.schemas.transaction import CreateTransaction
 from app.services import category as category_service
 from app.services import file as file_service
+from app.services import source as source_service
 from app.services import transaction as transaction_service
+from app.services import user as user_service
 
 
 class FileType:
@@ -245,11 +248,83 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
     return parsed_data
 
 
+async def parse_transaction_with_ai(text: str) -> Dict[str, Any]:
+    """
+    Parse transaction data from extracted text using AI agent.
+    This enhances the basic regex parsing with intelligent extraction.
+
+    Args:
+        text: Extracted text
+
+    Returns:
+        Dict with parsed transaction data
+    """
+    try:
+        agent = get_agent()
+        prompt = f"""Analiza el siguiente texto extraído de un documento financiero (recibo, factura, etc.) y extrae la información de transacción.
+
+Texto:
+{text}
+
+Devuelve SOLO un objeto JSON válido con la siguiente estructura exacta:
+
+{{
+  "amount": número decimal (monto de la transacción, puede ser positivo o negativo),
+  "date": "fecha en formato YYYY-MM-DD" (fecha de la transacción, si no se encuentra usa la fecha actual),
+  "description": "descripción breve de la transacción (máximo 200 caracteres)",
+  "confidence": número entre 0 y 100 (confianza en la extracción)
+}}
+
+Reglas:
+- Si no encuentras un monto claro, usa 0.0
+- Si no encuentras fecha, usa la fecha actual en formato YYYY-MM-DD
+- La descripción debe ser concisa pero informativa
+- Confianza: 100 si todos los datos están claros, menos si hay ambigüedades
+
+Devuelve únicamente el JSON."""
+
+        response = await agent.run(text, instructions=prompt)
+        result = response.output
+
+        # Try to parse as JSON
+        import json
+
+        try:
+            parsed = json.loads(result)
+            # Validate required fields
+            if "amount" not in parsed:
+                parsed["amount"] = 0.0
+            if "date" not in parsed:
+                parsed["date"] = datetime.now(timezone.utc).date().isoformat()
+            if "description" not in parsed:
+                parsed["description"] = text[:200]
+            if "confidence" not in parsed:
+                parsed["confidence"] = 50
+
+            # Convert date string to datetime
+            try:
+                parsed["date"] = datetime.fromisoformat(parsed["date"]).replace(
+                    tzinfo=timezone.utc
+                )
+            except:
+                parsed["date"] = datetime.now(timezone.utc)
+
+            return parsed
+
+        except json.JSONDecodeError:
+            # Fallback to basic parsing if AI fails
+            return parse_transaction_data(text)
+
+    except Exception as e:
+        # Fallback to basic parsing
+        return parse_transaction_data(text)
+
+
 async def process_transaction_from_file(
     session: SessionDep,
     file: UploadFile,
     user_id: int,
-    source_id: int,
+    source_id: int | None = None,
     document_type: str = "general",
 ) -> Dict[str, Any]:
     """
@@ -282,28 +357,82 @@ async def process_transaction_from_file(
                 detail=f"Failed to extract text from {file_type} file: {str(e)}",
             )
 
-        # Step 3: Classify extracted text
-        try:
-            category = await classify_extracted_text(
-                session, extraction_result["text"], document_type
-            )
-        except HTTPException:
-            raise  # Re-raise HTTP exceptions from classification
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Failed to classify extracted text: {str(e)}"
-            )
+        text = extraction_result.get("raw_text", "")
 
-        # Step 4: Parse transaction data from text
+        # Validate user exists
         try:
-            parsed_data = parse_transaction_data(extraction_result["text"])
+            await user_service.get_user(user_id, session)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid user_id: {str(e)}")
+
+        # Step 3: Classify category from text
+        try:
+            category = await category_service.classify_category_from_text(
+                session, text, document_type
+            )
+        except Exception as e:
+            # Fallback: use first available category
+            try:
+                categories = await category_service.get_all_categories(session, 0, 1)
+                if categories:
+                    category = categories[0]
+                else:
+                    raise HTTPException(
+                        status_code=500, detail="No categories available for fallback"
+                    )
+            except Exception:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to classify category and no fallback available: {str(e)}",
+                )
+
+        # Step 4: Classify source (if not provided)
+        if source_id is None:
+            try:
+                source = await source_service.classify_source_from_text(
+                    session, text, document_type
+                )
+                source_id = source.id
+            except Exception as e:
+                # Fallback: use first available source
+                try:
+                    sources = await source_service.get_all_sources(session, 0, 1)
+                    if sources:
+                        source = sources[0]
+                        source_id = source.id
+                    else:
+                        raise HTTPException(
+                            status_code=500, detail="No sources available for fallback"
+                        )
+                except Exception:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to classify source and no fallback available: {str(e)}",
+                    )
+        else:
+            # Validate provided source_id exists
+            try:
+                source = await source_service.get_source(session, source_id)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid source_id: {str(e)}"
+                )
+
+        # Ensure source_id is set
+        if source_id is None:
+            raise HTTPException(status_code=500, detail="Failed to determine source_id")
+        assert source_id is not None  # For type checker
+
+        # Step 5: Parse transaction data with AI
+        try:
+            parsed_data = await parse_transaction_with_ai(text)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to parse transaction data from text: {str(e)}",
+                detail=f"Failed to parse transaction data: {str(e)}",
             )
 
-        # Step 5: Create transaction
+        # Step 6: Create transaction
         try:
             transaction_data = CreateTransaction(
                 user_id=user_id,
@@ -336,6 +465,11 @@ async def process_transaction_from_file(
                 "id": category.id,
                 "name": category.name,
                 "description": category.description,
+            },
+            "source": {
+                "id": source.id,
+                "name": source.name,
+                "description": getattr(source, "description", None),
             },
             "parsed_data": parsed_data,
             "transaction": transaction,

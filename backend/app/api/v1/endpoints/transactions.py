@@ -123,7 +123,13 @@ async def process_transaction_from_file_endpoint(
     session: SessionDep,
     file: UploadFile,
     user_id: Annotated[int, Query(ge=1, description="User ID for the transaction")],
-    source_id: Annotated[int, Query(ge=1, description="Source ID for the transaction")],
+    source_id: Annotated[
+        int | None,
+        Query(
+            ge=1,
+            description="Source ID for the transaction (optional, will be classified if not provided)",
+        ),
+    ] = None,
     document_type: Annotated[
         str,
         Query(
@@ -138,8 +144,9 @@ async def process_transaction_from_file_endpoint(
     This endpoint handles the entire flow:
     1. File upload and storage
     2. Text extraction (OCR for images/docs, transcription for audio)
-    3. Automatic classification and categorization
-    4. Transaction creation with parsed data
+    3. Automatic classification and categorization using AI
+    4. Automatic source classification using AI (if not provided)
+    5. Transaction creation with parsed data
 
     Supported file types:
     - Images: JPG, PNG, GIF, BMP, TIFF, WebP
@@ -150,7 +157,7 @@ async def process_transaction_from_file_endpoint(
         session: Database session
         file: The file to process (image, document, or audio)
         user_id: User ID for the transaction
-        source_id: Source ID for the transaction
+        source_id: Source ID if already known (optional, will be classified from text if not provided)
         document_type: Type of document for optimized processing
 
     Returns:
@@ -158,6 +165,7 @@ async def process_transaction_from_file_endpoint(
         - file_info: Original file information
         - extraction: Extracted text and metadata
         - category: Classified category information
+        - source: Classified source information
         - parsed_data: Parsed transaction data
         - transaction: Created transaction object
 
