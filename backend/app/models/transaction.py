@@ -1,6 +1,6 @@
 from sqlmodel import Field
 from app.models.base import BaseUuid, Base
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Source(Base, table=True):

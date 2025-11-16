@@ -320,6 +320,7 @@ Devuelve únicamente el JSON."""
         return parse_transaction_data(text)
 
 
+
 async def process_transaction_from_file(
     session: SessionDep,
     file: UploadFile,
@@ -349,6 +350,11 @@ async def process_transaction_from_file(
         file_type = detect_file_type(file.filename, getattr(file, "content_type", None))
         try:
             extraction_result = await file_service.extract_text(document_type, file)
+            print("=== OCR RAW EXTRACTION RESULT ===")
+            print(extraction_result)
+            print("=== RAW TEXT ===")
+            print(extraction_result.get("raw_text", "NO TEXT"))
+
         except HTTPException:
             raise
         except Exception as e:
@@ -426,6 +432,9 @@ async def process_transaction_from_file(
         # Step 5: Parse transaction data with AI
         try:
             parsed_data = await parse_transaction_with_ai(text)
+            print("=== AI PARSED DATA ===")
+            print(parsed_data)
+
         except Exception as e:
             raise HTTPException(
                 status_code=500,

@@ -1,4 +1,13 @@
-import React, { useState } from "react";
+import AppNavigator from "./navigation/AppNavigator";
+
+export default function App() {
+  return <AppNavigator />;
+}
+
+
+
+
+/*import React, { useState } from "react";
 import { 
   View, 
   Text, 
@@ -77,4 +86,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 8
   }
-});
+});*/
