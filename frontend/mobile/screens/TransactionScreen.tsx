@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from "react-native";
 
 import * as DocumentPicker from "expo-document-picker";
-import { processText, processFile } from "../../../shared";
+import { processText, processFile } from "shared/api";
 
 export default function TransactionScreen() {
   const [text, setText] = useState("");

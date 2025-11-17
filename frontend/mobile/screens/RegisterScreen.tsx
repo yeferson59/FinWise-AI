@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import { Checkbox } from "expo-checkbox";
-import { register } from "../../../shared";
+import { register } from "shared/api";
 
 export default function RegisterScreen({ navigation }: { navigation: any }) {
   const [first, setFirst] = useState("");
