@@ -197,15 +197,9 @@ def init_categories() -> None:
 
     try:
         with Session(engine) as session:
-            # Get all existing global category names to avoid duplicates
-            # Global categories have is_default=True and user_id=None
-            # Use .is_(None) instead of == None for better SQL performance
-            existing_categories = session.exec(
-                select(Category.name).where(
-                    Category.is_default,
-                    Category.user_id is None,
-                )
-            ).all()
+            # Get all existing category names to avoid UNIQUE constraint violations
+            # Since name is unique across all categories, check all names
+            existing_categories = session.exec(select(Category.name)).all()
             existing_names = set(existing_categories)
 
             # Filter out categories that already exist
@@ -217,7 +211,7 @@ def init_categories() -> None:
 
             if not categories_to_create:
                 logger.info(
-                    "All default global categories already exist. Skipping initialization."
+                    "All default categories already exist. Skipping initialization."
                 )
                 return
 
@@ -226,7 +220,7 @@ def init_categories() -> None:
             session.commit()
 
             logger.info(
-                f"Successfully initialized {len(categories_to_create)} default global categories. "
+                f"Successfully initialized {len(categories_to_create)} default categories. "
                 f"Skipped {len(existing_names)} existing categories."
             )
 
@@ -324,15 +318,9 @@ def init_sources() -> None:
 
     try:
         with Session(engine) as session:
-            # Get all existing global source names to avoid duplicates
-            # Global sources have is_default=True and user_id=None
-            # Use .is_(None) instead of == None for better SQL performance
-            existing_sources = session.exec(
-                select(Source.name).where(
-                    Source.is_default,
-                    Source.user_id is None,
-                )
-            ).all()
+            # Get all existing source names to avoid UNIQUE constraint violations
+            # Since name is unique across all sources, check all names
+            existing_sources = session.exec(select(Source.name)).all()
             existing_names = set(existing_sources)
 
             # Filter out sources that already exist
@@ -344,7 +332,7 @@ def init_sources() -> None:
 
             if not sources_to_create:
                 logger.info(
-                    "All default global sources already exist. Skipping initialization."
+                    "All default sources already exist. Skipping initialization."
                 )
                 return
 
@@ -353,7 +341,7 @@ def init_sources() -> None:
             session.commit()
 
             logger.info(
-                f"Successfully initialized {len(sources_to_create)} default global sources. "
+                f"Successfully initialized {len(sources_to_create)} default sources. "
                 f"Skipped {len(existing_names)} existing sources."
             )
 
