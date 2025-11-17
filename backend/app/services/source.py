@@ -124,7 +124,7 @@ async def classify_source_from_text(
     )
 
     response_text = (
-        response.output.strip()
+        str(response.output).strip()
         if hasattr(response, "output")
         else str(response).strip()
     )

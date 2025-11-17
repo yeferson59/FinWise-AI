@@ -1,7 +1,9 @@
 """Tests for performance optimizations implemented in the codebase."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, patch
+
 from app.utils.db import bulk_create_entities
 
 
@@ -15,7 +17,7 @@ class TestBulkCreateOptimization:
         mock_entities = [Mock(), Mock(), Mock()]
 
         # Call with refresh=True (default)
-        result = bulk_create_entities(mock_entities, mock_session, refresh=True)
+        result = bulk_create_entities(mock_entities, mock_session, refresh=True)  # type: ignore[arg-type]
 
         # Verify session.add_all was called
         mock_session.add_all.assert_called_once_with(mock_entities)
@@ -36,7 +38,7 @@ class TestBulkCreateOptimization:
         mock_entities = [Mock(), Mock(), Mock()]
 
         # Call with refresh=False
-        result = bulk_create_entities(mock_entities, mock_session, refresh=False)
+        result = bulk_create_entities(mock_entities, mock_session, refresh=False)  # type: ignore[arg-type]
 
         # Verify session.add_all was called
         mock_session.add_all.assert_called_once_with(mock_entities)
@@ -57,7 +59,7 @@ class TestBulkCreateOptimization:
         mock_entities = [Mock()]
 
         # Call without specifying refresh parameter
-        result = bulk_create_entities(mock_entities, mock_session)
+        bulk_create_entities(mock_entities, mock_session)  # type: ignore[arg-type]
 
         # Should default to refresh=True, so refresh should be called
         assert mock_session.refresh.call_count == 1
@@ -92,7 +94,7 @@ class TestOCREarlyStoppingConcept:
 
         # Simulate early stopping logic
         for i, result in enumerate(strategies_results):
-            if result["confidence"] >= confidence_threshold:
+            if float(result["confidence"]) >= confidence_threshold:
                 # Should stop after first strategy (index 0)
                 assert i == 0
                 assert result["strategy"] == "standard"
@@ -161,11 +163,11 @@ class TestCategoryCaching:
         assert cat1 == cat2
 
         # Different category - should hit DB again
-        cat3 = get_category("Transportation")
+        get_category("Transportation")
         assert db_call_count == 2
 
         # Same as first - should use cache
-        cat4 = get_category("Groceries")
+        get_category("Groceries")
         assert db_call_count == 2  # Still only 2 DB calls total
 
 

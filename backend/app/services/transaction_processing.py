@@ -217,7 +217,7 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
             # Take the first match and clean it
             amount_str = matches[0].replace(",", "")
             try:
-                parsed_data["amount"] = float(amount_str)
+                parsed_data["amount"] = float(amount_str)  # type: ignore[assignment]
                 break
             except ValueError:
                 continue
@@ -362,7 +362,7 @@ async def process_transaction_from_file(
                 detail=f"Failed to extract text from {file_type} file: {str(e)}",
             )
 
-        text = extraction_result.get("raw_text", "")
+        text = str(extraction_result.get("raw_text", ""))
 
         # Validate user exists
         try:

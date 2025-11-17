@@ -1,19 +1,21 @@
 """Tests for unified transaction processing service."""
 
-import pytest
 import io
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
+
+import pytest
+from fastapi import HTTPException, UploadFile
+
+from app.models.category import Category
+from app.models.transaction import Source, Transaction
+from app.models.user import User
 from app.services.transaction_processing import (
+    FileType,
     detect_file_type,
     parse_transaction_data,
-    FileType,
     process_transaction_from_file,
 )
-from app.models.transaction import Transaction, Source
-from app.models.user import User
-from app.models.category import Category
-from fastapi import HTTPException, UploadFile
 
 
 class TestFileTypeDetection:

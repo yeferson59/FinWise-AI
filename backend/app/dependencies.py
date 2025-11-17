@@ -1,8 +1,10 @@
 import logging
+
+from sqlmodel import Session, select
+
+from app.db.session import engine
 from app.models.category import Category
 from app.models.transaction import Source
-from sqlmodel import Session, select
-from app.db.session import engine
 
 logger = logging.getLogger(__name__)
 
@@ -200,8 +202,8 @@ def init_categories() -> None:
             # Use .is_(None) instead of == None for better SQL performance
             existing_categories = session.exec(
                 select(Category.name).where(
-                    Category.is_default.is_(True),
-                    Category.user_id.is_(None),  # type: ignore[attr-defined, union-attr]
+                    Category.is_default,
+                    Category.user_id is None,
                 )
             ).all()
             existing_names = set(existing_categories)
@@ -327,8 +329,8 @@ def init_sources() -> None:
             # Use .is_(None) instead of == None for better SQL performance
             existing_sources = session.exec(
                 select(Source.name).where(
-                    Source.is_default.is_(True),
-                    Source.user_id.is_(None),  # type: ignore[attr-defined, union-attr]
+                    Source.is_default,
+                    Source.user_id is None,
                 )
             ).all()
             existing_names = set(existing_sources)

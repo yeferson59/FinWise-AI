@@ -3,18 +3,18 @@ Advanced OCR strategies with multiple attempts and voting system
 Combines different preprocessing and OCR approaches to get the best result
 """
 
-from typing import Any
 from collections import Counter
+from typing import Any, cast
 
+from app.ocr_config import DocumentType, OCRConfig, PSMMode
 from app.services.extraction import extract_text, extract_text_with_confidence
+from app.services.image_quality import assess_image_quality, auto_correct_image
+from app.services.ocr_corrections import post_process_ocr_text
 from app.services.preprocessing import (
     preprocess_with_multiple_binarizations,
     rotate_image_to_correct_orientation,
 )
-from app.services.ocr_corrections import post_process_ocr_text
-from app.services.image_quality import assess_image_quality, auto_correct_image
-from app.ocr_config import DocumentType, OCRConfig, PSMMode
-from app.utils.image import save_temp_image, cleanup_temp_files, load_image
+from app.utils.image import cleanup_temp_files, load_image, save_temp_image
 
 
 def extract_with_multiple_strategies(
@@ -102,7 +102,7 @@ def extract_with_multiple_strategies(
                         "best_strategy": f"orientation_corrected_{rotation}deg",
                         "confidence": adjusted_conf,
                         "strategies_tried": 2,
-                        "all_strategies": [r["strategy"] for r in results],
+                        "all_strategies": [r["strategy"] for r in results],  # type: ignore[misc]
                         "early_stopped": True,
                         "voting_analysis": {
                             "note": "Early stopped due to high confidence"
@@ -141,7 +141,7 @@ def extract_with_multiple_strategies(
                         "best_strategy": "quality_corrected",
                         "confidence": adjusted_conf,
                         "strategies_tried": len(results),
-                        "all_strategies": [r["strategy"] for r in results],
+                        "all_strategies": [r["strategy"] for r in results],  # type: ignore[misc]
                         "early_stopped": True,
                         "voting_analysis": {
                             "note": "Early stopped due to high confidence"
@@ -217,7 +217,7 @@ def extract_with_multiple_strategies(
             "best_strategy": best_result["strategy"],
             "confidence": best_result["confidence"],
             "strategies_tried": len(results),
-            "all_strategies": [r["strategy"] for r in results],
+            "all_strategies": [r["strategy"] for r in results],  # type: ignore[misc]
             "early_stopped": False,
             "voting_analysis": analyze_results(results),
         }
@@ -307,12 +307,13 @@ def select_best_result(results: list[dict[str, Any]]) -> dict[str, Any]:
         score += result["confidence"] * 0.4
 
         # Text length score (20% weight)
-        text_length = len(result["text"].strip())
+        text = str(result["text"])
+        text_length = len(text.strip())
         length_score = min(100, (text_length / 200) * 100)  # Normalize to 0-100
         score += length_score * 0.2
 
         # Voting score: how many other results agree (40% weight)
-        agreement_score = calculate_agreement_score(result["text"], results)
+        agreement_score = calculate_agreement_score(text, results)
         score += agreement_score * 0.4
 
         scored_results.append((score, result))
@@ -339,14 +340,14 @@ def calculate_agreement_score(text: str, all_results: list[dict[str, Any]]) -> f
         return 50.0  # Neutral score if only one result
 
     # Extract key words from this text
-    words = set(text.lower().split())
+    words: set[str] = set(text.lower().split())
     if not words:
         return 0.0
 
     # Calculate overlap with other results
     overlaps = []
     for result in all_results:
-        other_words = set(result["text"].lower().split())
+        other_words: set[str] = set(str(result["text"]).lower().split())
         if other_words:
             overlap = len(words & other_words) / len(words | other_words)
             overlaps.append(overlap)
@@ -372,15 +373,19 @@ def analyze_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     if not results:
         return {"error": "No results to analyze"}
 
-    confidences = [r["confidence"] for r in results]
-    text_lengths = [len(r["text"].strip()) for r in results]
+    confidences = [r["confidence"] for r in results]  # type: ignore[misc]
+    text_lengths = [len(str(r["text"]).strip()) for r in results]  # type: ignore[misc]
 
     # Find most common words across all results
-    all_words = []
+    all_words: list[str] = []
     for result in results:
-        all_words.extend(result["text"].lower().split())
+        all_words.extend(str(result["text"]).lower().split())
 
-    common_words = Counter(all_words).most_common(10) if all_words else []
+    common_words = (
+        cast(list[tuple[str, int]], Counter(all_words).most_common(10))
+        if all_words
+        else []
+    )
 
     return {
         "avg_confidence": sum(confidences) / len(confidences),
@@ -388,7 +393,7 @@ def analyze_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         "min_confidence": min(confidences),
         "avg_text_length": sum(text_lengths) / len(text_lengths),
         "confidence_variance": max(confidences) - min(confidences),
-        "common_words": [word for word, _ in common_words],
+        "common_words": [word for word, _ in common_words],  # type: ignore[misc]
         "agreement_level": "high"
         if max(confidences) - min(confidences) < 20
         else "low",

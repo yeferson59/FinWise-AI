@@ -111,7 +111,7 @@ async def classification(session: SessionDep, document_type: str, file: UploadFi
     )
 
     response_text = (
-        response.output.strip()
+        str(response.output).strip()
         if hasattr(response, "output")
         else str(response).strip()
     )
@@ -247,7 +247,7 @@ async def classify_category_from_text(
     )
 
     response_text = (
-        response.output.strip()
+        str(response.output).strip()
         if hasattr(response, "output")
         else str(response).strip()
     )
