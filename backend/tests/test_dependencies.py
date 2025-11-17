@@ -2,7 +2,12 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.dependencies import init_categories, get_default_categories, init_sources, get_default_sources
+from app.dependencies import (
+    init_categories,
+    get_default_categories,
+    init_sources,
+    get_default_sources,
+)
 from app.models.category import Category
 from app.models.transaction import Source
 

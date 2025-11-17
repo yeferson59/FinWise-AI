@@ -306,7 +306,7 @@ Devuelve únicamente el JSON."""
                 parsed["date"] = datetime.fromisoformat(parsed["date"]).replace(
                     tzinfo=timezone.utc
                 )
-            except:
+            except ValueError:
                 parsed["date"] = datetime.now(timezone.utc)
 
             return parsed
@@ -315,10 +315,9 @@ Devuelve únicamente el JSON."""
             # Fallback to basic parsing if AI fails
             return parse_transaction_data(text)
 
-    except Exception as e:
+    except Exception:
         # Fallback to basic parsing
         return parse_transaction_data(text)
-
 
 
 async def process_transaction_from_file(
@@ -424,9 +423,6 @@ async def process_transaction_from_file(
                     status_code=400, detail=f"Invalid source_id: {str(e)}"
                 )
 
-        # Ensure source_id is set
-        if source_id is None:
-            raise HTTPException(status_code=500, detail="Failed to determine source_id")
         assert source_id is not None  # For type checker
 
         # Step 5: Parse transaction data with AI

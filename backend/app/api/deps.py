@@ -20,11 +20,11 @@ def pagination_params(
 ) -> dict[str, int]:
     """
     Common pagination parameters for API endpoints.
-    
+
     Args:
         offset: Number of records to skip (default: 0)
         limit: Maximum number of records to return (default: 100, max: 1000)
-    
+
     Returns:
         Dictionary with offset and limit
     """

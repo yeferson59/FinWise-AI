@@ -200,7 +200,8 @@ def init_categories() -> None:
             # Use .is_(None) instead of == None for better SQL performance
             existing_categories = session.exec(
                 select(Category.name).where(
-                    Category.is_default.is_(True), Category.user_id.is_(None)  # type: ignore[attr-defined, union-attr]
+                    Category.is_default.is_(True),
+                    Category.user_id.is_(None),  # type: ignore[attr-defined, union-attr]
                 )
             ).all()
             existing_names = set(existing_categories)
@@ -241,37 +242,65 @@ def get_default_sources() -> list[Source]:
     """
     return [
         # Banking
-        Source(name="Bank Account", description="Primary bank account", is_default=True),
+        Source(
+            name="Bank Account", description="Primary bank account", is_default=True
+        ),
         Source(name="Savings Account", description="Savings account", is_default=True),
-        Source(name="Checking Account", description="Checking account", is_default=True),
+        Source(
+            name="Checking Account", description="Checking account", is_default=True
+        ),
         Source(name="Credit Card", description="Credit card account", is_default=True),
         Source(name="Debit Card", description="Debit card account", is_default=True),
-
         # Digital Wallets
         Source(name="PayPal", description="PayPal account", is_default=True),
         Source(name="Venmo", description="Venmo account", is_default=True),
         Source(name="Cash App", description="Cash App account", is_default=True),
         Source(name="Apple Pay", description="Apple Pay", is_default=True),
         Source(name="Google Pay", description="Google Pay", is_default=True),
-
         # Cryptocurrency
-        Source(name="Bitcoin Wallet", description="Bitcoin cryptocurrency wallet", is_default=True),
-        Source(name="Ethereum Wallet", description="Ethereum cryptocurrency wallet", is_default=True),
-        Source(name="Crypto Exchange", description="Cryptocurrency exchange account", is_default=True),
-
+        Source(
+            name="Bitcoin Wallet",
+            description="Bitcoin cryptocurrency wallet",
+            is_default=True,
+        ),
+        Source(
+            name="Ethereum Wallet",
+            description="Ethereum cryptocurrency wallet",
+            is_default=True,
+        ),
+        Source(
+            name="Crypto Exchange",
+            description="Cryptocurrency exchange account",
+            is_default=True,
+        ),
         # Investment
-        Source(name="Brokerage Account", description="Investment brokerage account", is_default=True),
-        Source(name="Retirement Account", description="401k or IRA account", is_default=True),
-        Source(name="Investment App", description="Investment application account", is_default=True),
-
+        Source(
+            name="Brokerage Account",
+            description="Investment brokerage account",
+            is_default=True,
+        ),
+        Source(
+            name="Retirement Account",
+            description="401k or IRA account",
+            is_default=True,
+        ),
+        Source(
+            name="Investment App",
+            description="Investment application account",
+            is_default=True,
+        ),
         # Cash and Physical
         Source(name="Cash", description="Physical cash", is_default=True),
         Source(name="Check", description="Check payments", is_default=True),
-
         # Business
-        Source(name="Business Account", description="Business bank account", is_default=True),
-        Source(name="Client Payment", description="Payments from clients", is_default=True),
-
+        Source(
+            name="Business Account",
+            description="Business bank account",
+            is_default=True,
+        ),
+        Source(
+            name="Client Payment", description="Payments from clients", is_default=True
+        ),
         # Other
         Source(name="Other", description="Other payment sources", is_default=True),
         Source(name="Unknown", description="Unknown payment source", is_default=True),
@@ -298,7 +327,8 @@ def init_sources() -> None:
             # Use .is_(None) instead of == None for better SQL performance
             existing_sources = session.exec(
                 select(Source.name).where(
-                    Source.is_default.is_(True), Source.user_id.is_(None)  # type: ignore[attr-defined, union-attr]
+                    Source.is_default.is_(True),
+                    Source.user_id.is_(None),  # type: ignore[attr-defined, union-attr]
                 )
             ).all()
             existing_names = set(existing_sources)

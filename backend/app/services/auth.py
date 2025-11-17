@@ -1,12 +1,16 @@
-from app.services import user
-from app.schemas import auth, user as user_schemas
-from app.db.session import SessionDep
-from app.core.security import verify_password, create_token
-from app.models.auth import Session
 from datetime import datetime, timedelta, timezone
-from app.config import get_settings
-from app.utils.db import create_db_entity, delete_db_entity
+
+from fastapi import HTTPException, status
+
 from app.api.deps import CurrentSession
+from app.config import get_settings
+from app.core.security import create_token, verify_password
+from app.db.session import SessionDep
+from app.models.auth import Session
+from app.schemas import auth
+from app.schemas import user as user_schemas
+from app.services import user
+from app.utils.db import create_db_entity, delete_db_entity
 
 
 async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginResponse:
@@ -15,22 +19,19 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
     # Usuario no existe
     if not user_data:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario no registrado"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no registrado"
         )
 
     # Usuario sin contraseña
     if not user_data.password:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Contraseña inválida"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Contraseña inválida"
         )
 
     # Contraseña incorrecta
     if not await verify_password(login_data.password, user_data.password):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Contraseña incorrecta"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Contraseña incorrecta"
         )
 
     # SI TODO ESTÁ OK → generar token
@@ -54,7 +55,7 @@ async def login(session: SessionDep, login_data: auth.Login) -> auth.LoginRespon
         user_id=user_data.id,
         user_email=user_data.email,
         access_token=access_token,
-        success=True
+        success=True,
     )
 
 

@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from sqlmodel import Field
-from app.models.base import BaseUuid, Base
-from datetime import datetime, timezone
+
+from app.models.base import Base, BaseUuid
 
 
 class Source(Base, table=True):
@@ -8,9 +10,7 @@ class Source(Base, table=True):
     description: str | None = Field(
         default=None, description="Source description", max_length=255
     )
-    is_default: bool = Field(
-        default=True, description="Is default source", index=True
-    )
+    is_default: bool = Field(default=True, description="Is default source", index=True)
     user_id: int | None = Field(
         default=None,
         foreign_key="user.id",

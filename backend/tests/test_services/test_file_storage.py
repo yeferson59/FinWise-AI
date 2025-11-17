@@ -40,7 +40,9 @@ class TestLocalFileStorage:
         file_identifier = await storage.save_file(file_content, filename)
 
         # Verify file was saved
-        assert file_identifier == os.path.realpath(str(Path(temp_storage_dir) / filename))
+        assert file_identifier == os.path.realpath(
+            str(Path(temp_storage_dir) / filename)
+        )
         assert os.path.exists(file_identifier)
 
         # Verify content

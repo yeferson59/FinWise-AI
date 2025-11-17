@@ -8,7 +8,7 @@ from app.services.transaction_processing import (
     detect_file_type,
     parse_transaction_data,
     FileType,
-    process_transaction_from_file
+    process_transaction_from_file,
 )
 from app.models.transaction import Transaction, Source
 from app.models.user import User
@@ -150,31 +150,37 @@ def test_source(test_db):
 def sample_image_file():
     """Create a sample image file for testing."""
     # Create a minimal PNG file content
-    file_content = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc\xf8\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00IEND\xaeB`\x82'
-    return UploadFile(
-        filename="test_receipt.png",
-        file=io.BytesIO(file_content)
-    )
+    file_content = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc\xf8\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00IEND\xaeB`\x82"
+    return UploadFile(filename="test_receipt.png", file=io.BytesIO(file_content))
 
 
 class TestTransactionProcessing:
     """Test the complete transaction processing flow."""
 
     @pytest.mark.asyncio
-    async def test_process_transaction_image_file(self, test_db, test_user, test_category, test_source, sample_image_file):
+    async def test_process_transaction_image_file(
+        self, test_db, test_user, test_category, test_source, sample_image_file
+    ):
         """Test processing an image file into a transaction."""
         # Mock the file service functions
-        with patch('app.services.transaction_processing.file_service') as mock_file_service, \
-             patch('app.services.transaction_processing.category_service') as mock_category_service, \
-             patch('app.services.transaction_processing.transaction_service') as mock_transaction_service:
-
+        with (
+            patch(
+                "app.services.transaction_processing.file_service"
+            ) as mock_file_service,
+            patch(
+                "app.services.transaction_processing.category_service"
+            ) as mock_category_service,
+            patch(
+                "app.services.transaction_processing.transaction_service"
+            ) as mock_transaction_service,
+        ):
             # Mock OCR extraction
             mock_file_service.extract_text_intelligent_endpoint.return_value = {
                 "raw_text": "Receipt for $25.50 on 15/03/2024",
                 "confidence": 0.95,
                 "document_type": "receipt",
                 "file_type": "image",
-                "extraction_method": "intelligent_ocr"
+                "extraction_method": "intelligent_ocr",
             }
 
             # Mock classification
@@ -188,7 +194,7 @@ class TestTransactionProcessing:
                 description="Receipt for $25.50 on 15/03/2024",
                 amount=25.50,
                 date=datetime(2024, 3, 15, tzinfo=timezone.utc),
-                state="pending"
+                state="pending",
             )
             mock_transaction_service.create_transaction.return_value = mock_transaction
 
@@ -198,7 +204,7 @@ class TestTransactionProcessing:
                 file=sample_image_file,
                 user_id=test_user.id,
                 source_id=test_source.id,
-                document_type="receipt"
+                document_type="receipt",
             )
 
             # Verify the result structure
@@ -222,36 +228,39 @@ class TestTransactionProcessing:
 
             # Verify parsed data
             assert result["parsed_data"]["amount"] == 25.50
-            assert result["parsed_data"]["description"] == "Receipt for $25.50 on 15/03/2024"
+            assert (
+                result["parsed_data"]["description"]
+                == "Receipt for $25.50 on 15/03/2024"
+            )
 
             # Verify transaction creation was called
             mock_transaction_service.create_transaction.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_process_transaction_no_filename(self, test_db, test_user, test_source):
+    async def test_process_transaction_no_filename(
+        self, test_db, test_user, test_source
+    ):
         """Test processing fails when file has no filename."""
-        file_without_name = UploadFile(
-            filename=None,
-            file=io.BytesIO(b"test content")
-        )
+        file_without_name = UploadFile(filename=None, file=io.BytesIO(b"test content"))
 
         with pytest.raises(HTTPException) as exc_info:
             await process_transaction_from_file(
                 session=test_db,
                 file=file_without_name,
                 user_id=test_user.id,
-                source_id=test_source.id
+                source_id=test_source.id,
             )
 
         assert exc_info.value.status_code == 400
         assert "File must have a filename" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_process_transaction_unsupported_file_type(self, test_db, test_user, test_source):
+    async def test_process_transaction_unsupported_file_type(
+        self, test_db, test_user, test_source
+    ):
         """Test processing fails for unsupported file types."""
         unsupported_file = UploadFile(
-            filename="document.docx",
-            file=io.BytesIO(b"test content")
+            filename="document.docx", file=io.BytesIO(b"test content")
         )
 
         with pytest.raises(HTTPException) as exc_info:
@@ -259,26 +268,37 @@ class TestTransactionProcessing:
                 session=test_db,
                 file=unsupported_file,
                 user_id=test_user.id,
-                source_id=test_source.id
+                source_id=test_source.id,
             )
 
         assert exc_info.value.status_code == 400
         assert "Unsupported file type" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_process_transaction_ocr_fallback(self, test_db, test_user, test_category, test_source, sample_image_file):
+    async def test_process_transaction_ocr_fallback(
+        self, test_db, test_user, test_category, test_source, sample_image_file
+    ):
         """Test OCR fallback when intelligent extraction fails."""
-        with patch('app.services.transaction_processing.file_service') as mock_file_service, \
-             patch('app.services.transaction_processing.category_service') as mock_category_service, \
-             patch('app.services.transaction_processing.transaction_service') as mock_transaction_service:
-
+        with (
+            patch(
+                "app.services.transaction_processing.file_service"
+            ) as mock_file_service,
+            patch(
+                "app.services.transaction_processing.category_service"
+            ) as mock_category_service,
+            patch(
+                "app.services.transaction_processing.transaction_service"
+            ) as mock_transaction_service,
+        ):
             # Mock intelligent OCR to fail, basic OCR to succeed
-            mock_file_service.extract_text_intelligent_endpoint.side_effect = Exception("Intelligent OCR failed")
+            mock_file_service.extract_text_intelligent_endpoint.side_effect = Exception(
+                "Intelligent OCR failed"
+            )
             mock_file_service.extract_text.return_value = {
                 "raw_text": "Basic OCR result: $10.00",
                 "confidence": 0.8,
                 "document_type": "receipt",
-                "file_type": "image"
+                "file_type": "image",
             }
 
             # Mock classification and transaction creation
@@ -290,7 +310,7 @@ class TestTransactionProcessing:
                 description="Basic OCR result: $10.00",
                 amount=10.00,
                 date=datetime.now(timezone.utc),
-                state="pending"
+                state="pending",
             )
 
             # Process should succeed with fallback
@@ -298,7 +318,7 @@ class TestTransactionProcessing:
                 session=test_db,
                 file=sample_image_file,
                 user_id=test_user.id,
-                source_id=test_source.id
+                source_id=test_source.id,
             )
 
             # Verify fallback was used

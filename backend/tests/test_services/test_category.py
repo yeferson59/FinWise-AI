@@ -21,7 +21,7 @@ async def test_get_all_categories_default(test_db):
 
     # Get all categories
     categories = await category.get_all_categories(test_db)
-    
+
     assert len(categories) == 2
     assert any(cat.name == "Food" for cat in categories)
     assert any(cat.name == "Transport" for cat in categories)
@@ -38,7 +38,7 @@ async def test_get_all_categories_with_pagination(test_db):
 
     # Get with limit
     categories = await category.get_all_categories(test_db, offset=0, limit=3)
-    
+
     assert len(categories) == 3
 
 
@@ -46,12 +46,11 @@ async def test_get_all_categories_with_pagination(test_db):
 async def test_create_category(test_db):
     """Test creating a new category."""
     create_data = CreateCategory(
-        name="Entertainment",
-        description="Entertainment expenses"
+        name="Entertainment", description="Entertainment expenses"
     )
-    
+
     result = await category.create_category(test_db, create_data)
-    
+
     assert result is not None
     assert result.name == "Entertainment"
     assert result.description == "Entertainment expenses"
@@ -69,7 +68,7 @@ async def test_get_category_by_id(test_db):
 
     # Get category by ID
     result = await category.get_category(test_db, test_category.id)
-    
+
     assert result is not None
     assert result.id == test_category.id
     assert result.name == "Healthcare"
@@ -85,9 +84,11 @@ async def test_update_category(test_db):
     test_db.refresh(test_category)
 
     # Update category
-    update_data = UpdateCategory(name="Online Shopping", description="Online shopping expenses")
+    update_data = UpdateCategory(
+        name="Online Shopping", description="Online shopping expenses"
+    )
     result = await category.update_category(test_db, test_category.id, update_data)
-    
+
     assert result is not None
     assert result.id == test_category.id
     assert result.name == "Online Shopping"
@@ -106,12 +107,13 @@ async def test_delete_category(test_db):
 
     # Delete category
     result = await category.delete_category(test_db, category_id)
-    
+
     assert result is not None
     assert result.id == category_id
-    
+
     # Verify it's deleted - should raise NoResultFound exception
     from sqlalchemy.exc import NoResultFound
+
     with pytest.raises(NoResultFound):
         await category.get_category(test_db, category_id)
 
@@ -185,7 +187,10 @@ async def test_classification_category_not_found(test_db):
             file = UploadFile(filename="test.jpg", file=io.BytesIO(file_content))
 
             # Test classification
-            with pytest.raises(ValueError, match="The classified category 'NonExistentCategory' does not exist"):
+            with pytest.raises(
+                ValueError,
+                match="The classified category 'NonExistentCategory' does not exist",
+            ):
                 await category.classification(test_db, "receipt", file)
 
 

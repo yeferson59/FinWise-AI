@@ -1,4 +1,5 @@
 """Generic CRUD utilities for services layer."""
+
 from typing import TypeVar, Generic
 from pydantic import BaseModel
 from app.db.session import SessionDep

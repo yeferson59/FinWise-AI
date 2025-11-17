@@ -162,9 +162,7 @@ class TestStorageService:
 
                 # Save file with custom filename
                 custom_name = "preprocessed_test.jpg"
-                await storage.save_file_from_path(
-                    tmp_path, filename=custom_name
-                )
+                await storage.save_file_from_path(tmp_path, filename=custom_name)
 
                 # Verify save_file was called with custom filename
                 call_args = mock_storage.save_file.call_args

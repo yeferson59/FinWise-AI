@@ -1,5 +1,6 @@
 from typing import Any
-from app.core.agent import get_agent, AgentDeps, react_agent
+
+from app.core.agent import AgentDeps, get_agent, react_agent
 from app.db.session import SessionDep
 
 

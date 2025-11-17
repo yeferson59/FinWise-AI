@@ -138,7 +138,9 @@ def auto_correct_image(image: np.ndarray, quality_info: dict[str, Any]) -> np.nd
             lab_l = clahe.apply(lab_l)
 
             # Merge channels and convert back
-            corrected = cv2.cvtColor(cv2.merge([lab_l, lab_a, lab_b]), cv2.COLOR_LAB2BGR)
+            corrected = cv2.cvtColor(
+                cv2.merge([lab_l, lab_a, lab_b]), cv2.COLOR_LAB2BGR
+            )
 
         # 4. Apply sharpening if moderately blurry
         if 100 < blur_score < 300:
