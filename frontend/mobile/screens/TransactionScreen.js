@@ -5,19 +5,18 @@ import {
   TextInput,
   Button,
   StyleSheet,
-  Alert,
   ScrollView,
 } from "react-native";
 
 import * as DocumentPicker from "expo-document-picker";
-import { processText, processFile } from "shared/api";
+import { processText, processFile } from "../../../shared/api";
 
 export default function TransactionScreen() {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
 
   // mock user
-  const user_id = 1;
+  const user_id = 10;
   const source_id = 1;
 
   const addMessage = (sender, msg) => {
@@ -38,9 +37,8 @@ export default function TransactionScreen() {
       const tx = res.data.transaction;
       addMessage(
         "system",
-        `✔ Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`
+        `✔ Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`,
       );
-
     } catch (err) {
       console.log("ERR NLP:", err.response?.data);
       addMessage("system", "❌ Error procesando texto");
@@ -49,43 +47,59 @@ export default function TransactionScreen() {
 
   // --- SEND FILE TO NLP+OCR ---
   const handleSendFile = async () => {
-  try {
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-    });
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+      });
 
-    if (!result.assets?.length) return;
+      // Support both old and new response shapes from expo-document-picker
+      if (result.type === "cancel" || result.canceled || result.canceled)
+        return;
 
-    const file = result.assets[0];
+      // Some versions return { assets: [...] }, others return the file object directly
+      const picked =
+        result.assets && result.assets.length ? result.assets[0] : result;
 
-    addMessage("user", `📎 Enviando archivo: ${file.name}`);
+      // Normalize possible uri fields
+      const uri = picked.uri ?? picked.fileCopyUri ?? picked.fileUri;
+      if (!uri) {
+        addMessage("system", "❌ No se obtuvo la URI del archivo seleccionado");
+        return;
+      }
 
-    const fileToSend = {
-      uri: file.uri,
-      name: file.name ?? `upload-${Date.now()}.jpg`,
-      type: file.mimeType ?? file.type ?? "image/jpeg",
-    };
+      const name = picked.name ?? `upload-${Date.now()}`;
+      const mime =
+        picked.mimeType ??
+        picked.mime ??
+        picked.type ??
+        "application/octet-stream";
 
-    const res = await processFile(fileToSend, 1, 1);
+      addMessage("user", `📎 Enviando archivo: ${name}`);
 
-    console.log("OCR NLP RESULT:", res.data);
+      const fileToSend = {
+        uri,
+        name,
+        type: mime,
+      };
 
-    const tx = res.data.transaction;
+      const res = await processFile(fileToSend, user_id, source_id);
 
-    addMessage(
-      "system",
-      `📄 Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`
-    );
+      console.log("OCR NLP RESULT:", res.data);
 
-  } catch (err) {
-    console.log("FULL FILE ERROR:", err);
-    console.log("AXIOS ERR RESPONSE:", err?.response?.data);
-    console.log("AXIOS ERR REQUEST:", err?.request);
-    
-    addMessage("system", "❌ Error procesando archivo");
-  }
-};
+      const tx = res.data.transaction;
 
+      addMessage(
+        "system",
+        `📄 Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`,
+      );
+    } catch (err) {
+      console.log("FULL FILE ERROR:", err);
+      console.log("AXIOS ERR RESPONSE:", err?.response?.data);
+      console.log("AXIOS ERR REQUEST:", err?.request);
+
+      addMessage("system", "❌ Error procesando archivo");
+    }
+  };
 
   return (
     <View style={styles.container}>

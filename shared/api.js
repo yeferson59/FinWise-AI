@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.128.3:8081"; // <- reemplazar
+const API_BASE_URL = "http://localhost:8000"; // <- reemplazar
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,7 +20,7 @@ export const register = (
   email,
   password,
   confirm_password,
-  terms_and_conditions
+  terms_and_conditions,
 ) =>
   api.post("/api/v1/auth/register", {
     first_name,
@@ -31,34 +31,36 @@ export const register = (
     terms_and_conditions,
   });
 
-  //Transaccioones
-  export const createTransaction = (tx) =>
-  api.post("/api/v1/transactions", tx);
+//Transaccioones
+export const createTransaction = (tx) => api.post("/api/v1/transactions", tx);
 
-  // NLP solo texto
+// NLP solo texto
 export const processText = (text, user_id, source_id = 1) =>
   api.post("/api/v1/transactions/process-text", {
     text,
     user_id,
-    source_id
+    source_id,
   });
 
 // NLP + OCR (archivo)
-export const processFile = (file, user_id, source_id = 1) => {
-  const form = new FormData();
-  form.append("file", file);
+export const processFile = async (
+  file,
+  user_id,
+  source_id = 1,
+  document_type = "photo",
+) => {
+  // Convert file URI to Blob for RN FormData
+  const response = await fetch(file.uri);
+  const blob = await response.blob();
 
+  const form = new FormData();
+  form.append("file", blob, file.name);
+
+  // Let axios set the Content-Type with boundary automatically
   return api.post(
-    `/api/v1/transactions/process-from-file?user_id=${user_id}&source_id=${source_id}`,
+    `/api/v1/transactions/process-from-file?user_id=${user_id}&source_id=${source_id}&document_type=${document_type}`,
     form,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
   );
 };
-
-
-
-
 
 export default api;
