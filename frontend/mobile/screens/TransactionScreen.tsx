@@ -9,17 +9,19 @@ import {
 } from "react-native";
 
 import * as DocumentPicker from "expo-document-picker";
-import { processText, processFile } from "../../../shared/api";
+import { processText, processFile } from "../../../shared";
 
 export default function TransactionScreen() {
   const [text, setText] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
+    [],
+  );
 
   // mock user
-  const user_id = 10;
-  const source_id = 1;
+  const user_id = 1;
+  const source_id = 4;
 
-  const addMessage = (sender, msg) => {
+  const addMessage = (sender: string, msg: string) => {
     setMessages((prev) => [...prev, { sender, text: msg }]);
   };
 
@@ -39,7 +41,7 @@ export default function TransactionScreen() {
         "system",
         `✔ Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`,
       );
-    } catch (err) {
+    } catch (err: any) {
       console.log("ERR NLP:", err.response?.data);
       addMessage("system", "❌ Error procesando texto");
     }
@@ -52,27 +54,22 @@ export default function TransactionScreen() {
         copyToCacheDirectory: true,
       });
 
-      // Support both old and new response shapes from expo-document-picker
-      if (result.type === "cancel" || result.canceled || result.canceled)
+      if (result.canceled) return;
+
+      const picked = result.assets?.[0];
+      if (!picked) {
+        addMessage("system", "❌ No se obtuvo el archivo seleccionado");
         return;
+      }
 
-      // Some versions return { assets: [...] }, others return the file object directly
-      const picked =
-        result.assets && result.assets.length ? result.assets[0] : result;
-
-      // Normalize possible uri fields
-      const uri = picked.uri ?? picked.fileCopyUri ?? picked.fileUri;
+      const uri = picked.uri;
       if (!uri) {
         addMessage("system", "❌ No se obtuvo la URI del archivo seleccionado");
         return;
       }
 
       const name = picked.name ?? `upload-${Date.now()}`;
-      const mime =
-        picked.mimeType ??
-        picked.mime ??
-        picked.type ??
-        "application/octet-stream";
+      const mime = picked.mimeType ?? "application/octet-stream";
 
       addMessage("user", `📎 Enviando archivo: ${name}`);
 
@@ -92,7 +89,7 @@ export default function TransactionScreen() {
         "system",
         `📄 Guardado: ${tx.description} — $${tx.amount} (${tx.category_id})`,
       );
-    } catch (err) {
+    } catch (err: any) {
       console.log("FULL FILE ERROR:", err);
       console.log("AXIOS ERR RESPONSE:", err?.response?.data);
       console.log("AXIOS ERR REQUEST:", err?.request);

@@ -2,11 +2,9 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function HomeScreen({ navigation }) {
-
+export default function HomeScreen({ navigation }: { navigation: any }) {
   return (
     <View style={styles.container}>
-
       {/* ENCABEZADO */}
       <View style={styles.header}>
         <Text style={styles.title}>Mi Panel Financiero</Text>
@@ -34,7 +32,6 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.value}>$ 2,750.00</Text>
         </View>
       </View>
-
     </View>
   );
 }

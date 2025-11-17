@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
-import Checkbox from 'expo-checkbox';
-import { register } from "shared/api";
+import { Checkbox } from "expo-checkbox";
+import { register } from "../../../shared";
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation }: { navigation: any }) {
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [email, setEmail] = useState("");
@@ -16,9 +16,9 @@ export default function RegisterScreen({ navigation }) {
       Alert.alert("Éxito", "Usuario registrado correctamente");
 
       navigation.navigate("Login");
-    } catch (error) {
-        console.log("ERROR REGISTER:", error);
-        console.log("DATA:", error?.response?.data);
+    } catch (error: any) {
+      console.log("ERROR REGISTER:", error);
+      console.log("DATA:", error?.response?.data);
 
       if (error?.response?.data) {
         Alert.alert("Error", JSON.stringify(error.response.data, null, 2));
@@ -26,26 +26,50 @@ export default function RegisterScreen({ navigation }) {
         Alert.alert("Error", error.message || "Error desconocido");
       }
     }
-
-
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Registro</Text>
 
-      <TextInput style={styles.input} placeholder="Nombre" value={first} onChangeText={setFirst} />
-      <TextInput style={styles.input} placeholder="Apellido" value={last} onChangeText={setLast} />
-      <TextInput style={styles.input} placeholder="Correo" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Clave" value={pass} onChangeText={setPass} secureTextEntry />
-      <TextInput style={styles.input} placeholder="Confirmar Clave" value={confirm_pass} onChangeText={setConfirm} secureTextEntry />
+      <TextInput
+        style={styles.input}
+        placeholder="Nombre"
+        value={first}
+        onChangeText={setFirst}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Apellido"
+        value={last}
+        onChangeText={setLast}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Correo"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Clave"
+        value={pass}
+        onChangeText={setPass}
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirmar Clave"
+        value={confirm_pass}
+        onChangeText={setConfirm}
+        secureTextEntry
+      />
       <Checkbox
         value={terms}
         onValueChange={setTerms}
-        color={terms ? '#4630EB' : undefined}
+        color={terms ? "#4630EB" : undefined}
       />
       <Text>Acepto términos y condiciones</Text>
-
 
       <Button title="Crear cuenta" onPress={handleRegister} />
     </View>

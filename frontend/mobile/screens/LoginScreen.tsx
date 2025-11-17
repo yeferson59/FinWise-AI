@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
-import { login } from "shared/api";
+import { login } from "../../../shared/api";
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
 
@@ -47,10 +47,7 @@ export default function LoginScreen({ navigation }) {
 
       <Button title="Entrar" onPress={handleLogin} />
 
-      <Text
-        style={styles.link}
-        onPress={() => navigation.navigate("Register")}
-      >
+      <Text style={styles.link} onPress={() => navigation.navigate("Register")}>
         ¿No tienes cuenta? Regístrate
       </Text>
     </View>
@@ -73,12 +70,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-
-
-
-
-
-
 
 /*import { useState } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
