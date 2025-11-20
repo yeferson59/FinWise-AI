@@ -6,11 +6,32 @@ class Login(BaseModel):
     password: str = Field(examples=["password"])
 
 
+class User(BaseModel):
+    id: int = Field(description="user id", examples=[1])
+    email: str = Field(description="user email", examples=["user@example.com"])
+    first_name: str = Field(description="user first name", examples=["Jhon"])
+    last_name: str = Field(description="user last name", examples=["Doe"])
+
+
 class LoginResponse(BaseModel):
     access_token: str | None = Field(default=None, examples=["access_token"])
-    user_id: int | None = Field(default=None, examples=["user_id"])
-    user_email: str | None = Field(default=None, examples=["user@example.com"])
+    user: User = Field(
+        examples=[
+            User(id=1, email="user@example.com", first_name="Jhon", last_name="Doe")
+        ]
+    )
     success: bool = Field(default=True, examples=[True, False])
+
+
+class RegisterResponse(BaseModel):
+    message: str = Field(examples=["Register successfully"])
+    success: bool = Field(examples=[True])
+
+
+class ErrorResponse(BaseModel):
+    detail: str = Field(description="Error message")
+    error_code: str = Field(description="Machine-readable error code")
+    status_code: int = Field(description="HTTP status code")
 
 
 class Register(BaseModel):
