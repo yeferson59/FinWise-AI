@@ -15,6 +15,11 @@ import logging
 import pytesseract
 from PIL import Image
 from typing import Any
+import platform
+
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Users\HP\Desktop\Tesseract\tesseract.exe"
+
 
 logger = logging.getLogger(__name__)
 
