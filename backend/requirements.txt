@@ -31,7 +31,7 @@ dnspython==2.8.0
 doctr==1.9.0
 easyocr==1.7.2
 email-validator==2.3.0
-fastapi==0.121.2
+fastapi==0.121.3
 fastapi-cli==0.0.16
 fastapi-cloud-cli==0.3.1
 faster-whisper==1.2.1
