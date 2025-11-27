@@ -16,8 +16,13 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import * as Haptics from "expo-haptics";
-
+import {
+  NotificationFeedbackType,
+  notificationAsync,
+  impactAsync,
+  selectionAsync,
+  ImpactFeedbackStyle,
+} from "expo-haptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -26,6 +31,7 @@ import Animated, {
   withSpring,
   interpolate,
 } from "react-native-reanimated";
+import { register } from "shared";
 
 /**
  * Register screen
@@ -189,7 +195,7 @@ export default function RegisterScreen() {
   // haptics and button scale behavior
   const onPressIn = async () => {
     try {
-      await Haptics.selectionAsync();
+      await selectionAsync();
     } catch {
       /* ignore */
     }
@@ -203,35 +209,55 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!validateAll()) {
       try {
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Warning,
-        );
+        await notificationAsync(NotificationFeedbackType.Warning);
       } catch {}
       return;
     }
 
-    // proceed
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await impactAsync(ImpactFeedbackStyle.Medium);
     } catch {}
 
     setLoading(true);
     setSuccess(false);
 
-    // simulate API call
-    setTimeout(async () => {
+    try {
+      const response = await register(
+        firstName,
+        lastName,
+        email,
+        password,
+        confirm,
+        termsAccepted,
+      );
+
+      if (!response) {
+        await notificationAsync(NotificationFeedbackType.Error);
+        return;
+      }
+
+      if (!response.success) {
+        await notificationAsync(NotificationFeedbackType.Error);
+        return;
+      }
+    } catch {
       setLoading(false);
-      setSuccess(true);
+      setSuccess(false);
       try {
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
+        await notificationAsync(NotificationFeedbackType.Error);
       } catch {}
-      // keep check visible briefly then go to home
-      setTimeout(() => {
-        router.replace("/home");
-      }, 700);
-    }, 1400);
+      return;
+    }
+
+    setLoading(false);
+    setSuccess(true);
+    try {
+      await notificationAsync(NotificationFeedbackType.Success);
+    } catch {}
+
+    setTimeout(() => {
+      router.replace("/login");
+    }, 700);
   };
 
   return (
@@ -505,9 +531,7 @@ export default function RegisterScreen() {
               } else {
                 // invalid press feedback
                 try {
-                  Haptics.notificationAsync(
-                    Haptics.NotificationFeedbackType.Warning,
-                  );
+                  notificationAsync(NotificationFeedbackType.Warning);
                 } catch {}
                 validateAll();
               }

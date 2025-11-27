@@ -1,6 +1,7 @@
 """
 OCR Post-processing and Error Correction Module
 Applies intelligent corrections to OCR output to improve accuracy.
+Enhanced with more patterns for financial documents in Spanish and English.
 """
 
 import re
@@ -20,12 +21,17 @@ _COMMON_CORRECTIONS = [
     (re.compile(r"(?<=\d)I\b"), "1"),  # I after digit
     (re.compile(r"\bS(?=\d)"), "5"),  # S before digit
     (re.compile(r"(?<=\d)S\b"), "5"),  # S after digit
+    (re.compile(r"(?<=\d)B(?=\d)"), "8"),  # B between digits -> 8
+    (re.compile(r"(?<=\d)Z(?=\d)"), "2"),  # Z between digits -> 2
+    (re.compile(r"(?<=\d)G(?=\d)"), "6"),  # G between digits -> 6
     # Common character substitutions
     (re.compile(r"\|(?=\s|$)"), "I"),  # Pipe to I at end
     (re.compile(r"\]"), ")"),  # ] to )
     (re.compile(r"\["), "("),  # [ to (
     (re.compile(r"(?<=\s)rn(?=\s)"), "m"),  # rn to m (common OCR error)
     (re.compile(r"(?<=\s)vv(?=\s)"), "w"),  # vv to w
+    (re.compile(r"(?<=\s)ii(?=\s)"), "u"),  # ii to u
+    (re.compile(r"(?<=\s)cl(?=\s)"), "d"),  # cl to d
     # Fix spacing around punctuation
     (re.compile(r"\s+([.,;:!?])"), r"\1"),  # Remove space before punctuation
     (re.compile(r"([.,;:!?])(?=[A-Za-z])"), r"\1 "),  # Add space after punctuation
@@ -34,23 +40,50 @@ _COMMON_CORRECTIONS = [
     (re.compile(r"\.{2,}"), "..."),  # Multiple dots to ellipsis
     (re.compile(r"!{2,}"), "!"),  # Multiple exclamations to single
     (re.compile(r"\?{2,}"), "?"),  # Multiple questions to single
+    # Common word errors
+    (re.compile(r"\bTOTAI\b", re.IGNORECASE), "TOTAL"),
+    (re.compile(r"\bT0TAL\b", re.IGNORECASE), "TOTAL"),
+    (re.compile(r"\bSUBT0TAL\b", re.IGNORECASE), "SUBTOTAL"),
+    (re.compile(r"\bIVA\s*\(", re.IGNORECASE), "IVA ("),
+    (re.compile(r"\bCAMBI0\b", re.IGNORECASE), "CAMBIO"),
+    (re.compile(r"\bEFECTIV0\b", re.IGNORECASE), "EFECTIVO"),
 ]
 
-# Pre-compiled patterns for financial text
+# Pre-compiled patterns for financial text - enhanced for Spanish
 _FINANCIAL_CORRECTIONS = [
     (re.compile(r"\bS\s*/"), r"$"),  # S/ to $
     (re.compile(r"(?<!\d)\$\s+(?=\d)"), r"$"),  # $ 100 to $100
     (re.compile(r"(?<=\d)\s+\$"), r"$"),  # 100 $ to 100$
-    (re.compile(r"(\d+)[,](\d{2})(?!\d)"), r"\1.\2"),  # 10,50 to 10.50
+    # Spanish currency formats
+    (re.compile(r"(\d+)[,](\d{2})(?!\d)"), r"\1.\2"),  # 10,50 to 10.50 (euros style)
+    (re.compile(r"(\d{1,3})\.(\d{3})\.(\d{3})[,](\d{2})"), r"\1\2\3.\4"),  # 1.234.567,89 to 1234567.89
+    (re.compile(r"(\d{1,3})\.(\d{3})[,](\d{2})"), r"\1\2.\3"),  # 1.234,56 to 1234.56
     (re.compile(r"(\d{1,3})[,](\d{3})\b"), r"\1\2"),  # 1,000 to 1000
+    # Date corrections
     (re.compile(r"(\d{1,2})/O(\d)"), r"\1/0\2"),  # /O to /0 in dates
     (re.compile(r"(\d{1,2})/(\d)O/"), r"\1/\g<2>0/"),  # digit-O/ to digit-0/
     (re.compile(r"\bO(\d)/(\d{1,2})/(\d{2,4})"), r"0\1/\2/\3"),  # O1/12/2024
+    (re.compile(r"(\d{1,2})-O(\d)-(\d{2,4})"), r"\1-0\2-\3"),  # 12-O1-2024
+    # Currency symbol fixes
     (re.compile(r"\$\s*O(?=\d)"), r"$0"),  # $O to $0
     (re.compile(r"\$\s*l(?=\d)"), r"$1"),  # $l to $1
+    (re.compile(r"€\s*O(?=\d)"), r"€0"),  # €O to €0
+    # Label normalization
     (re.compile(r"\bTOTAL\s*[:|]?\s*\$"), r"TOTAL: $"),  # Normalize TOTAL
     (re.compile(r"\bSUBTOTAL\s*[:|]?\s*\$"), r"SUBTOTAL: $"),
     (re.compile(r"\bTAX\s*[:|]?\s*\$"), r"TAX: $"),
+    (re.compile(r"\bIVA\s*[:|]?\s*\$"), r"IVA: $"),
+    (re.compile(r"\bIMPUESTO\s*[:|]?\s*\$"), r"IMPUESTO: $"),
+    (re.compile(r"\bDESCUENTO\s*[:|]?\s*\$"), r"DESCUENTO: $"),
+    (re.compile(r"\bPROPINA\s*[:|]?\s*\$"), r"PROPINA: $"),
+    # Common receipt words in Spanish
+    (re.compile(r"\bFACTURA\s*[:#]?\s*", re.IGNORECASE), "FACTURA: "),
+    (re.compile(r"\bRECIBO\s*[:#]?\s*", re.IGNORECASE), "RECIBO: "),
+    (re.compile(r"\bFECHA\s*[:#]?\s*", re.IGNORECASE), "FECHA: "),
+    (re.compile(r"\bHORA\s*[:#]?\s*", re.IGNORECASE), "HORA: "),
+    # Fix common OCR errors in amounts
+    (re.compile(r"(\d+)[\s,]\.(\d{2})"), r"\1.\2"),  # 123 .45 or 123,.45 -> 123.45
+    (re.compile(r"(\d+)\.(\d{2})\s*-"), r"-\1.\2"),  # 123.45- -> -123.45
 ]
 
 # Pre-compiled patterns for form text
@@ -60,6 +93,14 @@ _FORM_CORRECTIONS = [
     (re.compile(r"\bNarne\b", re.IGNORECASE), "Name"),  # Narne to Name
     (re.compile(r"\bDale\b", re.IGNORECASE), "Date"),  # Dale to Date
     (re.compile(r"\bAddres+\b", re.IGNORECASE), "Address"),  # Addres/Address
+    (re.compile(r"\bNOMBRE\s*[:#]?\s*", re.IGNORECASE), "NOMBRE: "),
+    (re.compile(r"\bDIRECCION\s*[:#]?\s*", re.IGNORECASE), "DIRECCIÓN: "),
+    (re.compile(r"\bTELEFONO\s*[:#]?\s*", re.IGNORECASE), "TELÉFONO: "),
+    (re.compile(r"\bEMAIL\s*[:#]?\s*", re.IGNORECASE), "EMAIL: "),
+    (re.compile(r"\bCEDULA\s*[:#]?\s*", re.IGNORECASE), "CÉDULA: "),
+    (re.compile(r"\bNIT\s*[:#]?\s*", re.IGNORECASE), "NIT: "),
+    (re.compile(r"\bRUC\s*[:#]?\s*", re.IGNORECASE), "RUC: "),
+    (re.compile(r"\bRFC\s*[:#]?\s*", re.IGNORECASE), "RFC: "),
 ]
 
 # Pre-compiled patterns for whitespace cleanup
@@ -70,9 +111,25 @@ _MULTIPLE_PIPES = re.compile(r"[|]{2,}")
 _MULTIPLE_UNDERSCORES = re.compile(r"[_]{4,}")
 _MULTIPLE_CARETS = re.compile(r"[\^]{2,}")
 _MULTIPLE_TILDES = re.compile(r"[~]{2,}")
+_LEADING_JUNK = re.compile(r"^[\s\-_=\|\.]+", re.MULTILINE)
+_TRAILING_JUNK = re.compile(r"[\s\-_=\|\.]+$", re.MULTILINE)
 
 # Pre-compiled pattern for amount validation
 _AMOUNT_PATTERN = re.compile(r"\$\s*(\d+(?:[.,]\d{1,2})?)")
+
+# Patterns for detecting structured data
+_DATE_PATTERN = re.compile(
+    r"(?:FECHA|DATE|FECHA DE|EMISION)[:\s]*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
+    re.IGNORECASE
+)
+_TIME_PATTERN = re.compile(
+    r"(?:HORA|TIME|HOUR)[:\s]*(\d{1,2}[:\.]?\d{2}(?:[:\.]?\d{2})?(?:\s*[AaPp][Mm])?)",
+    re.IGNORECASE
+)
+_TOTAL_PATTERN = re.compile(
+    r"(?:TOTAL|SUBTOTAL|IMPORTE|MONTO|AMOUNT)[:\s]*\$?\s*([\d.,]+)",
+    re.IGNORECASE
+)
 
 
 def post_process_ocr_text(text: str, document_type: DocumentType | None = None) -> str:

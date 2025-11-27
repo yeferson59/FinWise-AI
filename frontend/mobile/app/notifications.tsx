@@ -62,7 +62,9 @@ export default function NotificationsScreen() {
   const [items, setItems] = useState<NotificationItem[]>(initial);
 
   const toggleRead = (id: string) => {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, read: !it.read } : it)));
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, read: !it.read } : it)),
+    );
   };
 
   const renderItem = ({ item }: { item: NotificationItem }) => {
@@ -72,14 +74,33 @@ export default function NotificationsScreen() {
         style={[
           styles.card,
           {
-            backgroundColor: item.read ? (isDark ? "#1f1f1f" : "#fafafa") : theme.cardBackground,
+            backgroundColor: item.read
+              ? isDark
+                ? "#1f1f1f"
+                : "#fafafa"
+              : theme.cardBackground,
             shadowColor: theme.shadow,
           },
         ]}
       >
         <View style={styles.left}>
-          <View style={[styles.iconWrap, { backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#eef9ff" }]}>
-            <IconSymbol name={(Platform.OS === "ios" ? (item.icon as any) : (item.icon as any)) ?? "bell"} size={18} color={theme.tint} />
+          <View
+            style={[
+              styles.iconWrap,
+              {
+                backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#eef9ff",
+              },
+            ]}
+          >
+            <IconSymbol
+              name={
+                (Platform.OS === "ios"
+                  ? (item.icon as any)
+                  : (item.icon as any)) ?? "bell"
+              }
+              size={18}
+              color={theme.tint}
+            />
           </View>
         </View>
 
@@ -94,28 +115,50 @@ export default function NotificationsScreen() {
 
         <View style={styles.right}>
           <Text style={[styles.date, { color: theme.icon }]}>{item.date}</Text>
-          <View style={[styles.dot, { backgroundColor: item.read ? "transparent" : theme.tint }]} />
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: item.read ? "transparent" : theme.tint },
+            ]}
+          />
         </View>
       </Pressable>
     );
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ThemedView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
       <View style={styles.header}>
         <View>
-          <ThemedText type="title" style={[styles.headerTitle, { color: theme.text }]}>
+          <ThemedText
+            type="title"
+            style={[styles.headerTitle, { color: theme.text }]}
+          >
             Notificaciones
           </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: theme.icon }]}>Últimas alertas y recordatorios</ThemedText>
+          <ThemedText style={[styles.headerSubtitle, { color: theme.icon }]}>
+            Últimas alertas y recordatorios
+          </ThemedText>
         </View>
 
         <Pressable
           onPress={() => router.back()}
-          style={[styles.closeBtn, { backgroundColor: isDark ? "#2a2a2a" : theme.cardBackground, shadowColor: theme.shadow }]}
+          style={[
+            styles.closeBtn,
+            {
+              backgroundColor: isDark ? "#2a2a2a" : theme.cardBackground,
+              shadowColor: theme.shadow,
+            },
+          ]}
           hitSlop={8}
         >
-          <IconSymbol name={Platform.OS === "ios" ? ("xmark" as any) : ("close" as any)} size={18} color={theme.icon} />
+          <IconSymbol
+            name={Platform.OS === "ios" ? ("xmark" as any) : ("close" as any)}
+            size={18}
+            color={theme.icon}
+          />
         </Pressable>
       </View>
 
@@ -135,7 +178,9 @@ export default function NotificationsScreen() {
           }}
           style={[styles.primaryBtn, { backgroundColor: theme.tint }]}
         >
-          <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Marcar todo como leído</ThemedText>
+          <ThemedText style={{ color: "#fff", fontWeight: "700" }}>
+            Marcar todo como leído
+          </ThemedText>
         </Pressable>
       </View>
     </ThemedView>

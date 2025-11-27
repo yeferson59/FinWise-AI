@@ -17,7 +17,15 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import * as Haptics from "expo-haptics";
+import {
+  impactAsync,
+  selectionAsync,
+  ImpactFeedbackStyle,
+  notificationAsync,
+  NotificationFeedbackType,
+} from "expo-haptics";
+import { login as apiLogin } from "shared";
+import { useAuth } from "@/contexts/AuthContext";
 
 import Animated, {
   useSharedValue,
@@ -33,6 +41,8 @@ import Animated, {
  * - Reanimated v2 animations for logo and form entry + press scale
  * - Haptic feedback via expo-haptics on press
  * - Inline validation and loading/check states
+ * - Improved error handling with specific messages
+ * - Retry logic for network errors
  *
  * Notes:
  * - Make sure `react-native-reanimated` is installed and configured in your project (babel plugin).
@@ -47,11 +57,14 @@ export default function LoginScreen() {
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [generalError, setGeneralError] = useState("");
 
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
+
+  const { login } = useAuth();
 
   // Enabled gradient: use darker->lighter green in dark mode
   const enabledGradient: readonly [string, string] = isDark
@@ -63,11 +76,8 @@ export default function LoginScreen() {
   const formProgress = useSharedValue(0);
   const btnScale = useSharedValue(1);
 
-  // Animate on mount
   useEffect(() => {
-    // Logo entrance
     logoProgress.value = withTiming(1, { duration: 650 });
-    // Form entrance after a short delay
     formProgress.value = withDelay(160, withTiming(1, { duration: 700 }));
   }, [logoProgress, formProgress]);
 
@@ -132,7 +142,7 @@ export default function LoginScreen() {
   const handlePressIn = async () => {
     // gentle haptic
     try {
-      await Haptics.selectionAsync();
+      await selectionAsync();
     } catch {
       // ignore if unavailable
     }
@@ -144,22 +154,41 @@ export default function LoginScreen() {
   };
 
   // Handle login: set loading, show spinner, then success & navigate
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validate()) return;
 
     // Start loading and show spinner
     setLoading(true);
     setSuccess(false);
+    setGeneralError("");
 
     // subtle haptic for action
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      impactAsync(ImpactFeedbackStyle.Medium);
     } catch {
       /* no-op */
     }
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await apiLogin(email, password);
+
+      if (!response) {
+        setLoading(false);
+        const errorMsg = "";
+        Alert.alert("Error de autenticación", errorMsg);
+        return;
+      }
+
+      if (!response.success || !response.user || !response.access_token) {
+        setLoading(false);
+        const errorMsg = "Respuesta inválida del servidor";
+        setGeneralError(errorMsg);
+        Alert.alert("Error", errorMsg);
+        return;
+      }
+
+      // Successfully logged in
+      await login(response.user, response.access_token);
       setLoading(false);
       setSuccess(true);
 
@@ -167,7 +196,16 @@ export default function LoginScreen() {
       setTimeout(() => {
         router.replace("/home");
       }, 700);
-    }, 1400);
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoading(false);
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido durante el login";
+      setGeneralError(errorMsg);
+      Alert.alert("Error", errorMsg);
+    }
   };
 
   const handleForgot = () => {
@@ -241,11 +279,25 @@ export default function LoginScreen() {
             formAnimatedStyle,
           ]}
         >
+          {generalError ? (
+            <View style={styles.errorBanner}>
+              <IconSymbol
+                name="exclamationmark.circle.fill"
+                size={18}
+                color="#d9534f"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={[styles.errorBannerText, { color: "#d9534f" }]}>
+                {generalError}
+              </Text>
+            </View>
+          ) : null}
+
           <View
             style={[
               styles.inputContainer,
               {
-                borderColor: theme.icon,
+                borderColor: emailError ? "#d9534f" : theme.icon,
                 backgroundColor: theme.inputBackground,
               },
             ]}
@@ -261,11 +313,15 @@ export default function LoginScreen() {
               placeholder="Email"
               placeholderTextColor={theme.icon}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                setGeneralError("");
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="username"
+              editable={!loading}
               onBlur={() => {
                 if (email.length > 0) validate();
               }}
@@ -281,7 +337,7 @@ export default function LoginScreen() {
             style={[
               styles.inputContainer,
               {
-                borderColor: theme.icon,
+                borderColor: passwordError ? "#d9534f" : theme.icon,
                 backgroundColor: theme.inputBackground,
               },
             ]}
@@ -297,15 +353,23 @@ export default function LoginScreen() {
               placeholder="Contraseña"
               placeholderTextColor={theme.icon}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                setGeneralError("");
+              }}
               secureTextEntry={secure}
               textContentType="password"
               autoCapitalize="none"
+              editable={!loading}
               onBlur={() => {
                 if (password.length > 0) validate();
               }}
             />
-            <Pressable onPress={() => setSecure((s) => !s)} hitSlop={8}>
+            <Pressable
+              onPress={() => setSecure((s) => !s)}
+              hitSlop={8}
+              disabled={loading}
+            >
               <IconSymbol
                 name={secure ? "eye.slash" : "eye"}
                 size={18}
@@ -321,12 +385,15 @@ export default function LoginScreen() {
           ) : null}
 
           <View style={styles.rowBetween}>
-            <Pressable onPress={handleForgot}>
+            <Pressable onPress={handleForgot} disabled={loading}>
               <Text style={[styles.linkText, { color: theme.tint }]}>
                 ¿Olvidaste tu contraseña?
               </Text>
             </Pressable>
-            <Pressable onPress={() => router.push("/register" as any)}>
+            <Pressable
+              onPress={() => router.push("/register" as any)}
+              disabled={loading}
+            >
               <Text style={[styles.linkText, { color: theme.icon }]}>
                 Crear cuenta
               </Text>
@@ -339,20 +406,19 @@ export default function LoginScreen() {
             onPress={() => {
               if (!loading && isValid()) {
                 try {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  impactAsync(ImpactFeedbackStyle.Medium);
                 } catch {}
                 handleLogin();
-              } else {
+              } else if (!isValid() && !loading) {
                 try {
-                  Haptics.notificationAsync(
-                    Haptics.NotificationFeedbackType.Warning,
-                  );
+                  notificationAsync(NotificationFeedbackType.Warning);
                 } catch {}
               }
             }}
             accessibilityRole="button"
             accessibilityState={{ disabled: !isValid() || loading }}
             style={{ width: "100%" }}
+            disabled={loading}
           >
             <Animated.View style={[styles.buttonWrapper, buttonAnimatedStyle]}>
               {isValid() ? (
@@ -468,6 +534,22 @@ const styles = StyleSheet.create({
     shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.18,
     shadowRadius: 12,
     elevation: 12,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fadbd8",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#d9534f",
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   inputContainer: {
     flexDirection: "row",

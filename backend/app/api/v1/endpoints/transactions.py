@@ -1,5 +1,7 @@
+import uuid
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, UploadFile
 
@@ -87,7 +89,7 @@ async def create_transaction(
 @router.get("/{transaction_id}")
 async def get_transaction(
     session: SessionDep,
-    transaction_id: Annotated[int, Path],
+    transaction_id: Annotated[UUID, Path(description="Transaction UUID")],
 ) -> Transaction:
     return await transaction.get_transaction(session, transaction_id)
 
@@ -95,7 +97,7 @@ async def get_transaction(
 @router.put("/{transaction_id}")
 async def update_transaction(
     session: SessionDep,
-    transaction_id: Annotated[int, Path],
+    transaction_id: Annotated[UUID, Path(description="Transaction UUID")],
     update_transaction: UpdateTransaction,
 ) -> Transaction:
     return await transaction.update_transaction(
@@ -106,7 +108,7 @@ async def update_transaction(
 @router.delete("/{transaction_id}")
 async def delete_transaction(
     session: SessionDep,
-    transaction_id: Annotated[int, Path],
+    transaction_id: Annotated[UUID, Path(description="Transaction UUID")],
 ) -> Transaction:
     return await transaction.delete_transaction(session, transaction_id)
 

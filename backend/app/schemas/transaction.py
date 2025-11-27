@@ -1,15 +1,19 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
+from uuid import UUID
 
 
 class CreateTransaction(BaseModel):
     user_id: int = Field(description="User ID", ge=1)
     category_id: int = Field(description="Category ID", ge=1)
     source_id: int = Field(description="Source ID", ge=1)
-    description: str | None = Field(
-        description="Transaction description", default=None, min_length=10
+    title: str | None = Field(
+        description="Transaction title", default=None, max_length=150
     )
-    amount: float = Field(description="Transaction amount", default=1.0, ge=1)
+    description: str | None = Field(
+        description="Transaction description", default=None, min_length=1
+    )
+    amount: float = Field(description="Transaction amount", default=0.0, ge=0)
     date: datetime = Field(
         description="Transaction date", le=datetime.now(timezone.utc)
     )
@@ -19,11 +23,15 @@ class UpdateTransaction(BaseModel):
     user_id: int | None = Field(default=None, description="User ID")
     category_id: int | None = Field(default=None, description="Category ID")
     source_id: int | None = Field(default=None, description="Source ID")
+    title: str | None = Field(
+        default=None, description="Transaction title", max_length=150
+    )
     description: str | None = Field(default=None, description="Transaction description")
-    amount: float | None = Field(description="Transaction amount", default=1.0, ge=1)
+    amount: float | None = Field(description="Transaction amount", default=None, ge=0)
     date: datetime | None = Field(
         default=None, description="Transaction date", le=datetime.now(timezone.utc)
     )
+    state: str | None = Field(default=None, description="Transaction state")
 
 
 class TransactionFilters(BaseModel):

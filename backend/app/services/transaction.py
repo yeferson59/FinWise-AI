@@ -1,14 +1,18 @@
+import uuid
+from typing import cast
+from uuid import UUID
+
+from sqlmodel import col, select
+
 from app.db.session import SessionDep
-from app.utils import db
 from app.models.transaction import Transaction
 from app.schemas.transaction import (
     CreateTransaction,
-    UpdateTransaction,
     TransactionFilters,
+    UpdateTransaction,
 )
+from app.utils import db
 from app.utils.crud import CRUDService
-from sqlmodel import select, col
-from typing import cast
 
 # Initialize CRUD service for Transaction
 _transaction_crud = CRUDService[Transaction, CreateTransaction, UpdateTransaction](
@@ -92,18 +96,30 @@ async def create_transaction(session: SessionDep, transaction: CreateTransaction
 
 async def get_transaction(
     session: SessionDep,
-    transaction_id: int,
+    transaction_id: UUID | str,
 ):
+    """Get a transaction by its UUID."""
+    # Convert string to UUID if needed
+    if isinstance(transaction_id, str):
+        transaction_id = UUID(transaction_id)
     return await _transaction_crud.get_by_id(session, transaction_id)
 
 
 async def update_transaction(
     session: SessionDep,
-    id: int,
+    transaction_id: UUID | str,
     transaction: UpdateTransaction,
 ):
-    return await _transaction_crud.update(session, id, transaction)
+    """Update a transaction by its UUID."""
+    # Convert string to UUID if needed
+    if isinstance(transaction_id, str):
+        transaction_id = UUID(transaction_id)
+    return await _transaction_crud.update(session, transaction_id, transaction)
 
 
-async def delete_transaction(session: SessionDep, id: int):
-    return await _transaction_crud.delete(session, id)
+async def delete_transaction(session: SessionDep, transaction_id: UUID | str):
+    """Delete a transaction by its UUID."""
+    # Convert string to UUID if needed
+    if isinstance(transaction_id, str):
+        transaction_id = UUID(transaction_id)
+    return await _transaction_crud.delete(session, transaction_id)

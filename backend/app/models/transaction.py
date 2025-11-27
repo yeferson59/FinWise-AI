@@ -29,6 +29,12 @@ class Transaction(BaseUuid, table=True):
     source_id: int = Field(
         description="Source ID", foreign_key="source.id", index=True, nullable=False
     )
+    title: str = Field(
+        description="Transaction title",
+        max_length=150,
+        default="",
+        index=True,
+    )
     description: str = Field(description="Transaction description", max_length=300)
     amount: float = Field(
         default=0.0, description="Transaction amount", index=True, ge=0, nullable=False

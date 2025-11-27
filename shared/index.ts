@@ -19,6 +19,21 @@ const RegisterResponseSchema = z.object({
   success: z.boolean(),
 });
 
+const TransactionSchema = z.object({
+  id: z.coerce.string(),
+  user_id: z.coerce.number(),
+  category_id: z.coerce.number(),
+  source_id: z.coerce.number(),
+  description: z.coerce.string(),
+  amount: z.coerce.number(),
+  date: z.string(),
+  state: z.coerce.string(),
+  updated_at: z.string(),
+  created_at: z.string(),
+});
+
+const TransactionsSchema = z.array(TransactionSchema);
+
 /**
  * Create axios instance with retry interceptor
  */
@@ -205,6 +220,38 @@ export const logout = async (): Promise<boolean> => {
 // TRANSACTIONS
 // ============================================================================
 
+export const getTransactions = async (
+  user_id: number,
+  offset: number = 0,
+  limit: number = 10,
+) => {
+  try {
+    const response = await api.get(
+      `/api/v1/transactions?user_id=${user_id}&offset=${offset}&limit=${limit}`,
+    );
+
+    const { success, error, data } = await TransactionsSchema.safeParseAsync(
+      response.data,
+    );
+
+    if (!success) {
+      console.error("[Get Transactions Error]", {
+        message: error.message,
+      });
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    const apiError = error instanceof Error ? error : parseApiError(error);
+    console.error("[Get Transactions Error]", {
+      code: (apiError as ApiError).error_code,
+      message: apiError.message,
+    });
+    return [];
+  }
+};
+
 export const createTransaction = async (tx: any) =>
   api.post("/api/v1/transactions", tx);
 
@@ -222,22 +269,53 @@ export const processText = async (
 
 // NLP + OCR (archivo)
 export const processFile = async (
-  file: { uri: string; name: string },
+  file: { uri: string; name: string; type?: string },
   user_id: number,
-  source_id = 1,
-  document_type = "photo",
+  source_id: number | null = null,
+  document_type: string = "photo",
 ) => {
   const form = new FormData();
+
+  // Detect MIME type from file extension or use provided type
+  let mimeType = file.type || "image/jpeg";
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension) {
+    const mimeTypes: Record<string, string> = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      bmp: "image/bmp",
+      webp: "image/webp",
+      heic: "image/heic",
+      heif: "image/heif",
+      pdf: "application/pdf",
+    };
+    mimeType = mimeTypes[extension] || mimeType;
+  }
+
+  // Append file with proper format for React Native
   form.append("file", {
     uri: file.uri,
     name: file.name,
-    type: "image/jpeg",
+    type: mimeType,
   } as any);
 
-  return api.post(
-    `/api/v1/transactions/process-from-file?user_id=${user_id}&source_id=${source_id}&document_type=${document_type}`,
-    form,
-  );
+  // Build query parameters
+  const params = new URLSearchParams();
+  params.append("user_id", user_id.toString());
+  if (source_id !== null) {
+    params.append("source_id", source_id.toString());
+  }
+  params.append("document_type", document_type);
+
+  return api.post(`/api/v1/transactions/process-from-file?${params.toString()}`, form, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    // Longer timeout for file uploads with OCR processing
+    timeout: 120000,
+  });
 };
 
 export default api;

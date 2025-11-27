@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -16,6 +16,8 @@ import {
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTransactions } from "shared";
 
 type Category = {
   id: string;
@@ -32,8 +34,26 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
-
+  const { user } = useAuth();
   const [range, setRange] = useState<"Día" | "Semana" | "Mes" | "Año">("Mes");
+  const [recentTransactions, setRecentTransactions] = useState<
+    {
+      id: string;
+      user_id: number;
+      category_id: number;
+      source_id: number;
+      description: string;
+      amount: number;
+      date: string;
+      state: string;
+      updated_at: string;
+      created_at: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    getTransactions(user?.id!).then((data) => setRecentTransactions(data));
+  }, [user?.id]);
 
   const categories: Category[] = useMemo(
     () => [
@@ -73,36 +93,6 @@ export default function HomeScreen() {
     [],
   );
 
-  const recentTransactions = useMemo(
-    () => [
-      {
-        id: "t1",
-        title: "Compra Supermercado",
-        amount: "-$72.50",
-        time: "Hace 2h",
-        icon: "cart",
-        color: "#ff6b6b",
-      },
-      {
-        id: "t2",
-        title: "Salario Depositado",
-        amount: "+$2,500.00",
-        time: "Hace 1d",
-        icon: "dollarsign.circle",
-        color: "#25d1b2",
-      },
-      {
-        id: "t3",
-        title: "Pago Netflix",
-        amount: "-$15.99",
-        time: "Hace 3d",
-        icon: "play.rectangle",
-        color: "#ff6b6b",
-      },
-    ],
-    [],
-  );
-
   const budgetAlerts = useMemo(
     () => [
       {
@@ -137,6 +127,8 @@ export default function HomeScreen() {
     [],
   );
 
+  if (!user) return null;
+
   const totalBalance = "$1,250.00";
   const ingresos = "$4,000";
   const gastos = "$2,750";
@@ -166,44 +158,52 @@ export default function HomeScreen() {
     </Pressable>
   );
 
-  const renderRecentTransaction = ({ item }: { item: any }) => (
-    <View
-      style={[
-        styles.transactionItem,
-        {
-          backgroundColor: theme.cardBackground,
-          ...createShadow(0, 4, 8, theme.shadow, 4),
-        },
-      ]}
-    >
-      <View style={styles.transactionLeft}>
-        <View
-          style={[
-            styles.transactionIcon,
-            { backgroundColor: item.color + "22" },
-          ]}
-        >
-          <IconSymbol name={item.icon as any} size={16} color={item.color} />
-        </View>
-        <View style={{ marginLeft: 10 }}>
-          <Text style={[styles.transactionTitle, { color: theme.text }]}>
-            {item.title}
-          </Text>
-          <Text style={[styles.transactionTime, { color: theme.icon }]}>
-            {item.time}
-          </Text>
-        </View>
-      </View>
-      <Text
+  const renderRecentTransaction = ({ item }: { item: any }) => {
+    // compute positivity safely before JSX to avoid calling .includes on non-strings
+    const amountStr = String(item?.amount ?? "");
+    const isPositive = amountStr.includes("+")
+      ? true
+      : Number(item?.amount ?? 0) >= 0;
+
+    return (
+      <View
         style={[
-          styles.transactionAmount,
-          { color: item.amount.includes("+") ? "#25d1b2" : "#ff6b6b" },
+          styles.transactionItem,
+          {
+            backgroundColor: theme.cardBackground,
+            ...createShadow(0, 4, 8, theme.shadow, 4),
+          },
         ]}
       >
-        {item.amount}
-      </Text>
-    </View>
-  );
+        <View style={styles.transactionLeft}>
+          <View
+            style={[
+              styles.transactionIcon,
+              { backgroundColor: item.color + "22" },
+            ]}
+          >
+            <IconSymbol name={item.icon as any} size={16} color={item.color} />
+          </View>
+          <View style={{ marginLeft: 10 }}>
+            <Text style={[styles.transactionTitle, { color: theme.text }]}>
+              {item.description}
+            </Text>
+            <Text style={[styles.transactionTime, { color: theme.icon }]}>
+              {item.date}
+            </Text>
+          </View>
+        </View>
+        <Text
+          style={[
+            styles.transactionAmount,
+            { color: isPositive ? "#25d1b2" : "#ff6b6b" },
+          ]}
+        >
+          {item.amount}
+        </Text>
+      </View>
+    );
+  };
 
   const renderBudgetAlert = ({ item }: { item: any }) => (
     <View
@@ -335,7 +335,7 @@ export default function HomeScreen() {
         <View style={styles.topRow}>
           <View>
             <Text style={[styles.greeting, { color: theme.text }]}>
-              Hola, Usuario 👋
+              Hola, {user.first_name} {user.last_name}
             </Text>
             <Text style={[styles.subGreeting, { color: theme.icon }]}>
               Bienvenido de vuelta

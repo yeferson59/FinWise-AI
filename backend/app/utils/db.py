@@ -1,4 +1,5 @@
 from typing import TypeVar, cast, Generic
+from uuid import UUID
 from app.db.session import SessionDep
 from app.models.base import Base, BaseUuid
 from sqlmodel import select, func, col
@@ -41,9 +42,10 @@ def get_db_entities(
 
 def get_entity_by_id(
     type_entity: type[T],
-    search_field: int | str,
+    search_field: int | str | UUID,
     session: SessionDep,
 ) -> T:
+    """Get entity by ID. Supports int, str, and UUID."""
     result = session.exec(
         select(type_entity).where(type_entity.id == search_field)
     ).one()
@@ -52,10 +54,11 @@ def get_entity_by_id(
 
 def update_db_entity(
     type_entity: type[T],
-    entity_id: int | str,
+    entity_id: int | str | UUID,
     update_data: dict[str, str | int | float | bool],
     session: SessionDep,
 ) -> T:
+    """Update entity by ID. Supports int, str, and UUID."""
     entity = session.get(type_entity, entity_id)
     if entity is None:
         raise ValueError(f"Entity {type_entity.__name__} with id {entity_id} not found")
@@ -66,7 +69,10 @@ def update_db_entity(
     return entity
 
 
-def delete_db_entity(type_entity: type[T], entity_id: int | str, session: SessionDep):
+def delete_db_entity(
+    type_entity: type[T], entity_id: int | str | UUID, session: SessionDep
+):
+    """Delete entity by ID. Supports int, str, and UUID."""
     entity = session.get(type_entity, entity_id)
     if entity is not None:
         session.delete(entity)
