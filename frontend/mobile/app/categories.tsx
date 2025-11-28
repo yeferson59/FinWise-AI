@@ -17,7 +17,12 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCategories, createCategory, updateCategory, deleteCategory } from "shared";
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "shared";
 
 // Colores predefinidos para categorías
 const CATEGORY_COLORS = [
@@ -40,22 +45,79 @@ const CATEGORY_COLORS = [
 
 // Emojis por nombre de categoría (mapeo común)
 const CATEGORY_EMOJIS: Record<string, string> = {
+  // Income
+  salario: "💼",
+  bono: "🎁",
+  "ingresos por intereses": "📈",
+  "ingresos por inversiones": "📊",
+  "ingresos por alquiler": "🏠",
+  "ingresos empresariales": "🏢",
+  "regalo recibido": "🎁",
+  reembolsos: "↩️",
+  "otros ingresos": "💰",
+  // Expenses
+  "compras de supermercado": "🛒",
+  "comer fuera": "🍽️",
+  "servicios públicos": "⚡",
+  alquiler: "🏠",
+  hipoteca: "🏠",
+  transporte: "🚗",
+  combustible: "⛽",
+  seguro: "🛡️",
+  salud: "💊",
+  "gastos médicos": "🏥",
+  educación: "📚",
+  "cuidado infantil": "👶",
+  entretenimiento: "🎬",
+  suscripciones: "📺",
+  ropa: "👕",
+  "cuidado personal": "💅",
+  viajes: "✈️",
+  vacaciones: "🏖️",
+  "teléfono e internet": "📱",
+  impuestos: "📋",
+  donaciones: "❤️",
+  "cuidado de mascotas": "🐾",
+  "mantenimiento del hogar": "🔧",
+  electrónicos: "📱",
+  compras: "🛍️",
+  varios: "📦",
+  // Savings
+  "fondo de emergencia": "🛟",
+  "ahorros para jubilación": "👴",
+  "fondo para universidad": "🎓",
+  "ahorros para inversiones": "📈",
+  "ahorros a corto plazo": "🎯",
+  // Investments
+  acciones: "📈",
+  bonos: "📄",
+  "fondos mutuos": "📊",
+  "bienes raíces": "🏢",
+  criptomonedas: "₿",
+  "otras inversiones": "💹",
+  // Debt
+  "pago de tarjeta de crédito": "💳",
+  "pago de préstamo": "💰",
+  "pago de hipoteca": "🏠",
+  "préstamo estudiantil": "🎓",
+  "préstamo de auto": "🚗",
+  "otras deudas": "💸",
+  // Other
+  "sin categorizar": "❓",
+  transferencias: "🔄",
+  comisiones: "💵",
+  ajustes: "⚙️",
+  // Legacy
   alimentación: "🍕",
   comida: "🍕",
   food: "🍕",
-  transporte: "🚗",
   transport: "🚗",
   hogar: "🏠",
   home: "🏠",
-  entretenimiento: "🎬",
   entertainment: "🎬",
-  salud: "💊",
   health: "💊",
-  educación: "📚",
   education: "📚",
-  compras: "🛒",
   shopping: "🛒",
-  servicios: "🔧",
   services: "🔧",
   otros: "📦",
   other: "📦",
@@ -80,7 +142,9 @@ export default function CategoriesScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null,
+  );
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [editName, setEditName] = useState("");
@@ -115,13 +179,14 @@ export default function CategoriesScreen() {
       await updateCategory(
         selectedCategory.id,
         editName.trim(),
-        editDescription.trim() || undefined
+        editDescription.trim() || undefined,
       );
       setDetailModalVisible(false);
       loadCategories();
       Alert.alert("Éxito", "Categoría actualizada");
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || "Error al actualizar";
+      const errorMessage =
+        error.response?.data?.detail || error.message || "Error al actualizar";
       Alert.alert("Error", errorMessage);
     } finally {
       setSaving(false);
@@ -139,7 +204,7 @@ export default function CategoriesScreen() {
       await createCategory(
         newCategoryName.trim(),
         newCategoryDescription.trim() || undefined,
-        user?.id
+        user?.id,
       );
       setModalVisible(false);
       setNewCategoryName("");
@@ -147,7 +212,10 @@ export default function CategoriesScreen() {
       loadCategories();
       Alert.alert("Éxito", "Categoría creada correctamente");
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || "Error al crear categoría";
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.message ||
+        "Error al crear categoría";
       Alert.alert("Error", errorMessage);
     } finally {
       setSaving(false);
@@ -156,7 +224,10 @@ export default function CategoriesScreen() {
 
   const handleDeleteCategory = (item: Category) => {
     if (item.is_default) {
-      Alert.alert("No permitido", "No puedes eliminar categorías predeterminadas");
+      Alert.alert(
+        "No permitido",
+        "No puedes eliminar categorías predeterminadas",
+      );
       return;
     }
 
@@ -174,12 +245,15 @@ export default function CategoriesScreen() {
               loadCategories();
               Alert.alert("Éxito", "Categoría eliminada");
             } catch (error: any) {
-              const errorMessage = error.response?.data?.detail || error.message || "Error al eliminar";
+              const errorMessage =
+                error.response?.data?.detail ||
+                error.message ||
+                "Error al eliminar";
               Alert.alert("Error", errorMessage);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -415,7 +489,12 @@ export default function CategoriesScreen() {
                   <View
                     style={[
                       styles.detailEmoji,
-                      { backgroundColor: getCategoryColor(categories.indexOf(selectedCategory)) + "22" },
+                      {
+                        backgroundColor:
+                          getCategoryColor(
+                            categories.indexOf(selectedCategory),
+                          ) + "22",
+                      },
                     ]}
                   >
                     <Text style={{ fontSize: 32 }}>
@@ -434,12 +513,16 @@ export default function CategoriesScreen() {
                   >
                     <Text
                       style={{
-                        color: selectedCategory.is_default ? "#22c55e" : "#7c4dff",
+                        color: selectedCategory.is_default
+                          ? "#22c55e"
+                          : "#7c4dff",
                         fontWeight: "600",
                         fontSize: 13,
                       }}
                     >
-                      {selectedCategory.is_default ? "Predeterminada" : "Personalizada"}
+                      {selectedCategory.is_default
+                        ? "Predeterminada"
+                        : "Personalizada"}
                     </Text>
                   </View>
                 </View>
@@ -448,7 +531,9 @@ export default function CategoriesScreen() {
                   <>
                     {/* Campos editables */}
                     <View style={styles.inputGroup}>
-                      <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.inputLabel, { color: theme.icon }]}
+                      >
                         Nombre
                       </ThemedText>
                       <TextInput
@@ -468,7 +553,9 @@ export default function CategoriesScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                      <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.inputLabel, { color: theme.icon }]}
+                      >
                         Descripción
                       </ThemedText>
                       <TextInput
@@ -493,9 +580,17 @@ export default function CategoriesScreen() {
                     <View style={styles.editActions}>
                       <Pressable
                         onPress={() => setIsEditing(false)}
-                        style={[styles.cancelButton, { borderColor: theme.icon }]}
+                        style={[
+                          styles.cancelButton,
+                          { borderColor: theme.icon },
+                        ]}
                       >
-                        <Text style={[styles.cancelButtonText, { color: theme.icon }]}>
+                        <Text
+                          style={[
+                            styles.cancelButtonText,
+                            { color: theme.icon },
+                          ]}
+                        >
                           Cancelar
                         </Text>
                       </Pressable>
@@ -504,7 +599,10 @@ export default function CategoriesScreen() {
                         disabled={saving}
                         style={[
                           styles.saveButton,
-                          { backgroundColor: "#22c55e", opacity: saving ? 0.6 : 1 },
+                          {
+                            backgroundColor: "#22c55e",
+                            opacity: saving ? 0.6 : 1,
+                          },
                         ]}
                       >
                         {saving ? (
@@ -519,37 +617,53 @@ export default function CategoriesScreen() {
                   <>
                     {/* Vista de solo lectura */}
                     <View style={styles.detailRow}>
-                      <ThemedText style={[styles.detailLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.detailLabel, { color: theme.icon }]}
+                      >
                         Nombre
                       </ThemedText>
-                      <ThemedText style={[styles.detailValue, { color: theme.text }]}>
+                      <ThemedText
+                        style={[styles.detailValue, { color: theme.text }]}
+                      >
                         {selectedCategory.name}
                       </ThemedText>
                     </View>
 
                     <View style={styles.detailRow}>
-                      <ThemedText style={[styles.detailLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.detailLabel, { color: theme.icon }]}
+                      >
                         Descripción
                       </ThemedText>
-                      <ThemedText style={[styles.detailValue, { color: theme.text }]}>
+                      <ThemedText
+                        style={[styles.detailValue, { color: theme.text }]}
+                      >
                         {selectedCategory.description || "Sin descripción"}
                       </ThemedText>
                     </View>
 
                     <View style={styles.detailRow}>
-                      <ThemedText style={[styles.detailLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.detailLabel, { color: theme.icon }]}
+                      >
                         Creada
                       </ThemedText>
-                      <ThemedText style={[styles.detailValue, { color: theme.text }]}>
+                      <ThemedText
+                        style={[styles.detailValue, { color: theme.text }]}
+                      >
                         {formatDate(selectedCategory.created_at)}
                       </ThemedText>
                     </View>
 
                     <View style={styles.detailRow}>
-                      <ThemedText style={[styles.detailLabel, { color: theme.icon }]}>
+                      <ThemedText
+                        style={[styles.detailLabel, { color: theme.icon }]}
+                      >
                         Actualizada
                       </ThemedText>
-                      <ThemedText style={[styles.detailValue, { color: theme.text }]}>
+                      <ThemedText
+                        style={[styles.detailValue, { color: theme.text }]}
+                      >
                         {formatDate(selectedCategory.updated_at)}
                       </ThemedText>
                     </View>
@@ -557,10 +671,19 @@ export default function CategoriesScreen() {
                     {!selectedCategory.is_default && (
                       <Pressable
                         onPress={() => setIsEditing(true)}
-                        style={[styles.editButton, { backgroundColor: theme.tint }]}
+                        style={[
+                          styles.editButton,
+                          { backgroundColor: theme.tint },
+                        ]}
                       >
-                        <IconSymbol name={"pencil" as any} size={16} color="#fff" />
-                        <Text style={styles.editButtonText}>Editar categoría</Text>
+                        <IconSymbol
+                          name={"pencil" as any}
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.editButtonText}>
+                          Editar categoría
+                        </Text>
                       </Pressable>
                     )}
                   </>

@@ -16,7 +16,7 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import api, { getCategories, getSources } from "shared";
+import api, { getCategories, getSources, SOURCE_EMOJIS } from "shared";
 
 type Category = { id: number; name: string };
 type Source = { id: number; name: string };
@@ -110,6 +110,11 @@ export default function TransactionDetailScreen() {
     return src?.name || params.source_name || "Sin fuente";
   };
 
+  const getSourceEmoji = (name: string) => {
+    const lowerName = name.toLowerCase();
+    return SOURCE_EMOJIS[lowerName] || "🏦";
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -140,11 +145,13 @@ export default function TransactionDetailScreen() {
     label,
     value,
     valueColor,
+    emoji,
   }: {
     icon: string;
     label: string;
     value: string;
     valueColor?: string;
+    emoji?: string;
   }) => (
     <View
       style={[
@@ -162,7 +169,11 @@ export default function TransactionDetailScreen() {
             { backgroundColor: isDark ? "#333" : "#f0f4f8" },
           ]}
         >
-          <IconSymbol name={icon as any} size={18} color={theme.tint} />
+          {emoji ? (
+            <Text style={{ fontSize: 18 }}>{emoji}</Text>
+          ) : (
+            <IconSymbol name={icon as any} size={18} color={theme.tint} />
+          )}
         </View>
         <Text style={[styles.detailLabel, { color: theme.icon }]}>{label}</Text>
       </View>
@@ -580,6 +591,7 @@ export default function TransactionDetailScreen() {
                   icon="link"
                   label="Fuente"
                   value={params.source_name || "Sin fuente"}
+                  emoji={getSourceEmoji(params.source_name || "")}
                 />
 
                 <DetailRow

@@ -18,7 +18,7 @@ import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import api, { processFile, getCategories, getSources } from "shared";
+import api, { processFile, getCategories, getSources, SOURCE_EMOJIS } from "shared";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Category = {
@@ -796,17 +796,17 @@ export default function OcrScreen() {
                               },
                             ]}
                           >
-                            <ThemedText
-                              style={{
-                                color:
-                                  editableTransaction.source_id === src.id
-                                    ? "#fff"
-                                    : theme.text,
-                                fontSize: 13,
-                              }}
-                            >
-                              {src.name}
-                            </ThemedText>
+                             <ThemedText
+                               style={{
+                                 color:
+                                   editableTransaction.source_id === src.id
+                                     ? "#fff"
+                                     : theme.text,
+                                 fontSize: 13,
+                               }}
+                             >
+                               {SOURCE_EMOJIS[src.name] || ''} {src.name}
+                             </ThemedText>
                           </Pressable>
                         ))}
                       </View>

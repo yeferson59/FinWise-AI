@@ -34,6 +34,13 @@ const TransactionSchema = z.object({
   created_at: z.string(),
 });
 
+const CreateTransaction = TransactionSchema.omit({
+  id: true,
+  state: true,
+  created_at: true,
+  updated_at: true,
+});
+
 const TransactionsSchema = z.array(TransactionSchema);
 
 const CategorySchema = z.object({
@@ -278,6 +285,25 @@ export const getTransactions = async (
   }
 };
 
+export const createTransaction = async (
+  transaction: z.infer<typeof CreateTransaction>,
+) => {
+  const response = await api.post("/api/v1/transactions", transaction);
+
+  const { success, error, data } = await TransactionSchema.safeParseAsync(
+    response.data,
+  );
+
+  if (!success) {
+    console.error("[Create Transaction Error]", {
+      message: error.message,
+    });
+    return null;
+  }
+
+  return data;
+};
+
 // ============================================================================
 // CATEGORIES
 // ============================================================================
@@ -345,13 +371,46 @@ export const deleteCategory = async (categoryId: number) => {
 };
 
 // ============================================================================
+// SOURCE ICONS
+// ============================================================================
+
+export const SOURCE_EMOJIS: Record<string, string> = {
+  // Banking
+  "cuenta bancaria": "🏦",
+  "cuenta de ahorros": "💰",
+  "cuenta corriente": "💳",
+  "tarjeta de crédito": "💳",
+  "tarjeta de débito": "💳",
+  // Digital Wallets
+  paypal: "🅿️",
+  venmo: "💸",
+  "cash app": "💵",
+  "apple pay": "🍎",
+  "google pay": "🤖",
+  // Cryptocurrency
+  "billetera bitcoin": "₿",
+  "billetera ethereum": "Ξ",
+  "exchange de cripto": "📈",
+  // Investment
+  "cuenta de correduría": "📊",
+  "cuenta de jubilación": "👴",
+  "app de inversiones": "📱",
+  // Cash and Physical
+  efectivo: "💵",
+  cheque: "📄",
+  // Business
+  "cuenta empresarial": "🏢",
+  "pago de cliente": "👤",
+  // Other
+  otro: "❓",
+  desconocido: "❓",
+};
+
+// ============================================================================
 // SOURCES
 // ============================================================================
 
-export const getSources = async (
-  offset: number = 0,
-  limit: number = 100,
-) => {
+export const getSources = async (offset: number = 0, limit: number = 100) => {
   try {
     const response = await api.get(
       `/api/v1/sources?offset=${offset}&limit=${limit}`,
@@ -378,9 +437,6 @@ export const getSources = async (
     return [];
   }
 };
-
-export const createTransaction = async (tx: any) =>
-  api.post("/api/v1/transactions", tx);
 
 // NLP solo texto
 export const processText = async (
