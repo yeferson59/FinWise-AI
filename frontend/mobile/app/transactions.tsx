@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { View, FlatList, StyleSheet, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTransactions } from "shared";
+import { getTransactions, getCategories, getSources } from "shared";
 
 type Transaction = {
   id: string;
@@ -17,33 +18,75 @@ type Transaction = {
   title?: string;
   description: string;
   amount: number;
+  transaction_type: "income" | "expense";
   date: string;
   state: string;
   updated_at: string;
   created_at: string;
 };
 
+type Category = {
+  id: number;
+  name: string;
+};
+
+type Source = {
+  id: number;
+  name: string;
+};
+
 export default function TransactionsScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
 
   useEffect(() => {
     if (user?.id) {
       getTransactions(user.id, 0, 50).then((data) => setTransactions(data));
+      getCategories().then((data) => setCategories(data));
+      getSources().then((data) => setSources(data));
     }
   }, [user?.id]);
 
-  const onPressTransaction = (id: string) => {
-    // navigate to detail (placeholder route)
-    // TODO: implement nested routes or detail screen
+  const getCategoryName = (id: number) => {
+    const cat = categories.find((c) => c.id === id);
+    return cat?.name || "Sin categoría";
+  };
+
+  const getSourceName = (id: number) => {
+    const src = sources.find((s) => s.id === id);
+    return src?.name || "Sin fuente";
+  };
+
+  const onPressTransaction = (item: Transaction) => {
+    router.push({
+      pathname: "/transaction-detail",
+      params: {
+        id: item.id,
+        title: item.title || "",
+        description: item.description,
+        amount: item.amount.toString(),
+        transaction_type: item.transaction_type,
+        date: item.date,
+        state: item.state,
+        category_name: getCategoryName(item.category_id),
+        source_name: getSourceName(item.source_id),
+        category_id: item.category_id.toString(),
+        source_id: item.source_id.toString(),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      },
+    });
   };
 
   const renderItem = ({ item }: { item: Transaction }) => {
-    const isPositive = item.amount >= 0;
-    const amountColor = isPositive ? "#2dd4bf" : "#ff6b6b";
+    const isIncome = item.transaction_type === "income";
+    const amountColor = isIncome ? "#2dd4bf" : "#ff6b6b";
     const formattedDate = item.date
       ? new Date(item.date).toLocaleDateString("es-ES", {
           day: "numeric",
@@ -54,7 +97,7 @@ export default function TransactionsScreen() {
 
     return (
       <Pressable
-        onPress={() => onPressTransaction(item.id)}
+        onPress={() => onPressTransaction(item)}
         style={({ pressed }) => [
           styles.row,
           {
@@ -76,7 +119,7 @@ export default function TransactionsScreen() {
           >
             <IconSymbol
               name={
-                isPositive
+                isIncome
                   ? ("arrow.down.circle" as any)
                   : ("arrow.up.circle" as any)
               }
@@ -103,7 +146,7 @@ export default function TransactionsScreen() {
             {formattedDate}
           </Text>
           <Text style={[styles.amountText, { color: amountColor }]}>
-            {isPositive ? "+" : "-"}${Math.abs(item.amount).toFixed(2)}
+            {isIncome ? "+" : "-"}${item.amount.toFixed(2)}
           </Text>
         </View>
       </Pressable>

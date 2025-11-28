@@ -44,6 +44,7 @@ type RouteName =
   | "/profile"
   | "/assistant"
   | "/ocr"
+  | "/audio-transaction"
   | "/transactions"
   | "/transactions/new"
   | "/categories"
@@ -82,6 +83,13 @@ const MENU_ITEMS: {
     subtitle: "Escanear recibos y facturas",
     route: "/ocr",
     icon: "📷",
+  },
+  {
+    id: "audio",
+    title: "Voz a Transacción",
+    subtitle: "Dicta y crea transacciones por voz",
+    route: "/audio-transaction",
+    icon: "🎤",
   },
   {
     id: "transactions",
@@ -165,91 +173,98 @@ export default function MenuScreen() {
       switch (route) {
         case "/profile":
           try {
-            router.push("/profile" as any);
+            router.replace("/profile" as any);
           } catch {
             router.replace("/profile" as any);
           }
           break;
         case "/assistant":
           try {
-            router.push("/assistant" as any);
+            router.replace("/assistant" as any);
           } catch {
             router.replace("/assistant" as any);
           }
           break;
         case "/ocr":
           try {
-            router.push("/ocr" as any);
+            router.replace("/ocr" as any);
           } catch {
             router.replace("/ocr" as any);
           }
           break;
+        case "/audio-transaction":
+          try {
+            router.replace("/audio-transaction" as any);
+          } catch {
+            router.replace("/audio-transaction" as any);
+          }
+          break;
         case "/transactions":
           try {
-            router.push("/transactions" as any);
+            router.replace("/transactions" as any);
           } catch {
             router.replace("/transactions" as any);
           }
           break;
         case "/transactions/new":
           try {
-            router.push("/transactions/new" as any);
+            router.replace("/transactions/new" as any);
           } catch {
             router.replace("/transactions/new" as any);
           }
           break;
         case "/categories":
           try {
-            router.push("/categories" as any);
+            router.replace("/categories" as any);
           } catch {
             router.replace("/categories" as any);
           }
           break;
         case "/reports":
           try {
-            router.push("/reports" as any);
+            router.replace("/reports" as any);
           } catch {
             router.replace("/reports" as any);
           }
           break;
         case "/budget":
           try {
-            router.push("/budget" as any);
+            router.replace("/budget" as any);
           } catch {
             router.replace("/budget" as any);
           }
           break;
         case "/integrations":
           try {
-            router.push("/integrations" as any);
+            router.replace("/integrations" as any);
           } catch {
             router.replace("/integrations" as any);
           }
           break;
         case "/notifications":
           try {
-            router.push("/notifications" as any);
+            router.replace("/notifications" as any);
           } catch {
             router.replace("/notifications" as any);
           }
           break;
         case "/settings":
           try {
-            router.push("/settings" as any);
+            router.replace("/settings" as any);
           } catch {
             router.replace("/settings" as any);
           }
           break;
         case "/home":
           try {
-            router.push("/home" as any);
+            router.replace("/home" as any);
           } catch {
             router.replace("/home" as any);
           }
           break;
         case "/login":
           try {
-            router.push("/login" as any);
+            router.replace("/login" as any);
           } catch {
             router.replace("/login" as any);
           }

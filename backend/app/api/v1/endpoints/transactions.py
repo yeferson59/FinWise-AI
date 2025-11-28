@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -94,7 +93,7 @@ async def get_transaction(
     return await transaction.get_transaction(session, transaction_id)
 
 
-@router.put("/{transaction_id}")
+@router.patch("/{transaction_id}")
 async def update_transaction(
     session: SessionDep,
     transaction_id: Annotated[UUID, Path(description="Transaction UUID")],

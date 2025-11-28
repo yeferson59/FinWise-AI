@@ -27,6 +27,7 @@ const TransactionSchema = z.object({
   title: z.coerce.string().optional().default(""),
   description: z.coerce.string(),
   amount: z.coerce.number(),
+  transaction_type: z.enum(["income", "expense"]).default("expense"),
   date: z.string(),
   state: z.coerce.string(),
   updated_at: z.string(),
@@ -46,6 +47,18 @@ const CategorySchema = z.object({
 });
 
 const CategoriesSchema = z.array(CategorySchema);
+
+const SourceSchema = z.object({
+  id: z.coerce.number(),
+  name: z.coerce.string(),
+  description: z.coerce.string().nullable().optional(),
+  is_default: z.coerce.boolean(),
+  user_id: z.coerce.number().nullable().optional(),
+  updated_at: z.string(),
+  created_at: z.string(),
+});
+
+const SourcesSchema = z.array(SourceSchema);
 
 /**
  * Create axios instance with retry interceptor
@@ -293,6 +306,72 @@ export const getCategories = async (
   } catch (error) {
     const apiError = error instanceof Error ? error : parseApiError(error);
     console.error("[Get Categories Error]", {
+      code: (apiError as ApiError).error_code,
+      message: apiError.message,
+    });
+    return [];
+  }
+};
+
+export const createCategory = async (
+  name: string,
+  description?: string,
+  user_id?: number,
+) => {
+  const response = await api.post("/api/v1/categories", {
+    name,
+    description,
+    is_default: false,
+    user_id,
+  });
+  return response.data;
+};
+
+export const updateCategory = async (
+  categoryId: number,
+  name?: string,
+  description?: string,
+) => {
+  const response = await api.patch(`/api/v1/categories/${categoryId}`, {
+    name,
+    description,
+  });
+  return response.data;
+};
+
+export const deleteCategory = async (categoryId: number) => {
+  const response = await api.delete(`/api/v1/categories/${categoryId}`);
+  return response.data;
+};
+
+// ============================================================================
+// SOURCES
+// ============================================================================
+
+export const getSources = async (
+  offset: number = 0,
+  limit: number = 100,
+) => {
+  try {
+    const response = await api.get(
+      `/api/v1/sources?offset=${offset}&limit=${limit}`,
+    );
+
+    const { success, error, data } = await SourcesSchema.safeParseAsync(
+      response.data,
+    );
+
+    if (!success) {
+      console.error("[Get Sources Error]", {
+        message: error.message,
+      });
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    const apiError = error instanceof Error ? error : parseApiError(error);
+    console.error("[Get Sources Error]", {
       code: (apiError as ApiError).error_code,
       message: apiError.message,
     });

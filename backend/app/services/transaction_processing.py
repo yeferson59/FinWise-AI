@@ -198,21 +198,21 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
     """
     # Clean and prepare text
     clean_text = " ".join(text.split())  # Normalize whitespace
-    
+
     # Try to extract merchant/store name for title
     merchant_patterns = [
         r"(?:factura|recibo|ticket)\s+(?:de\s+)?([A-Za-zÀ-ÿ\s]{3,30})",
         r"^([A-Za-zÀ-ÿ\s]{3,30})(?:\s+S\.?A\.?|\s+LLC|\s+INC)?",
         r"(?:comercio|establecimiento|tienda)\s*:?\s*([A-Za-zÀ-ÿ\s]{3,30})",
     ]
-    
+
     merchant_name = None
     for pattern in merchant_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             merchant_name = match.group(1).strip()
             break
-    
+
     # Generate differentiated title and description
     if merchant_name:
         title = f"Compra en {merchant_name}"[:50]
@@ -220,9 +220,11 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
         # Use first line or first few words as title
         first_line = text.split("\n")[0].strip() if text else ""
         title = first_line[:50] if first_line else "Transacción"
-    
+
     # Description is more detailed
-    description = clean_text[:200] if clean_text else "Transacción procesada automáticamente"
+    description = (
+        clean_text[:200] if clean_text else "Transacción procesada automáticamente"
+    )
 
     parsed_data: Dict[str, Any] = {
         "title": title,
@@ -296,7 +298,10 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
         # ISO format (most reliable)
         (r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", "YMD"),
         # Named months in Spanish
-        (r"(\d{1,2})\s+(?:de\s+)?(?:ene(?:ro)?|feb(?:rero)?|mar(?:zo)?|abr(?:il)?|may(?:o)?|jun(?:io)?|jul(?:io)?|ago(?:sto)?|sep(?:tiembre)?|oct(?:ubre)?|nov(?:iembre)?|dic(?:iembre)?)\s+(?:de\s+)?(\d{2,4})", "DMY_NAMED"),
+        (
+            r"(\d{1,2})\s+(?:de\s+)?(?:ene(?:ro)?|feb(?:rero)?|mar(?:zo)?|abr(?:il)?|may(?:o)?|jun(?:io)?|jul(?:io)?|ago(?:sto)?|sep(?:tiembre)?|oct(?:ubre)?|nov(?:iembre)?|dic(?:iembre)?)\s+(?:de\s+)?(\d{2,4})",
+            "DMY_NAMED",
+        ),
         # DD/MM/YYYY or DD-MM-YYYY
         (r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", "DMY"),
         # DD/MM/YY or DD-MM-YY
@@ -304,10 +309,30 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
     ]
 
     month_map = {
-        "ene": 1, "enero": 1, "feb": 2, "febrero": 2, "mar": 3, "marzo": 3,
-        "abr": 4, "abril": 4, "may": 5, "mayo": 5, "jun": 6, "junio": 6,
-        "jul": 7, "julio": 7, "ago": 8, "agosto": 8, "sep": 9, "septiembre": 9,
-        "oct": 10, "octubre": 10, "nov": 11, "noviembre": 11, "dic": 12, "diciembre": 12
+        "ene": 1,
+        "enero": 1,
+        "feb": 2,
+        "febrero": 2,
+        "mar": 3,
+        "marzo": 3,
+        "abr": 4,
+        "abril": 4,
+        "may": 5,
+        "mayo": 5,
+        "jun": 6,
+        "junio": 6,
+        "jul": 7,
+        "julio": 7,
+        "ago": 8,
+        "agosto": 8,
+        "sep": 9,
+        "septiembre": 9,
+        "oct": 10,
+        "octubre": 10,
+        "nov": 11,
+        "noviembre": 11,
+        "dic": 12,
+        "diciembre": 12,
     }
 
     date_found = False
@@ -341,7 +366,9 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
 
                 # Validate date
                 if 1 <= day <= 31 and 1 <= month <= 12 and 1900 <= year <= 2100:
-                    parsed_data["date"] = datetime(year, month, day, tzinfo=timezone.utc)
+                    parsed_data["date"] = datetime(
+                        year, month, day, tzinfo=timezone.utc
+                    )
                     date_found = True
                     break
             except (ValueError, TypeError, IndexError):
@@ -368,7 +395,7 @@ async def parse_transaction_with_ai(text: str) -> Dict[str, Any]:
         Dict with parsed transaction data including differentiated title and description
     """
     current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    
+
     try:
         agent = get_agent()
         prompt = f"""Analiza el siguiente texto extraído de un documento financiero (recibo, factura, etc.) y extrae la información de transacción.
@@ -410,9 +437,9 @@ REGLAS IMPORTANTES:
             if result_clean.endswith("```"):
                 result_clean = result_clean[:-3]
             result_clean = result_clean.strip()
-            
+
             parsed = json.loads(result_clean)
-            
+
             # Validate required fields
             if "amount" not in parsed:
                 parsed["amount"] = 0.0
@@ -424,13 +451,15 @@ REGLAS IMPORTANTES:
                 parsed["description"] = text[:200] if text else "Transacción procesada"
             if "confidence" not in parsed:
                 parsed["confidence"] = 50
-            
+
             # Ensure title and description are different
             if parsed["title"] == parsed["description"]:
                 if len(parsed["description"]) > 50:
                     parsed["title"] = parsed["description"][:50]
                 else:
-                    parsed["description"] = f"{parsed['title']}. Monto: ${parsed['amount']:.2f}"
+                    parsed["description"] = (
+                        f"{parsed['title']}. Monto: ${parsed['amount']:.2f}"
+                    )
 
             # Convert date string to datetime
             try:
@@ -491,7 +520,8 @@ FUENTES/ORÍGENES DISPONIBLES:
 Devuelve SOLO un objeto JSON válido con esta estructura exacta:
 
 {{
-  "amount": número decimal (monto total de la transacción),
+  "amount": número decimal (monto total de la transacción, siempre positivo),
+  "transaction_type": "income" o "expense" (tipo de transacción: ingreso o gasto),
   "date": "YYYY-MM-DD" (fecha de la transacción, usa "{current_date}" si no se encuentra),
   "title": "título corto y descriptivo (máx 50 caracteres) - ej: 'Compra en Supermercado XYZ', 'Pago de Factura Luz', 'Retiro ATM'",
   "description": "descripción detallada de la transacción con contexto adicional (máx 200 caracteres) - incluye detalles como items comprados, número de factura, dirección, etc.",
@@ -506,17 +536,21 @@ Devuelve SOLO un objeto JSON válido con esta estructura exacta:
 }}
 
 REGLAS IMPORTANTES:
-1. "title" debe ser CORTO y CONCISO (máx 50 caracteres): identifica QUÉ es la transacción
+1. "transaction_type" debe ser "expense" para gastos/compras/pagos, o "income" para ingresos/depósitos/transferencias recibidas
+   - Facturas, recibos de compra, pagos de servicios = "expense"
+   - Depósitos, nómina, transferencias recibidas, ventas = "income"
+2. "amount" siempre debe ser un número POSITIVO (el tipo se indica en transaction_type)
+3. "title" debe ser CORTO y CONCISO (máx 50 caracteres): identifica QUÉ es la transacción
    - Ejemplos: "Compra en Amazon", "Pago Netflix", "Supermercado Éxito", "Taxi Uber"
-2. "description" debe ser DETALLADA (máx 200 caracteres): proporciona el contexto completo
+4. "description" debe ser DETALLADA (máx 200 caracteres): proporciona el contexto completo
    - Ejemplos: "Compra de 3 productos electrónicos - Factura #12345", "Suscripción mensual de streaming - Renovación automática"
-3. "title" y "description" DEBEN SER DIFERENTES - el título es un resumen, la descripción es el detalle
-4. "category_name" DEBE ser exactamente uno de los nombres de la lista de categorías
-5. "source_name" DEBE ser exactamente uno de los nombres de la lista de fuentes
-6. Si no encuentras un monto, usa 0.0
-7. Si no encuentras fecha, usa la fecha actual
-8. Analiza el contexto para elegir la categoría y fuente más apropiadas
-9. Devuelve SOLO el JSON, sin explicaciones adicionales"""
+5. "title" y "description" DEBEN SER DIFERENTES - el título es un resumen, la descripción es el detalle
+6. "category_name" DEBE ser exactamente uno de los nombres de la lista de categorías
+7. "source_name" DEBE ser exactamente uno de los nombres de la lista de fuentes
+8. Si no encuentras un monto, usa 0.0
+9. Si no encuentras fecha, usa la fecha actual
+10. Analiza el contexto para elegir la categoría y fuente más apropiadas
+11. Devuelve SOLO el JSON, sin explicaciones adicionales"""
 
     try:
         response = await agent.run(text, instructions=prompt)
@@ -539,7 +573,14 @@ REGLAS IMPORTANTES:
             parsed["amount"] = 0.0
         if "date" not in parsed or not parsed["date"]:
             parsed["date"] = current_date
-        
+
+        # Validate transaction_type
+        if "transaction_type" not in parsed or parsed["transaction_type"] not in [
+            "income",
+            "expense",
+        ]:
+            parsed["transaction_type"] = "expense"  # Default to expense
+
         # Handle title - generate from merchant_name or description if not provided
         if "title" not in parsed or not parsed["title"]:
             merchant = parsed.get("extraction_details", {}).get("merchant_name")
@@ -551,29 +592,46 @@ REGLAS IMPORTANTES:
                 parsed["title"] = desc.split(".")[0][:50] if "." in desc else desc[:50]
             else:
                 parsed["title"] = "Transacción"
-        
+
         # Handle description - ensure it's different from title
         if "description" not in parsed or not parsed["description"]:
-            parsed["description"] = text[:200] if text else "Transacción procesada automáticamente"
-        
+            parsed["description"] = (
+                text[:200] if text else "Transacción procesada automáticamente"
+            )
+
         # If title and description are the same, enhance the description
         if parsed["title"] == parsed["description"]:
             merchant = parsed.get("extraction_details", {}).get("merchant_name", "")
             amount = parsed.get("amount", 0)
             date_str = parsed.get("date", current_date)
             if merchant:
-                parsed["description"] = f"Transacción realizada en {merchant} por ${amount:.2f} el {date_str}"[:200]
+                parsed["description"] = (
+                    f"Transacción realizada en {merchant} por ${amount:.2f} el {date_str}"[
+                        :200
+                    ]
+                )
             else:
-                parsed["description"] = f"Transacción por ${amount:.2f} procesada el {date_str}. {text[:100]}"[:200]
-        
+                parsed["description"] = (
+                    f"Transacción por ${amount:.2f} procesada el {date_str}. {text[:100]}"[
+                        :200
+                    ]
+                )
+
         if "confidence" not in parsed:
             parsed["confidence"] = 50
 
         # Validate category_name against available categories
-        if "category_name" not in parsed or parsed["category_name"] not in category_names:
+        if (
+            "category_name" not in parsed
+            or parsed["category_name"] not in category_names
+        ):
             # Try case-insensitive match
             lower_categories = {c.lower(): c for c in category_names}
-            candidate = parsed.get("category_name", "").lower() if parsed.get("category_name") else ""
+            candidate = (
+                parsed.get("category_name", "").lower()
+                if parsed.get("category_name")
+                else ""
+            )
             if candidate in lower_categories:
                 parsed["category_name"] = lower_categories[candidate]
             elif category_names:
@@ -585,7 +643,11 @@ REGLAS IMPORTANTES:
         if "source_name" not in parsed or parsed["source_name"] not in source_names:
             # Try case-insensitive match
             lower_sources = {s.lower(): s for s in source_names}
-            candidate = parsed.get("source_name", "").lower() if parsed.get("source_name") else ""
+            candidate = (
+                parsed.get("source_name", "").lower()
+                if parsed.get("source_name")
+                else ""
+            )
             if candidate in lower_sources:
                 parsed["source_name"] = lower_sources[candidate]
             elif source_names:
@@ -609,6 +671,7 @@ REGLAS IMPORTANTES:
         basic_parsed = parse_transaction_data(text)
         basic_parsed["category_name"] = category_names[0] if category_names else None
         basic_parsed["source_name"] = source_names[0] if source_names else None
+        basic_parsed["transaction_type"] = "expense"
         return basic_parsed
     except Exception:
         # Ultimate fallback
@@ -651,9 +714,9 @@ async def process_transaction_from_file(
             raise HTTPException(status_code=400, detail="File must have a filename")
         file_type = detect_file_type(file.filename, getattr(file, "content_type", None))
 
-        # Step 1: Extract text from file (OCR/transcription)
+        # Step 1: Extract text from file (OCR for images/PDFs, transcription for audio)
         try:
-            extraction_result = await file_service.extract_text(document_type, file)
+            extraction_result = await extract_text_from_file(file, file_type, document_type)
         except HTTPException:
             raise
         except Exception as e:
@@ -662,30 +725,34 @@ async def process_transaction_from_file(
                 detail=f"Failed to extract text from {file_type} file: {str(e)}",
             )
 
-        text = str(extraction_result.get("raw_text", ""))
+        text = str(extraction_result.get("text", ""))
 
         # Enhance extraction result with confidence if not present
         if "confidence" not in extraction_result:
-            metadata = extraction_result.get("metadata", {})
-            original_conf = metadata.get("original_confidence", {})
-            if isinstance(original_conf, dict):
-                extraction_result["confidence"] = original_conf.get("average_confidence", 80)
-            else:
-                extraction_result["confidence"] = 80
+            extraction_result["confidence"] = 80
+        
+        # Normalize to raw_text for consistency with rest of the code
+        extraction_result["raw_text"] = text
 
         # Step 2: Validate user exists
         try:
             user = await user_service.get_user(user_id, session)
             if user is None:
-                raise HTTPException(status_code=400, detail=f"User with id {user_id} not found")
+                raise HTTPException(
+                    status_code=400, detail=f"User with id {user_id} not found"
+                )
         except HTTPException:
             raise
         except Exception as e:
             # Check if it's a "not found" error
             error_msg = str(e).lower()
             if "no row" in error_msg or "not found" in error_msg:
-                raise HTTPException(status_code=400, detail=f"User with id {user_id} not found")
-            raise HTTPException(status_code=400, detail=f"Error validating user_id {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=400, detail=f"User with id {user_id} not found"
+                )
+            raise HTTPException(
+                status_code=400, detail=f"Error validating user_id {user_id}: {str(e)}"
+            )
 
         # Step 3: Get available categories and sources for classification
         try:
@@ -799,27 +866,39 @@ async def process_transaction_from_file(
             # Get title and description from parsed data
             title = parsed_data.get("title", "")
             description = parsed_data.get("description", "")
-            
+
             # Generate title if not provided
             if not title:
-                merchant = parsed_data.get("extraction_details", {}).get("merchant_name") if isinstance(parsed_data.get("extraction_details"), dict) else None
+                merchant = (
+                    parsed_data.get("extraction_details", {}).get("merchant_name")
+                    if isinstance(parsed_data.get("extraction_details"), dict)
+                    else None
+                )
                 if merchant:
                     title = f"Compra en {merchant}"[:50]
                 elif description:
                     # Use first sentence or first 50 chars
-                    title = description.split(".")[0][:50] if "." in description else description[:50]
+                    title = (
+                        description.split(".")[0][:50]
+                        if "." in description
+                        else description[:50]
+                    )
                 else:
                     title = f"Transacción - {file.filename}"[:50]
-            
+
             # Generate description if not provided
             if not description:
                 description = f"Transacción procesada desde archivo: {file.filename}"
-            
+
             # Ensure title and description are different
             if title == description:
                 amount = parsed_data.get("amount", 0.0)
                 date_val = parsed_data.get("date", datetime.now(timezone.utc))
-                date_str = date_val.strftime("%d/%m/%Y") if isinstance(date_val, datetime) else str(date_val)
+                date_str = (
+                    date_val.strftime("%d/%m/%Y")
+                    if isinstance(date_val, datetime)
+                    else str(date_val)
+                )
                 description = f"{title}. Monto: ${amount:.2f} - Fecha: {date_str}"[:200]
 
             transaction_data = CreateTransaction(
@@ -829,6 +908,7 @@ async def process_transaction_from_file(
                 title=title[:150],  # Ensure max length
                 description=description[:300],  # Ensure max length
                 amount=parsed_data.get("amount", 0.0),
+                transaction_type=parsed_data.get("transaction_type", "expense"),
                 date=parsed_data.get("date", datetime.now(timezone.utc)),
             )
 

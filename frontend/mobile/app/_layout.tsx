@@ -29,7 +29,14 @@ export default function RootLayout() {
             <Stack.Screen name="profile" />
             <Stack.Screen name="assistant" />
             <Stack.Screen name="ocr" />
+            <Stack.Screen name="audio-transaction" />
             <Stack.Screen name="transactions" />
+            <Stack.Screen
+              name="transaction-detail"
+              options={{
+                presentation: Platform.OS === "web" ? "card" : "modal",
+              }}
+            />
             <Stack.Screen name="categories" />
             <Stack.Screen name="reports" />
             <Stack.Screen name="budget" />

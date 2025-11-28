@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from uuid import UUID
+from typing import Literal
 
 
 class CreateTransaction(BaseModel):
@@ -14,6 +15,9 @@ class CreateTransaction(BaseModel):
         description="Transaction description", default=None, min_length=1
     )
     amount: float = Field(description="Transaction amount", default=0.0, ge=0)
+    transaction_type: Literal["income", "expense"] = Field(
+        description="Transaction type: 'income' or 'expense'", default="expense"
+    )
     date: datetime = Field(
         description="Transaction date", le=datetime.now(timezone.utc)
     )
@@ -28,6 +32,9 @@ class UpdateTransaction(BaseModel):
     )
     description: str | None = Field(default=None, description="Transaction description")
     amount: float | None = Field(description="Transaction amount", default=None, ge=0)
+    transaction_type: Literal["income", "expense"] | None = Field(
+        default=None, description="Transaction type: 'income' or 'expense'"
+    )
     date: datetime | None = Field(
         default=None, description="Transaction date", le=datetime.now(timezone.utc)
     )

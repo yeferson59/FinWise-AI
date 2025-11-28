@@ -7,12 +7,11 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-  Image,
   TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import * as DocumentPicker from "expo-document-picker";
+import { AudioModule, RecordingPresets, useAudioRecorder } from "expo-audio";
+import { File, Paths } from "expo-file-system";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -21,15 +20,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import api, { processFile, getCategories, getSources } from "shared";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Category = {
-  id: number;
-  name: string;
-};
-
-type Source = {
-  id: number;
-  name: string;
-};
+type Category = { id: number; name: string };
+type Source = { id: number; name: string };
 
 type EditableTransaction = {
   id: string;
@@ -43,37 +35,20 @@ type EditableTransaction = {
   state: string;
 };
 
-/**
- * OCR Screen - Real implementation
- * - Captures/selects images for document scanning
- * - Processes documents using backend OCR API
- * - Displays extracted text and confidence metrics
- */
-
-// Document type options
-const DOCUMENT_TYPES = [
-  { value: "receipt", label: "Recibo", icon: "receipt" },
-  { value: "invoice", label: "Factura", icon: "doc.text" },
-  { value: "photo", label: "Foto", icon: "camera" },
-  { value: "general", label: "General", icon: "doc" },
-] as const;
-
-export default function OcrScreen() {
+export default function AudioTransactionScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
   const { user } = useAuth();
 
-  const [loading, setLoading] = useState(false);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [processing, setProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
   const [saving, setSaving] = useState(false);
-  const [ocrResult, setOcrResult] = useState<any>(null);
-  const [selectedFile, setSelectedFile] = useState<any>(null);
-  const [selectedFileType, setSelectedFileType] = useState<
-    "image" | "pdf" | null
-  >(null);
-  const [documentType, setDocumentType] = useState<string>("receipt");
-  const [processingStep, setProcessingStep] = useState<string>("");
+  const [result, setResult] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [editableTransaction, setEditableTransaction] =
@@ -84,125 +59,148 @@ export default function OcrScreen() {
     getSources().then((data) => setSources(data));
   }, []);
 
-  const handleImagePicker = async (useCamera: boolean) => {
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const configureAudioSession = async () => {
+    await AudioModule.setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      interruptionMode: "mixWithOthers",
+      interruptionModeAndroid: "doNotMix",
+      shouldPlayInBackground: false,
+      shouldRouteThroughEarpiece: false,
+    });
+    await AudioModule.setIsAudioActiveAsync(true);
+  };
+
+  const persistRecording = async (uri: string) => {
+    // Parse the uri to construct File instances reliably
+    const parsed = Paths.parse(uri);
+    const sourceFile = new File(parsed.dir, parsed.base);
+    if (!sourceFile.exists) {
+      throw new Error("El archivo de audio no existe");
+    }
+
+    const destinationDir = Paths.document ?? Paths.cache;
+    const destinationFile = new File(destinationDir, `audio-${Date.now()}.m4a`);
+    // Copy the file to a persistent location (await to ensure operation completes)
+    await sourceFile.copy(destinationFile);
+    return destinationFile.uri;
+  };
+
+  const deleteFileIfExists = (uri: string) => {
     try {
-      let result;
-
-      if (useCamera) {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert(
-            "Permiso denegado",
-            "Se requiere acceso a la cámara para escanear documentos",
-          );
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({
-          mediaTypes: "images",
-          aspect: [4, 3],
-          quality: 0.8,
-          allowsEditing: true,
-        });
-      } else {
-        const permission =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert("Permiso denegado", "Se requiere acceso a la galería");
-          return;
-        }
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: "images",
-          aspect: [4, 3],
-          quality: 0.8,
-          allowsEditing: true,
-        });
+      const parsed = Paths.parse(uri);
+      const file = new File(parsed.dir, parsed.base);
+      if (file.exists) {
+        file.delete();
       }
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setSelectedFile(asset);
-        setSelectedFileType("image");
-        await processFileWithOCR(asset, "image");
-      }
-    } catch (error: any) {
-      Alert.alert(
-        "Error",
-        `Error al seleccionar imagen: ${error.message || error}`,
-      );
+    } catch {
+      // Ignore cleanup issues
     }
   };
 
-  const handleDocumentPicker = async () => {
+  const startRecording = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setSelectedFile(asset);
-        setSelectedFileType("pdf");
-        await processFileWithOCR(asset, "pdf");
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      if (!status.granted) {
+        Alert.alert(
+          "Permiso denegado",
+          "Se requiere acceso al micrófono para grabar audio",
+        );
+        return;
       }
+
+      await configureAudioSession();
+
+      // Prepare the recorder (useAudioRecorder provides the recorder instance)
+      if (typeof recorder.prepareToRecordAsync === "function") {
+        await (recorder as any).prepareToRecordAsync();
+      }
+
+      recorder.record();
+      setIsRecording(true);
+      setRecordingDuration(0);
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        `Error al seleccionar PDF: ${error.message || error}`,
-      );
+      Alert.alert("Error", `No se pudo iniciar la grabación: ${error.message}`);
     }
   };
 
-  const processFileWithOCR = async (
-    fileAsset: any,
-    fileType: "image" | "pdf",
-  ) => {
+  const stopRecording = async () => {
+    try {
+      setIsRecording(false);
+
+      if (recorder) {
+        await (recorder as any).stop();
+        const uri = recorder.uri;
+
+        if (uri) {
+          const persistedUri = await persistRecording(uri);
+          try {
+            await processAudio(persistedUri);
+          } finally {
+            deleteFileIfExists(persistedUri);
+          }
+        }
+      }
+    } catch (error: any) {
+      Alert.alert("Error", `Error al detener grabación: ${error.message}`);
+    } finally {
+      try {
+        await AudioModule.setIsAudioActiveAsync(false);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  };
+
+  const processAudio = async (uri: string) => {
     if (!user) {
       Alert.alert("Error", "Usuario no autenticado");
       return;
     }
 
-    setLoading(true);
-    setProcessingStep(
-      fileType === "pdf" ? "Preparando PDF..." : "Preparando imagen...",
-    );
+    setProcessing(true);
+    setProcessingStep("Preparando audio...");
 
     try {
       const timestamp = Date.now();
-      const extension =
-        fileAsset.uri.split(".").pop() || (fileType === "pdf" ? "pdf" : "jpg");
-      const fileName =
-        fileAsset.fileName ??
-        fileAsset.name ??
-        `scan_${timestamp}.${extension}`;
-      const mimeType =
-        fileType === "pdf"
-          ? "application/pdf"
-          : fileAsset.mimeType || `image/${extension}`;
+      const fileName = `audio_${timestamp}.m4a`;
 
-      setProcessingStep(
-        fileType === "pdf" ? "Subiendo PDF..." : "Subiendo imagen...",
-      );
+      setProcessingStep("Subiendo audio...");
 
-      const result = await processFile(
+      const response = await processFile(
         {
-          uri: fileAsset.uri,
+          uri,
           name: fileName,
-          type: mimeType,
+          type: "audio/m4a",
         },
         user.id,
         null,
-        documentType,
+        "general",
       );
 
-      setProcessingStep("Procesando OCR...");
+      setProcessingStep("Transcribiendo...");
 
-      if (result.data) {
-        setOcrResult(result.data);
+      if (response.data) {
+        setResult(response.data);
 
-        // Initialize editable transaction from OCR result
-        const tx = result.data.transaction;
-        const parsed = result.data.parsed_data;
+        const tx = response.data.transaction;
+        const parsed = response.data.parsed_data;
         if (tx) {
           setEditableTransaction({
             id: tx.id,
@@ -214,25 +212,21 @@ export default function OcrScreen() {
             date: tx.date || parsed?.date || new Date().toISOString(),
             category_id:
               tx.category_id ||
-              result.data.category?.id ||
+              response.data.category?.id ||
               categories[0]?.id ||
               1,
             source_id:
-              tx.source_id || result.data.source?.id || sources[0]?.id || 1,
+              tx.source_id || response.data.source?.id || sources[0]?.id || 1,
             state: tx.state || "pending",
           });
         }
-        setProcessingStep("");
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.detail ||
-        error.message ||
-        "Error al procesar la imagen";
-      Alert.alert("Error de OCR", errorMessage);
-      console.error("OCR Error:", error);
+        error.response?.data?.detail || error.message || "Error al procesar";
+      Alert.alert("Error", errorMessage);
     } finally {
-      setLoading(false);
+      setProcessing(false);
       setProcessingStep("");
     }
   };
@@ -253,159 +247,91 @@ export default function OcrScreen() {
         state: "completed",
       });
 
-      Alert.alert("Éxito", "Transacción actualizada y confirmada", [
+      Alert.alert("Éxito", "Transacción creada desde audio", [
         { text: "OK", onPress: () => router.push("/transactions") },
       ]);
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.detail || error.message || "Error al actualizar";
+        error.response?.data?.detail || error.message || "Error al guardar";
       Alert.alert("Error", errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
-  const onStartScan = async () => {
-    Alert.alert("Seleccionar origen", "¿Cómo desea escanear el documento?", [
-      {
-        text: "📷 Cámara",
-        onPress: () => handleImagePicker(true),
-      },
-      {
-        text: "🖼️ Galería",
-        onPress: () => handleImagePicker(false),
-      },
-      {
-        text: "📄 PDF",
-        onPress: () => handleDocumentPicker(),
-      },
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-    ]);
-  };
-
-  const resetScan = () => {
-    setOcrResult(null);
-    setSelectedFile(null);
-    setSelectedFileType(null);
+  const resetScreen = () => {
+    setResult(null);
     setEditableTransaction(null);
-    setProcessingStep("");
+    setRecordingDuration(0);
   };
 
   return (
-    <ThemedView style={[styles.root, { backgroundColor: theme.background }]}>
+    <ThemedView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
         <View style={styles.header}>
           <ThemedText
             type="title"
             style={[styles.title, { color: theme.text }]}
           >
-            OCR - Escanear documentos
+            Transacción por Voz
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-            Escanea recibos, facturas y documentos
+            Dicta tu transacción y se creará automáticamente
           </ThemedText>
         </View>
 
-        {!ocrResult ? (
+        {!result ? (
           <>
-            {/* Document Type Selector */}
-            <View style={styles.typeSelector}>
-              <ThemedText
-                style={[styles.typeSelectorLabel, { color: theme.text }]}
-              >
-                Tipo de documento:
-              </ThemedText>
-              <View style={styles.typeButtons}>
-                {DOCUMENT_TYPES.map((type) => (
-                  <Pressable
-                    key={type.value}
-                    onPress={() => setDocumentType(type.value)}
-                    style={[
-                      styles.typeButton,
-                      {
-                        backgroundColor:
-                          documentType === type.value
-                            ? theme.tint
-                            : isDark
-                              ? "#333"
-                              : "#f0f0f0",
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.typeButtonText,
-                        {
-                          color:
-                            documentType === type.value ? "#fff" : theme.text,
-                        },
-                      ]}
-                    >
-                      {type.label}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            {/* Preview file if selected */}
-            {selectedFile && (
-              <View style={styles.previewContainer}>
-                {selectedFileType === "image" ? (
-                  <Image
-                    source={{ uri: selectedFile.uri }}
-                    style={styles.previewImage}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <View style={styles.pdfPreview}>
-                    <IconSymbol
-                      name={"doc.fill" as any}
-                      size={48}
-                      color={theme.tint}
-                    />
-                    <ThemedText
-                      style={[styles.pdfName, { color: theme.text }]}
-                      numberOfLines={1}
-                    >
-                      {selectedFile.name || "documento.pdf"}
-                    </ThemedText>
-                  </View>
-                )}
-              </View>
-            )}
-
+            {/* Recording UI */}
             <View
               style={[
-                styles.card,
-                {
-                  backgroundColor: isDark ? "#222" : theme.cardBackground,
-                  shadowColor: theme.shadow,
-                },
+                styles.recordingCard,
+                { backgroundColor: isDark ? "#222" : theme.cardBackground },
               ]}
             >
-              <IconSymbol
-                name={
-                  Platform.OS === "ios"
-                    ? ("doc.text.viewfinder" as any)
-                    : ("document" as any)
-                }
-                size={48}
-                color={theme.tint}
-              />
-              <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
-                Escaneo rápido
-              </ThemedText>
-              <ThemedText style={[styles.cardText, { color: theme.icon }]}>
-                Usa la cámara, galería o sube un PDF para extraer datos
-                automáticamente con IA.
+              {/* Microphone Icon */}
+              <View
+                style={[
+                  styles.micContainer,
+                  {
+                    backgroundColor: isRecording
+                      ? "#ff6b6b22"
+                      : theme.tint + "22",
+                  },
+                ]}
+              >
+                <IconSymbol
+                  name={isRecording ? ("waveform" as any) : ("mic.fill" as any)}
+                  size={48}
+                  color={isRecording ? "#ff6b6b" : theme.tint}
+                />
+              </View>
+
+              {/* Duration */}
+              {(isRecording || recordingDuration > 0) && (
+                <ThemedText
+                  style={[
+                    styles.duration,
+                    { color: isRecording ? "#ff6b6b" : theme.text },
+                  ]}
+                >
+                  {formatDuration(recordingDuration)}
+                </ThemedText>
+              )}
+
+              {/* Instructions */}
+              <ThemedText style={[styles.instructions, { color: theme.icon }]}>
+                {isRecording
+                  ? 'Grabando... Di algo como:\n"Gasté 50 dólares en comida"'
+                  : "Presiona el botón para grabar"}
               </ThemedText>
 
-              {loading && processingStep && (
-                <View style={styles.processingStatus}>
+              {/* Processing indicator */}
+              {processing && (
+                <View style={styles.processingContainer}>
                   <ActivityIndicator color={theme.tint} size="small" />
                   <ThemedText
                     style={[styles.processingText, { color: theme.icon }]}
@@ -415,71 +341,67 @@ export default function OcrScreen() {
                 </View>
               )}
 
-              <View style={styles.actions}>
-                <Pressable
-                  onPress={onStartScan}
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.scanButton,
-                    {
-                      backgroundColor: pressed
-                        ? theme.inputBackground
-                        : theme.tint,
-                      opacity: loading ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  {loading ? (
-                    <ActivityIndicator
-                      color={isDark ? "#1a1a1a" : "#fff"}
-                      size="small"
-                    />
-                  ) : (
-                    <ThemedText
-                      style={[
-                        styles.scanText,
-                        { color: isDark ? "#1a1a1a" : "#fff" },
-                      ]}
-                    >
-                      Iniciar escaneo
-                    </ThemedText>
-                  )}
-                </Pressable>
+              {/* Record Button */}
+              <Pressable
+                onPress={isRecording ? stopRecording : startRecording}
+                disabled={processing}
+                style={[
+                  styles.recordButton,
+                  {
+                    backgroundColor: isRecording ? "#ff6b6b" : theme.tint,
+                    opacity: processing ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <IconSymbol
+                  name={
+                    isRecording ? ("stop.fill" as any) : ("mic.fill" as any)
+                  }
+                  size={32}
+                  color="#fff"
+                />
+              </Pressable>
 
-                <Pressable
-                  onPress={() => router.back()}
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.backButton,
-                    {
-                      borderColor: pressed ? theme.inputBackground : theme.tint,
-                      opacity: loading ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[styles.backText, { color: theme.tint }]}>
-                    Volver
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.note}>
-              <ThemedText style={{ color: theme.icon, fontSize: 13 }}>
-                Captura clara de documentos para mejores resultados. Soporta
-                recibos, facturas, documentos y más.
+              <ThemedText style={[styles.buttonLabel, { color: theme.icon }]}>
+                {isRecording ? "Detener" : "Grabar"}
               </ThemedText>
             </View>
+
+            {/* Tips */}
+            <View style={styles.tipsContainer}>
+              <ThemedText style={[styles.tipsTitle, { color: theme.text }]}>
+                💡 Ejemplos de lo que puedes decir:
+              </ThemedText>
+              <ThemedText style={[styles.tipText, { color: theme.icon }]}>
+                • Pagué 120 pesos de luz
+              </ThemedText>
+              <ThemedText style={[styles.tipText, { color: theme.icon }]}>
+                • Recibí 500 dólares de mi trabajo
+              </ThemedText>
+              <ThemedText style={[styles.tipText, { color: theme.icon }]}>
+                • Gasté 30 en uber
+              </ThemedText>
+            </View>
+
+            {/* Back button */}
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.backButton, { borderColor: theme.icon }]}
+            >
+              <ThemedText
+                style={[styles.backButtonText, { color: theme.icon }]}
+              >
+                Volver
+              </ThemedText>
+            </Pressable>
           </>
         ) : (
           <>
+            {/* Result / Edit Form */}
             <View
               style={[
                 styles.resultCard,
-                {
-                  backgroundColor: isDark ? "#222" : theme.cardBackground,
-                  shadowColor: theme.shadow,
-                },
+                { backgroundColor: isDark ? "#222" : theme.cardBackground },
               ]}
             >
               <View style={styles.resultHeader}>
@@ -493,63 +415,39 @@ export default function OcrScreen() {
                   color="#4CAF50"
                 />
                 <ThemedText style={[styles.resultTitle, { color: theme.text }]}>
-                  Revisar y confirmar
+                  Audio procesado
                 </ThemedText>
               </View>
 
-              <View style={styles.confidenceSection}>
-                <ThemedText
-                  style={[styles.sectionLabel, { color: theme.text }]}
-                >
-                  Confianza OCR:{" "}
-                  {Math.round(
-                    ocrResult.extraction?.confidence ||
-                      ocrResult.parsed_data?.confidence ||
-                      0,
-                  )}
-                  %
-                </ThemedText>
+              {/* Transcription preview */}
+              {result.extraction?.raw_text && (
                 <View
                   style={[
-                    styles.confidenceBar,
-                    { backgroundColor: theme.inputBackground },
+                    styles.transcriptionBox,
+                    { backgroundColor: isDark ? "#111" : "#f5f5f5" },
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.confidenceFill,
-                      {
-                        width: `${Math.min(
-                          ocrResult.extraction?.confidence ||
-                            ocrResult.parsed_data?.confidence ||
-                            0,
-                          100,
-                        )}%`,
-                        backgroundColor:
-                          (ocrResult.extraction?.confidence ||
-                            ocrResult.parsed_data?.confidence ||
-                            0) >= 70
-                            ? "#4CAF50"
-                            : "#FFC107",
-                      },
-                    ]}
-                  />
+                  <ThemedText
+                    style={[styles.transcriptionLabel, { color: theme.icon }]}
+                  >
+                    Texto transcrito:
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.transcriptionText, { color: theme.text }]}
+                  >
+                    {result.extraction.raw_text}
+                  </ThemedText>
                 </View>
-              </View>
-
-              <View
-                style={[
-                  styles.divider,
-                  { backgroundColor: isDark ? "#444" : "#E0E0E0" },
-                ]}
-              />
+              )}
 
               {editableTransaction && (
                 <>
+                  <View style={styles.divider} />
+
                   <ThemedText
                     style={[styles.sectionLabel, { color: theme.text }]}
                   >
-                    Editar transacción:
+                    Revisar transacción:
                   </ThemedText>
 
                   {/* Title */}
@@ -575,7 +473,7 @@ export default function OcrScreen() {
                           title: text,
                         })
                       }
-                      placeholder="Título de la transacción"
+                      placeholder="Título"
                       placeholderTextColor={theme.icon}
                     />
                   </View>
@@ -607,7 +505,7 @@ export default function OcrScreen() {
                       placeholder="Descripción"
                       placeholderTextColor={theme.icon}
                       multiline
-                      numberOfLines={3}
+                      numberOfLines={2}
                     />
                   </View>
 
@@ -640,7 +538,7 @@ export default function OcrScreen() {
                     />
                   </View>
 
-                  {/* Transaction Type */}
+                  {/* Type */}
                   <View style={styles.inputGroup}>
                     <ThemedText
                       style={[styles.inputLabel, { color: theme.icon }]}
@@ -815,64 +713,44 @@ export default function OcrScreen() {
                 </>
               )}
 
-              <View
-                style={[
-                  styles.divider,
-                  { backgroundColor: isDark ? "#444" : "#E0E0E0" },
-                ]}
-              />
-
+              {/* Actions */}
               <View style={styles.actions}>
                 <Pressable
                   onPress={updateTransaction}
                   disabled={saving}
-                  style={({ pressed }) => [
+                  style={[
                     styles.confirmButton,
-                    {
-                      backgroundColor: pressed ? "#1B8A6B" : "#22c55e",
-                      opacity: saving ? 0.6 : 1,
-                    },
+                    { backgroundColor: "#22c55e", opacity: saving ? 0.6 : 1 },
                   ]}
                 >
                   {saving ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <ThemedText style={[styles.scanText, { color: "#fff" }]}>
-                      ✓ Confirmar transacción
+                    <ThemedText style={styles.confirmButtonText}>
+                      ✓ Confirmar
                     </ThemedText>
                   )}
                 </Pressable>
               </View>
 
-              <View style={[styles.actions, { marginTop: 8 }]}>
+              <View style={styles.secondaryActions}>
                 <Pressable
-                  onPress={resetScan}
-                  disabled={saving}
-                  style={({ pressed }) => [
-                    styles.backButton,
-                    {
-                      borderColor: pressed ? theme.inputBackground : theme.icon,
-                      opacity: saving ? 0.6 : 1,
-                    },
-                  ]}
+                  onPress={resetScreen}
+                  style={[styles.secondaryButton, { borderColor: theme.icon }]}
                 >
-                  <ThemedText style={[styles.backText, { color: theme.icon }]}>
-                    Escanear otro
+                  <ThemedText
+                    style={[styles.secondaryButtonText, { color: theme.icon }]}
+                  >
+                    Grabar otro
                   </ThemedText>
                 </Pressable>
-
                 <Pressable
                   onPress={() => router.push("/transactions")}
-                  disabled={saving}
-                  style={({ pressed }) => [
-                    styles.backButton,
-                    {
-                      borderColor: pressed ? theme.inputBackground : theme.tint,
-                      opacity: saving ? 0.6 : 1,
-                    },
-                  ]}
+                  style={[styles.secondaryButton, { borderColor: theme.tint }]}
                 >
-                  <ThemedText style={[styles.backText, { color: theme.tint }]}>
+                  <ThemedText
+                    style={[styles.secondaryButtonText, { color: theme.tint }]}
+                  >
                     Ver transacciones
                   </ThemedText>
                 </Pressable>
@@ -886,11 +764,11 @@ export default function OcrScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
+  container: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   header: {
     paddingHorizontal: 20,
@@ -905,198 +783,117 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
   },
-  card: {
+  recordingCard: {
     margin: 20,
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: 20,
+    padding: 30,
     alignItems: "center",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 8,
   },
-  resultCard: {
-    margin: 20,
-    borderRadius: 14,
-    padding: 20,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 8,
+  micContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
   },
-  resultHeader: {
+  duration: {
+    fontSize: 32,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  instructions: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  processingContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
   },
+  processingText: {
+    marginLeft: 10,
+    fontSize: 14,
+  },
+  recordButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  buttonLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  tipsContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  tipsTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  tipText: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  backButton: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  backButtonText: {
+    fontWeight: "700",
+  },
+  resultCard: {
+    margin: 20,
+    borderRadius: 20,
+    padding: 20,
+  },
+  resultHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   resultTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginLeft: 12,
+    marginLeft: 10,
   },
-  cardTitle: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: "700",
+  transcriptionBox: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
-  cardText: {
-    marginTop: 6,
-    fontSize: 14,
-    textAlign: "center",
-    maxWidth: 320,
-  },
-  sectionLabel: {
-    fontSize: 14,
+  transcriptionLabel: {
+    fontSize: 12,
     fontWeight: "600",
-    marginTop: 12,
     marginBottom: 8,
   },
-  confidenceSection: {
-    marginBottom: 12,
-  },
-  confidenceBar: {
-    height: 8,
-    borderRadius: 4,
-    overflow: "hidden",
-    marginTop: 6,
-  },
-  confidenceFill: {
-    height: "100%",
-    borderRadius: 4,
+  transcriptionText: {
+    fontSize: 15,
+    fontStyle: "italic",
   },
   divider: {
     height: 1,
+    backgroundColor: "#e0e0e0",
     marginVertical: 16,
   },
-  textBox: {
-    borderRadius: 8,
-    padding: 12,
-    maxHeight: 200,
-  },
-  extractedText: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  dataBox: {
-    borderRadius: 8,
-    padding: 12,
-  },
-  dataRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-  },
-  dataLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  dataValue: {
-    fontSize: 13,
-    fontWeight: "500",
-    maxWidth: "60%",
-  },
-  successBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 12,
-  },
-  actions: {
-    marginTop: 18,
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  scanButton: {
-    flex: 1,
-    marginRight: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scanText: {
-    color: "#1a1a1a",
+  sectionLabel: {
+    fontSize: 16,
     fontWeight: "700",
-  },
-  backButton: {
-    flex: 1,
-    marginLeft: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  backText: {
-    fontWeight: "700",
-  },
-  note: {
-    paddingHorizontal: 20,
-    marginTop: 12,
-  },
-  typeSelector: {
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  typeSelectorLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
-  typeButtons: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  typeButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  typeButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  previewContainer: {
-    marginHorizontal: 20,
-    marginBottom: 10,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#000",
-  },
-  previewImage: {
-    width: "100%",
-    height: 200,
-  },
-  pdfPreview: {
-    width: "100%",
-    height: 200,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f0f4f8",
-  },
-  pdfName: {
-    marginTop: 12,
-    fontSize: 14,
-    fontWeight: "600",
-    maxWidth: "80%",
-  },
-  processingStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 16,
-    paddingVertical: 8,
-  },
-  processingText: {
-    marginLeft: 10,
-    fontSize: 13,
+    marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   inputLabel: {
     fontSize: 13,
@@ -1111,7 +908,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 60,
     textAlignVertical: "top",
   },
   typeToggle: {
@@ -1134,11 +931,33 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
+  actions: {
+    marginTop: 20,
+  },
   confirmButton: {
-    flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  confirmButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  secondaryActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

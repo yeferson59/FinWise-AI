@@ -39,6 +39,12 @@ class Transaction(BaseUuid, table=True):
     amount: float = Field(
         default=0.0, description="Transaction amount", index=True, ge=0, nullable=False
     )
+    transaction_type: str = Field(
+        default="expense",
+        description="Transaction type: 'income' or 'expense'",
+        index=True,
+        nullable=False,
+    )
     date: datetime = Field(description="Transaction date", index=True, nullable=False)
     state: str = Field(
         description="Transaction state", default="pending", index=True, nullable=False

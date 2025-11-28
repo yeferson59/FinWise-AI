@@ -17,15 +17,66 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTransactions } from "shared";
+import { getTransactions, getCategories, getSources } from "shared";
 
-type Category = {
+type CategoryExpense = {
   id: string;
   name: string;
   amount: string;
   percent: number;
   color: string;
   emoji?: string;
+};
+
+type BackendCategory = {
+  id: number;
+  name: string;
+  description?: string | null;
+  is_default: boolean;
+  user_id?: number | null;
+  updated_at: string;
+  created_at: string;
+};
+
+type BackendSource = {
+  id: number;
+  name: string;
+};
+
+const CATEGORY_COLORS = [
+  "#ff6b6b",
+  "#4dd0e1",
+  "#8bc34a",
+  "#ffb86b",
+  "#7c4dff",
+  "#e91e63",
+  "#00bcd4",
+  "#4caf50",
+  "#ff9800",
+  "#9c27b0",
+];
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  alimentación: "🍕",
+  comida: "🍕",
+  food: "🍕",
+  transporte: "🚗",
+  transport: "🚗",
+  hogar: "🏠",
+  home: "🏠",
+  entretenimiento: "🎬",
+  entertainment: "🎬",
+  salud: "💊",
+  health: "💊",
+  educación: "📚",
+  education: "📚",
+  compras: "🛒",
+  shopping: "🛒",
+  servicios: "🔧",
+  services: "🔧",
+  otros: "📦",
+  other: "📦",
+  general: "📦",
 };
 
 export default function HomeScreen() {
@@ -45,54 +96,69 @@ export default function HomeScreen() {
       title?: string;
       description: string;
       amount: number;
+      transaction_type: "income" | "expense";
       date: string;
       state: string;
       updated_at: string;
       created_at: string;
     }[]
   >([]);
+  const [backendCategories, setBackendCategories] = useState<BackendCategory[]>([]);
+  const [backendSources, setBackendSources] = useState<BackendSource[]>([]);
 
   useEffect(() => {
-    getTransactions(user?.id!).then((data) => setRecentTransactions(data));
+    if (user?.id) {
+      getTransactions(user.id).then((data) => setRecentTransactions(data));
+      getCategories().then((data) => setBackendCategories(data));
+      getSources().then((data) => setBackendSources(data));
+    }
   }, [user?.id]);
 
-  const categories: Category[] = useMemo(
-    () => [
-      {
-        id: "1",
-        name: "Alimentación",
-        amount: "$450.00",
-        percent: 35,
-        color: "#ff6b6b",
-        emoji: "🍕",
-      },
-      {
-        id: "2",
-        name: "Transporte",
-        amount: "$280.00",
-        percent: 22,
-        color: "#4dd0e1",
-        emoji: "🚗",
-      },
-      {
-        id: "3",
-        name: "Hogar",
-        amount: "$380.00",
-        percent: 30,
-        color: "#8bc34a",
-        emoji: "🏠",
-      },
-      {
-        id: "4",
-        name: "Entretenimiento",
-        amount: "$120.00",
-        percent: 8,
-        color: "#ffb86b",
-        emoji: "🎬",
-      },
-    ],
-    [],
-  );
+  const getCategoryName = (id: number) => {
+    const cat = backendCategories.find((c) => c.id === id);
+    return cat?.name || "Sin categoría";
+  };
+
+  const getSourceName = (id: number) => {
+    const src = backendSources.find((s) => s.id === id);
+    return src?.name || "Sin fuente";
+  };
+
+  const categoryExpenses: CategoryExpense[] = useMemo(() => {
+    if (backendCategories.length === 0 || recentTransactions.length === 0) {
+      return [];
+    }
+
+    // Calculate expenses per category (only expense transactions)
+    const expensesByCategory: Record<number, number> = {};
+    recentTransactions.forEach((tx) => {
+      if (tx.transaction_type === "expense") {
+        const categoryId = tx.category_id;
+        expensesByCategory[categoryId] = (expensesByCategory[categoryId] || 0) + tx.amount;
+      }
+    });
+
+    const totalExpenses = Object.values(expensesByCategory).reduce((sum, val) => sum + val, 0);
+
+    // Map backend categories to display format with calculated amounts
+    return backendCategories
+      .filter((cat) => expensesByCategory[cat.id] !== undefined)
+      .map((cat, index) => {
+        const amount = expensesByCategory[cat.id] || 0;
+        const percent = totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0;
+        const lowerName = cat.name.toLowerCase();
+        
+        return {
+          id: cat.id.toString(),
+          name: cat.name,
+          amount: `$${amount.toFixed(2)}`,
+          percent,
+          color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+          emoji: CATEGORY_EMOJIS[lowerName] || "🏷️",
+        };
+      })
+      .sort((a, b) => b.percent - a.percent);
+  }, [backendCategories, recentTransactions]);
 
   const budgetAlerts = useMemo(
     () => [
@@ -159,11 +225,32 @@ export default function HomeScreen() {
     </Pressable>
   );
 
+  const onPressTransaction = (item: any) => {
+    router.push({
+      pathname: "/transaction-detail",
+      params: {
+        id: item.id,
+        title: item.title || "",
+        description: item.description,
+        amount: item.amount.toString(),
+        transaction_type: item.transaction_type,
+        date: item.date,
+        state: item.state,
+        category_name: getCategoryName(item.category_id),
+        source_name: getSourceName(item.source_id),
+        category_id: item.category_id.toString(),
+        source_id: item.source_id.toString(),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      },
+    });
+  };
+
   const renderRecentTransaction = ({ item }: { item: any }) => {
-    // Determine if amount is positive (income) or negative (expense)
-    const isPositive = Number(item?.amount ?? 0) >= 0;
-    // Default color based on transaction type
-    const transactionColor = isPositive ? "#25d1b2" : "#ff6b6b";
+    // Determine transaction type from backend field
+    const isIncome = item.transaction_type === "income";
+    // Color based on transaction type
+    const transactionColor = isIncome ? "#25d1b2" : "#ff6b6b";
     // Format date for display
     const formattedDate = item.date
       ? new Date(item.date).toLocaleDateString("es-ES", {
@@ -175,7 +262,8 @@ export default function HomeScreen() {
       : "";
 
     return (
-      <View
+      <Pressable
+        onPress={() => onPressTransaction(item)}
         style={[
           styles.transactionItem,
           {
@@ -193,7 +281,7 @@ export default function HomeScreen() {
           >
             <IconSymbol
               name={
-                isPositive
+                isIncome
                   ? ("arrow.down.circle" as any)
                   : ("arrow.up.circle" as any)
               }
@@ -215,9 +303,9 @@ export default function HomeScreen() {
           </View>
         </View>
         <Text style={[styles.transactionAmount, { color: transactionColor }]}>
-          {isPositive ? "+" : "-"}${Math.abs(item.amount).toFixed(2)}
+          {isIncome ? "+" : "-"}${item.amount.toFixed(2)}
         </Text>
-      </View>
+      </Pressable>
     );
   };
 
@@ -290,7 +378,7 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderCategory = ({ item }: { item: Category }) => {
+  const renderCategory = ({ item }: { item: CategoryExpense }) => {
     return (
       <View
         style={[
@@ -549,12 +637,17 @@ export default function HomeScreen() {
         </View>
 
         <FlatList
-          data={categories}
+          data={categoryExpenses}
           keyExtractor={(i) => i.id}
           renderItem={renderCategory}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{ paddingBottom: 24 }}
+          ListEmptyComponent={
+            <Text style={{ color: theme.icon, textAlign: "center", paddingVertical: 20 }}>
+              No hay gastos registrados
+            </Text>
+          }
         />
       </ScrollView>
     </SafeAreaView>
