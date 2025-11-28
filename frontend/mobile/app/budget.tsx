@@ -1,4 +1,3 @@
-import React from "react";
 import { View, StyleSheet, Pressable, FlatList, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemedView } from "@/components/themed-view";

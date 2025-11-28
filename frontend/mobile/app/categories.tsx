@@ -1,125 +1,131 @@
-import React, { useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  Text,
-  Dimensions,
-} from "react-native";
+import { useState, useEffect } from "react";
+import { View, StyleSheet, FlatList, Pressable, Text } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getCategories } from "shared";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Colores predefinidos para categorías
+const CATEGORY_COLORS = [
+  "#ff6b6b",
+  "#4dd0e1",
+  "#8bc34a",
+  "#ffb86b",
+  "#7c4dff",
+  "#e91e63",
+  "#00bcd4",
+  "#4caf50",
+  "#ff9800",
+  "#9c27b0",
+  "#f44336",
+  "#03a9f4",
+  "#cddc39",
+  "#ff5722",
+  "#673ab7",
+];
+
+// Emojis por nombre de categoría (mapeo común)
+const CATEGORY_EMOJIS: Record<string, string> = {
+  alimentación: "🍕",
+  comida: "🍕",
+  food: "🍕",
+  transporte: "🚗",
+  transport: "🚗",
+  hogar: "🏠",
+  home: "🏠",
+  entretenimiento: "🎬",
+  entertainment: "🎬",
+  salud: "💊",
+  health: "💊",
+  educación: "📚",
+  education: "📚",
+  compras: "🛒",
+  shopping: "🛒",
+  servicios: "🔧",
+  services: "🔧",
+  otros: "📦",
+  other: "📦",
+  general: "📦",
+};
 
 type Category = {
-  id: string;
+  id: number;
   name: string;
-  amount: number;
-  percent: number;
-  color: string;
-  emoji?: string;
+  description?: string | null;
+  is_default: boolean;
+  user_id?: number | null;
+  updated_at: string;
+  created_at: string;
 };
 
 export default function CategoriesScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const categories = useMemo<Category[]>(
-    () => [
-      {
-        id: "1",
-        name: "Alimentación",
-        amount: 450,
-        percent: 35,
-        color: "#ff6b6b",
-        emoji: "🍕",
-      },
-      {
-        id: "2",
-        name: "Transporte",
-        amount: 280,
-        percent: 22,
-        color: "#4dd0e1",
-        emoji: "🚗",
-      },
-      {
-        id: "3",
-        name: "Hogar",
-        amount: 380,
-        percent: 30,
-        color: "#8bc34a",
-        emoji: "🏠",
-      },
-      {
-        id: "4",
-        name: "Entretenimiento",
-        amount: 120,
-        percent: 8,
-        color: "#ffb86b",
-        emoji: "🎬",
-      },
-      {
-        id: "5",
-        name: "Salud",
-        amount: 90,
-        percent: 5,
-        color: "#7c4dff",
-        emoji: "💊",
-      },
-    ],
-    [],
-  );
+  useEffect(() => {
+    getCategories().then((data) => setCategories(data));
+  }, []);
 
-  const renderItem = ({ item }: { item: Category }) => (
-    <Pressable
-      style={[
-        styles.row,
-        {
-          backgroundColor: theme.cardBackground,
-          ...createShadow(0, 6, 8, theme.shadow, 4),
-        },
-      ]}
-      onPress={() => {}}
-    >
-      <View style={styles.left}>
-        <View style={[styles.iconWrap, { backgroundColor: item.color + "22" }]}>
-          <Text style={{ fontSize: 18 }}>{item.emoji ?? "🏷️"}</Text>
-        </View>
-        <View style={{ marginLeft: 12 }}>
-          <ThemedText style={[styles.title, { color: theme.text }]}>
-            {item.name}
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-            ${item.amount.toFixed(2)}
-          </ThemedText>
-        </View>
-      </View>
+  // Obtener color para una categoría basado en su índice
+  const getCategoryColor = (index: number) => {
+    return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+  };
 
-      <View style={styles.right}>
-        <View
-          style={[
-            styles.progressBg,
-            { backgroundColor: isDark ? "#2b2b2b" : "#eef2f5" },
-          ]}
-        >
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${item.percent}%`, backgroundColor: item.color },
-            ]}
-          />
+  // Obtener emoji para una categoría basado en su nombre
+  const getCategoryEmoji = (name: string) => {
+    const lowerName = name.toLowerCase();
+    return CATEGORY_EMOJIS[lowerName] || "🏷️";
+  };
+
+  const renderItem = ({ item, index }: { item: Category; index: number }) => {
+    const color = getCategoryColor(index);
+    const emoji = getCategoryEmoji(item.name);
+
+    return (
+      <Pressable
+        style={[
+          styles.row,
+          {
+            backgroundColor: theme.cardBackground,
+            ...createShadow(0, 6, 8, theme.shadow, 4),
+          },
+        ]}
+        onPress={() => {}}
+      >
+        <View style={styles.left}>
+          <View style={[styles.iconWrap, { backgroundColor: color + "22" }]}>
+            <Text style={{ fontSize: 18 }}>{emoji}</Text>
+          </View>
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <ThemedText
+              style={[styles.title, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
+              {item.description ||
+                (item.is_default
+                  ? "Categoría predeterminada"
+                  : "Categoría personalizada")}
+            </ThemedText>
+          </View>
         </View>
-        <ThemedText style={[styles.percent, { color: theme.icon }]}>
-          {item.percent}%
-        </ThemedText>
-      </View>
-    </Pressable>
-  );
+
+        <View style={styles.right}>
+          <View style={[styles.badge, { backgroundColor: color + "22" }]}>
+            <Text style={{ color: color, fontSize: 12, fontWeight: "600" }}>
+              {item.is_default ? "Default" : "Custom"}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <ThemedView
@@ -139,7 +145,7 @@ export default function CategoriesScreen() {
 
       <FlatList
         data={categories}
-        keyExtractor={(c) => c.id}
+        keyExtractor={(c) => c.id.toString()}
         contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
         renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -151,12 +157,16 @@ export default function CategoriesScreen() {
         style={[
           styles.fab,
           {
-            backgroundColor: "#007bff",
+            backgroundColor: theme.tint,
             ...createShadow(0, 6, 8, theme.shadow, 8),
           },
         ]}
       >
-        <IconSymbol name={"plus" as any} size={20} color={"#fff"} />
+        <IconSymbol
+          name={"plus" as any}
+          size={20}
+          color={isDark ? "#1a1a1a" : "#fff"}
+        />
       </Pressable>
     </ThemedView>
   );
@@ -208,23 +218,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   right: {
-    width: Math.min(120, SCREEN_WIDTH * 0.35),
     alignItems: "flex-end",
     marginLeft: 12,
   },
-  progressBg: {
-    width: "100%",
-    height: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 999,
-  },
-  percent: {
-    fontSize: 12,
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   fab: {
     position: "absolute",

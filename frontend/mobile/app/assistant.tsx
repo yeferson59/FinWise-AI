@@ -1,4 +1,3 @@
-import React from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";

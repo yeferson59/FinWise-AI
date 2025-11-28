@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { View, FlatList, StyleSheet, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -6,63 +6,35 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTransactions } from "shared";
 
 type Transaction = {
   id: string;
-  title: string;
-  category: string;
+  user_id: number;
+  category_id: number;
+  source_id: number;
+  title?: string;
+  description: string;
   amount: number;
   date: string;
-  type: "expense" | "income";
-  icon?: string;
+  state: string;
+  updated_at: string;
+  created_at: string;
 };
 
 export default function TransactionsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const transactions: Transaction[] = useMemo(
-    () => [
-      {
-        id: "t1",
-        title: "Compra Supermercado",
-        category: "Alimentación",
-        amount: 72.5,
-        date: "2025-11-10",
-        type: "expense",
-        icon: "pizza",
-      },
-      {
-        id: "t2",
-        title: "Sueldo",
-        category: "Ingresos",
-        amount: 2500,
-        date: "2025-11-01",
-        type: "income",
-        icon: "dollarsign.circle",
-      },
-      {
-        id: "t3",
-        title: "Taxi",
-        category: "Transporte",
-        amount: 12.75,
-        date: "2025-11-12",
-        type: "expense",
-        icon: "car",
-      },
-      {
-        id: "t4",
-        title: "Pago Electricidad",
-        category: "Hogar",
-        amount: 55.0,
-        date: "2025-11-07",
-        type: "expense",
-        icon: "home",
-      },
-    ],
-    [],
-  );
+  useEffect(() => {
+    if (user?.id) {
+      getTransactions(user.id, 0, 50).then((data) => setTransactions(data));
+    }
+  }, [user?.id]);
 
   const onPressTransaction = (id: string) => {
     // navigate to detail (placeholder route)
@@ -70,7 +42,16 @@ export default function TransactionsScreen() {
   };
 
   const renderItem = ({ item }: { item: Transaction }) => {
-    const amountColor = item.type === "income" ? "#2dd4bf" : "#ff6b6b";
+    const isPositive = item.amount >= 0;
+    const amountColor = isPositive ? "#2dd4bf" : "#ff6b6b";
+    const formattedDate = item.date
+      ? new Date(item.date).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "";
+
     return (
       <Pressable
         onPress={() => onPressTransaction(item.id)}
@@ -94,30 +75,35 @@ export default function TransactionsScreen() {
             ]}
           >
             <IconSymbol
-              name={(item.icon as any) ?? ("tag" as any)}
+              name={
+                isPositive
+                  ? ("arrow.down.circle" as any)
+                  : ("arrow.up.circle" as any)
+              }
               size={18}
-              color={theme.tint}
+              color={amountColor}
             />
           </View>
-          <View style={{ marginLeft: 12 }}>
+          <View style={{ marginLeft: 12, flex: 1 }}>
             <Text
               style={[styles.title, { color: theme.text }]}
               numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              {item.title}
+              {item.title || item.description || "Sin descripción"}
             </Text>
             <Text style={[styles.subtitle, { color: theme.icon }]}>
-              {item.category}
+              {item.state === "pending" ? "Pendiente" : "Completada"}
             </Text>
           </View>
         </View>
 
         <View style={styles.right}>
           <Text style={[styles.dateText, { color: theme.icon }]}>
-            {item.date}
+            {formattedDate}
           </Text>
           <Text style={[styles.amountText, { color: amountColor }]}>
-            {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
+            {isPositive ? "+" : "-"}${Math.abs(item.amount).toFixed(2)}
           </Text>
         </View>
       </Pressable>
@@ -152,8 +138,14 @@ export default function TransactionsScreen() {
             { backgroundColor: pressed ? "#0b7285" : theme.tint },
           ]}
         >
-          <IconSymbol name={"plus" as any} size={20} color={"#fff"} />
-          <ThemedText style={{ color: "#fff", marginLeft: 8 }}>
+          <IconSymbol
+            name={"plus" as any}
+            size={20}
+            color={isDark ? "#1a1a1a" : "#fff"}
+          />
+          <ThemedText
+            style={{ color: isDark ? "#1a1a1a" : "#fff", marginLeft: 8 }}
+          >
             Nueva
           </ThemedText>
         </Pressable>
@@ -187,6 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    marginRight: 12,
   },
   iconWrap: {
     width: 46,
@@ -198,7 +191,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: "700",
-    maxWidth: 220,
   },
   subtitle: {
     fontSize: 13,

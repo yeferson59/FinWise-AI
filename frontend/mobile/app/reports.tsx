@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { View, StyleSheet, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemedView } from "@/components/themed-view";
@@ -18,6 +18,7 @@ export default function ReportsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const isDark = (colorScheme ?? "light") === "dark";
 
   const reports: ReportItem[] = useMemo(
     () => [
@@ -87,7 +88,9 @@ export default function ReportsScreen() {
             },
           ]}
         >
-          <ThemedText style={{ color: "#fff", fontWeight: "700" }}>
+          <ThemedText
+            style={{ color: isDark ? "#1a1a1a" : "#fff", fontWeight: "700" }}
+          >
             Generar
           </ThemedText>
         </Pressable>
@@ -116,8 +119,17 @@ export default function ReportsScreen() {
             { backgroundColor: pressed ? theme.inputBackground : theme.tint },
           ]}
         >
-          <IconSymbol name={"document" as any} size={18} color={"#fff"} />
-          <ThemedText style={styles.primaryActionLabel}>
+          <IconSymbol
+            name={"document" as any}
+            size={18}
+            color={isDark ? "#1a1a1a" : "#fff"}
+          />
+          <ThemedText
+            style={[
+              styles.primaryActionLabel,
+              { color: isDark ? "#1a1a1a" : "#fff" },
+            ]}
+          >
             Nuevo reporte
           </ThemedText>
         </Pressable>
@@ -187,7 +199,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   primaryActionLabel: {
-    color: "#fff",
     fontWeight: "700",
     marginLeft: 8,
   },

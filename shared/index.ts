@@ -24,6 +24,7 @@ const TransactionSchema = z.object({
   user_id: z.coerce.number(),
   category_id: z.coerce.number(),
   source_id: z.coerce.number(),
+  title: z.coerce.string().optional().default(""),
   description: z.coerce.string(),
   amount: z.coerce.number(),
   date: z.string(),
@@ -33,6 +34,18 @@ const TransactionSchema = z.object({
 });
 
 const TransactionsSchema = z.array(TransactionSchema);
+
+const CategorySchema = z.object({
+  id: z.coerce.number(),
+  name: z.coerce.string(),
+  description: z.coerce.string().nullable().optional(),
+  is_default: z.coerce.boolean(),
+  user_id: z.coerce.number().nullable().optional(),
+  updated_at: z.string(),
+  created_at: z.string(),
+});
+
+const CategoriesSchema = z.array(CategorySchema);
 
 /**
  * Create axios instance with retry interceptor
@@ -252,6 +265,41 @@ export const getTransactions = async (
   }
 };
 
+// ============================================================================
+// CATEGORIES
+// ============================================================================
+
+export const getCategories = async (
+  offset: number = 0,
+  limit: number = 100,
+) => {
+  try {
+    const response = await api.get(
+      `/api/v1/categories?offset=${offset}&limit=${limit}`,
+    );
+
+    const { success, error, data } = await CategoriesSchema.safeParseAsync(
+      response.data,
+    );
+
+    if (!success) {
+      console.error("[Get Categories Error]", {
+        message: error.message,
+      });
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    const apiError = error instanceof Error ? error : parseApiError(error);
+    console.error("[Get Categories Error]", {
+      code: (apiError as ApiError).error_code,
+      message: apiError.message,
+    });
+    return [];
+  }
+};
+
 export const createTransaction = async (tx: any) =>
   api.post("/api/v1/transactions", tx);
 
@@ -304,18 +352,19 @@ export const processFile = async (
   // Build query parameters
   const params = new URLSearchParams();
   params.append("user_id", user_id.toString());
-  if (source_id !== null) {
-    params.append("source_id", source_id.toString());
-  }
   params.append("document_type", document_type);
 
-  return api.post(`/api/v1/transactions/process-from-file?${params.toString()}`, form, {
-    headers: {
-      "Content-Type": "multipart/form-data",
+  return api.post(
+    `/api/v1/transactions/process-from-file?${params.toString()}`,
+    form,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      // Longer timeout for file uploads with OCR processing
+      timeout: 120000,
     },
-    // Longer timeout for file uploads with OCR processing
-    timeout: 120000,
-  });
+  );
 };
 
 export default api;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -42,6 +42,7 @@ export default function HomeScreen() {
       user_id: number;
       category_id: number;
       source_id: number;
+      title?: string;
       description: string;
       amount: number;
       date: string;
@@ -159,11 +160,19 @@ export default function HomeScreen() {
   );
 
   const renderRecentTransaction = ({ item }: { item: any }) => {
-    // compute positivity safely before JSX to avoid calling .includes on non-strings
-    const amountStr = String(item?.amount ?? "");
-    const isPositive = amountStr.includes("+")
-      ? true
-      : Number(item?.amount ?? 0) >= 0;
+    // Determine if amount is positive (income) or negative (expense)
+    const isPositive = Number(item?.amount ?? 0) >= 0;
+    // Default color based on transaction type
+    const transactionColor = isPositive ? "#25d1b2" : "#ff6b6b";
+    // Format date for display
+    const formattedDate = item.date
+      ? new Date(item.date).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
 
     return (
       <View
@@ -179,27 +188,34 @@ export default function HomeScreen() {
           <View
             style={[
               styles.transactionIcon,
-              { backgroundColor: item.color + "22" },
+              { backgroundColor: transactionColor + "22" },
             ]}
           >
-            <IconSymbol name={item.icon as any} size={16} color={item.color} />
+            <IconSymbol
+              name={
+                isPositive
+                  ? ("arrow.down.circle" as any)
+                  : ("arrow.up.circle" as any)
+              }
+              size={16}
+              color={transactionColor}
+            />
           </View>
-          <View style={{ marginLeft: 10 }}>
-            <Text style={[styles.transactionTitle, { color: theme.text }]}>
-              {item.description}
+          <View style={{ marginLeft: 10, flex: 1 }}>
+            <Text
+              style={[styles.transactionTitle, { color: theme.text }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {item.title || item.description || "Sin descripción"}
             </Text>
             <Text style={[styles.transactionTime, { color: theme.icon }]}>
-              {item.date}
+              {formattedDate}
             </Text>
           </View>
         </View>
-        <Text
-          style={[
-            styles.transactionAmount,
-            { color: isPositive ? "#25d1b2" : "#ff6b6b" },
-          ]}
-        >
-          {item.amount}
+        <Text style={[styles.transactionAmount, { color: transactionColor }]}>
+          {isPositive ? "+" : "-"}${Math.abs(item.amount).toFixed(2)}
         </Text>
       </View>
     );
@@ -601,7 +617,7 @@ const styles = StyleSheet.create({
   },
   balanceDivider: {
     height: 1,
-    backgroundColor: "#2b2b2b10",
+    backgroundColor: "rgba(128,128,128,0.2)",
     marginVertical: 8,
   },
   totalsRow: {
@@ -732,6 +748,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+    marginRight: 12,
   },
   transactionIcon: {
     width: 40,

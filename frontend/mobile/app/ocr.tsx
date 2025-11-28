@@ -273,9 +273,9 @@ export default function OcrScreen() {
                   ]}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={isDark ? "#1a1a1a" : "#fff"} size="small" />
                   ) : (
-                    <ThemedText style={styles.scanText}>
+                    <ThemedText style={[styles.scanText, { color: isDark ? "#1a1a1a" : "#fff" }]}>
                       Iniciar escaneo
                     </ThemedText>
                   )}
@@ -362,7 +362,7 @@ export default function OcrScreen() {
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: isDark ? "#444" : "#E0E0E0" }]} />
 
               <ThemedText style={[styles.sectionLabel, { color: theme.text }]}>
                 Texto extraído:
@@ -387,7 +387,7 @@ export default function OcrScreen() {
 
               {ocrResult.parsed_data && (
                 <>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: isDark ? "#444" : "#E0E0E0" }]} />
                   <ThemedText
                     style={[styles.sectionLabel, { color: theme.text }]}
                   >
@@ -400,7 +400,7 @@ export default function OcrScreen() {
                     ]}
                   >
                     {ocrResult.parsed_data.title && (
-                      <View style={styles.dataRow}>
+                      <View style={[styles.dataRow, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
                         <ThemedText
                           style={[styles.dataLabel, { color: theme.icon }]}
                         >
@@ -415,7 +415,7 @@ export default function OcrScreen() {
                       </View>
                     )}
                     {(ocrResult.parsed_data.amount !== undefined && ocrResult.parsed_data.amount !== null) && (
-                      <View style={styles.dataRow}>
+                      <View style={[styles.dataRow, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
                         <ThemedText
                           style={[styles.dataLabel, { color: theme.icon }]}
                         >
@@ -431,7 +431,7 @@ export default function OcrScreen() {
                       </View>
                     )}
                     {ocrResult.parsed_data.date && (
-                      <View style={styles.dataRow}>
+                      <View style={[styles.dataRow, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
                         <ThemedText
                           style={[styles.dataLabel, { color: theme.icon }]}
                         >
@@ -470,7 +470,7 @@ export default function OcrScreen() {
               {/* Category and Source */}
               {(ocrResult.category || ocrResult.source) && (
                 <>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: isDark ? "#444" : "#E0E0E0" }]} />
                   <ThemedText
                     style={[styles.sectionLabel, { color: theme.text }]}
                   >
@@ -483,7 +483,7 @@ export default function OcrScreen() {
                     ]}
                   >
                     {ocrResult.category && (
-                      <View style={styles.dataRow}>
+                      <View style={[styles.dataRow, { borderBottomColor: isDark ? "#444" : "#E0E0E0" }]}>
                         <ThemedText style={[styles.dataLabel, { color: theme.icon }]}>
                           Categoría:
                         </ThemedText>
@@ -508,9 +508,9 @@ export default function OcrScreen() {
 
               {ocrResult.transaction && (
                 <>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: isDark ? "#444" : "#E0E0E0" }]} />
                   <View
-                    style={[styles.successBox, { backgroundColor: "#E8F5E9" }]}
+                    style={[styles.successBox, { backgroundColor: isDark ? "#1B3D2F" : "#E8F5E9" }]}
                   >
                     <IconSymbol
                       name={
@@ -523,7 +523,7 @@ export default function OcrScreen() {
                     />
                     <ThemedText
                       style={{
-                        color: "#2E7D32",
+                        color: isDark ? "#7BD4A0" : "#2E7D32",
                         marginLeft: 8,
                         fontWeight: "600",
                       }}
@@ -546,7 +546,7 @@ export default function OcrScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={styles.scanText}>
+                  <ThemedText style={[styles.scanText, { color: isDark ? "#1a1a1a" : "#fff" }]}>
                     Escanear otro documento
                   </ThemedText>
                 </Pressable>
@@ -654,7 +654,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#E0E0E0",
     marginVertical: 16,
   },
   textBox: {
@@ -676,7 +675,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
   },
   dataLabel: {
     fontSize: 13,
@@ -709,7 +707,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scanText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontWeight: "700",
   },
   backButton: {

@@ -6,7 +6,7 @@
 import { Platform } from "react-native";
 
 const tintColorLight = "#007bff"; // Azul principal
-const tintColorDark = "#fff";
+const tintColorDark = "#4da6ff"; // Azul claro para modo oscuro
 
 const secondaryGreen = "#28a745"; // Verde
 const accentWhite = "#ffffff"; // Blanco
@@ -28,6 +28,7 @@ export const Colors = {
     inputBackground: backgroundLight,
     buttonPrimary: tintColorLight,
     buttonSecondary: secondaryGreen,
+    buttonText: "#ffffff",
     shadow: "rgba(0, 123, 255, 0.1)",
   },
   dark: {
@@ -44,6 +45,7 @@ export const Colors = {
     inputBackground: "#333",
     buttonPrimary: tintColorDark,
     buttonSecondary: secondaryGreen,
+    buttonText: "#1a1a1a",
     shadow: "rgba(0, 123, 255, 0.2)",
   },
 };

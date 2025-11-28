@@ -178,7 +178,7 @@ export default function NotificationsScreen() {
           }}
           style={[styles.primaryBtn, { backgroundColor: theme.tint }]}
         >
-          <ThemedText style={{ color: "#fff", fontWeight: "700" }}>
+          <ThemedText style={{ color: isDark ? "#1a1a1a" : "#fff", fontWeight: "700" }}>
             Marcar todo como leído
           </ThemedText>
         </Pressable>

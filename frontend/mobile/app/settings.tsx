@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: "rgba(128,128,128,0.2)",
     marginVertical: 8,
   },
 });

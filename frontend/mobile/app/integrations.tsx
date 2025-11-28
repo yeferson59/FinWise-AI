@@ -11,6 +11,7 @@ export default function IntegrationsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
+  const isDark = (colorScheme ?? "light") === "dark";
 
   // Example local state for toggles (placeholder UI)
   const [connected, setConnected] = React.useState({
@@ -85,7 +86,7 @@ export default function IntegrationsScreen() {
 
       <View style={styles.footer}>
         <Pressable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: theme.tint }]}>
-          <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Volver</ThemedText>
+          <ThemedText style={{ color: isDark ? "#1a1a1a" : "#fff", fontWeight: "700" }}>Volver</ThemedText>
         </Pressable>
       </View>
     </ThemedView>
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.06)",
+    borderBottomColor: "rgba(128,128,128,0.3)",
   },
   integrationLeft: {
     flexDirection: "row",
