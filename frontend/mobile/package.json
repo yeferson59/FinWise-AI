@@ -17,6 +17,7 @@
     "@react-navigation/drawer": "^7.7.3",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
+    "base-64": "^1.0.0",
     "expo": "~54.0.25",
     "expo-audio": "~1.0.15",
     "expo-constants": "~18.0.10",
@@ -46,6 +47,7 @@
     "shared": "file:../../shared"
   },
   "devDependencies": {
+    "@types/base-64": "^1.0.2",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",

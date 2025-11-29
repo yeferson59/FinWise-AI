@@ -100,16 +100,6 @@ export default function TransactionDetailScreen() {
     isEditing ? editData.state : params.state || "pending",
   );
 
-  const getCategoryName = (id: number) => {
-    const cat = categories.find((c) => c.id === id);
-    return cat?.name || params.category_name || "Sin categoría";
-  };
-
-  const getSourceName = (id: number) => {
-    const src = sources.find((s) => s.id === id);
-    return src?.name || params.source_name || "Sin fuente";
-  };
-
   const getSourceEmoji = (name: string) => {
     const lowerName = name.toLowerCase();
     return SOURCE_EMOJIS[lowerName] || "🏦";

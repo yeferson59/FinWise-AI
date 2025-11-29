@@ -49,6 +49,7 @@ export default function AudioTransactionScreen() {
   const [processingStep, setProcessingStep] = useState("");
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [editableTransaction, setEditableTransaction] =
@@ -68,6 +69,14 @@ export default function AudioTransactionScreen() {
     }
     return () => clearInterval(interval);
   }, [isRecording]);
+
+  useEffect(() => {
+    return () => {
+      if (recordedUri) {
+        deleteFileIfExists(recordedUri);
+      }
+    };
+  }, [recordedUri]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -125,6 +134,11 @@ export default function AudioTransactionScreen() {
         return;
       }
 
+      if (recordedUri) {
+        deleteFileIfExists(recordedUri);
+        setRecordedUri(null);
+      }
+
       await configureAudioSession();
 
       // Prepare the recorder (useAudioRecorder provides the recorder instance)
@@ -150,11 +164,12 @@ export default function AudioTransactionScreen() {
 
         if (uri) {
           const persistedUri = await persistRecording(uri);
-          try {
-            await processAudio(persistedUri);
-          } finally {
-            deleteFileIfExists(persistedUri);
-          }
+          setRecordedUri((previous) => {
+            if (previous) {
+              deleteFileIfExists(previous);
+            }
+            return persistedUri;
+          });
         }
       }
     } catch (error: any) {
@@ -168,14 +183,15 @@ export default function AudioTransactionScreen() {
     }
   };
 
-  const processAudio = async (uri: string) => {
+  const processAudio = async (uri: string): Promise<boolean> => {
     if (!user) {
       Alert.alert("Error", "Usuario no autenticado");
-      return;
+      return false;
     }
 
     setProcessing(true);
     setProcessingStep("Preparando audio...");
+    let success = false;
 
     try {
       const timestamp = Date.now();
@@ -220,6 +236,7 @@ export default function AudioTransactionScreen() {
             state: tx.state || "pending",
           });
         }
+        success = true;
       }
     } catch (error: any) {
       const errorMessage =
@@ -229,6 +246,28 @@ export default function AudioTransactionScreen() {
       setProcessing(false);
       setProcessingStep("");
     }
+
+    return success;
+  };
+
+  const handleProcessRecording = async () => {
+    if (!recordedUri || processing) return;
+    const success = await processAudio(recordedUri);
+    if (success) {
+      deleteFileIfExists(recordedUri);
+      setRecordedUri(null);
+      setRecordingDuration(0);
+    }
+  };
+
+  const handleDiscardRecording = () => {
+    setRecordedUri((prev) => {
+      if (prev) {
+        deleteFileIfExists(prev);
+      }
+      return null;
+    });
+    setRecordingDuration(0);
   };
 
   const updateTransaction = async () => {
@@ -262,7 +301,7 @@ export default function AudioTransactionScreen() {
   const resetScreen = () => {
     setResult(null);
     setEditableTransaction(null);
-    setRecordingDuration(0);
+    handleDiscardRecording();
   };
 
   return (
@@ -326,7 +365,9 @@ export default function AudioTransactionScreen() {
               <ThemedText style={[styles.instructions, { color: theme.icon }]}>
                 {isRecording
                   ? 'Grabando... Di algo como:\n"Gasté 50 dólares en comida"'
-                  : "Presiona el botón para grabar"}
+                  : recordedUri
+                    ? "Audio listo. Puedes procesarlo o volver a grabar"
+                    : "Presiona el botón para grabar"}
               </ThemedText>
 
               {/* Processing indicator */}
@@ -365,6 +406,68 @@ export default function AudioTransactionScreen() {
               <ThemedText style={[styles.buttonLabel, { color: theme.icon }]}>
                 {isRecording ? "Detener" : "Grabar"}
               </ThemedText>
+
+              {recordedUri && !isRecording && !processing && (
+                <View
+                  style={[
+                    styles.postRecordingContainer,
+                    { backgroundColor: isDark ? "#111" : theme.inputBackground },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.readyLabel, { color: theme.text }]}
+                  >
+                    Grabación lista ({formatDuration(recordingDuration)})
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.readySubLabel, { color: theme.icon }]}
+                  >
+                    Procesa el audio o vuelve a grabar si necesitas otro intento.
+                  </ThemedText>
+                  <View style={styles.postRecordingActions}>
+                    <Pressable
+                      onPress={handleProcessRecording}
+                      style={[
+                        styles.postActionButton,
+                        { backgroundColor: theme.tint },
+                      ]}
+                    >
+                      <IconSymbol
+                        name={"waveform" as any}
+                        size={18}
+                        color="#fff"
+                      />
+                      <ThemedText
+                        style={[styles.postActionText, { color: "#fff" }]}
+                      >
+                        Procesar audio
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleDiscardRecording}
+                      style={[
+                        styles.postActionButton,
+                        {
+                          borderWidth: 1,
+                          borderColor: theme.icon,
+                          backgroundColor: "transparent",
+                        },
+                      ]}
+                    >
+                      <IconSymbol
+                        name={"arrow.counterclockwise" as any}
+                        size={18}
+                        color={theme.icon}
+                      />
+                      <ThemedText
+                        style={[styles.postActionText, { color: theme.icon }]}
+                      >
+                        Volver a grabar
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Tips */}
@@ -418,27 +521,6 @@ export default function AudioTransactionScreen() {
                   Audio procesado
                 </ThemedText>
               </View>
-
-              {/* Transcription preview */}
-              {result.extraction?.raw_text && (
-                <View
-                  style={[
-                    styles.transcriptionBox,
-                    { backgroundColor: isDark ? "#111" : "#f5f5f5" },
-                  ]}
-                >
-                  <ThemedText
-                    style={[styles.transcriptionLabel, { color: theme.icon }]}
-                  >
-                    Texto transcrito:
-                  </ThemedText>
-                  <ThemedText
-                    style={[styles.transcriptionText, { color: theme.text }]}
-                  >
-                    {result.extraction.raw_text}
-                  </ThemedText>
-                </View>
-              )}
 
               {editableTransaction && (
                 <>
@@ -829,6 +911,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  postRecordingContainer: {
+    width: "100%",
+    marginTop: 18,
+    borderRadius: 16,
+    padding: 16,
+  },
+  readyLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  readySubLabel: {
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  postRecordingActions: {
+    flexDirection: "row",
+    width: "100%",
+    gap: 10,
+  },
+  postActionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  postActionText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
   tipsContainer: {
     paddingHorizontal: 20,
     marginTop: 10,
@@ -867,20 +985,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginLeft: 10,
-  },
-  transcriptionBox: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  transcriptionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  transcriptionText: {
-    fontSize: 15,
-    fontStyle: "italic",
   },
   divider: {
     height: 1,

@@ -502,4 +502,46 @@ export const processFile = async (
   );
 };
 
+// ============================================================================
+// AI AGENT
+// ============================================================================
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+};
+
+/**
+ * Send a message to the AI ReAct agent with database access
+ * The agent is scoped to only access data for the specified user
+ */
+export const sendAgentMessage = async (
+  message: string,
+  user_id: number,
+  temperature?: number,
+  top_p?: number,
+): Promise<string> => {
+  try {
+    const response = await api.post("/api/v1/agents/react", {
+      message,
+      user_id,
+      temperature,
+      top_p,
+    }, {
+      timeout: 60000, // 60 seconds for AI responses
+    });
+
+    return response.data;
+  } catch (error) {
+    const apiError = error instanceof Error ? error : parseApiError(error);
+    console.error("[Agent Error]", {
+      code: (apiError as ApiError).error_code,
+      message: apiError.message,
+    });
+    throw apiError;
+  }
+};
+
 export default api;

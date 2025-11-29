@@ -39,24 +39,6 @@ export default function ProfileScreen() {
               Información de la cuenta
             </ThemedText>
           </View>
-
-          <Pressable
-            onPress={() => router.back()}
-            style={[
-              styles.closeButton,
-              {
-                backgroundColor: isDark ? "#272727" : theme.cardBackground,
-                shadowColor: theme.shadow,
-              },
-            ]}
-            hitSlop={8}
-          >
-            <IconSymbol
-              name={Platform.OS === "ios" ? ("xmark" as any) : ("close" as any)}
-              size={18}
-              color={theme.icon}
-            />
-          </Pressable>
         </View>
 
         <View
@@ -164,16 +146,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 18,
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    elevation: 6,
   },
   title: {
     fontSize: 26,

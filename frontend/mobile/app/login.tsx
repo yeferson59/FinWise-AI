@@ -64,7 +64,13 @@ export default function LoginScreen() {
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
 
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/home");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   // Enabled gradient: use darker->lighter green in dark mode
   const enabledGradient: readonly [string, string] = isDark

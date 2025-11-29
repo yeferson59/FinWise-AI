@@ -1,20 +1,56 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Platform } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Colors, createShadow } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import "react-native-reanimated";
 
 export const unstable_settings = {
   anchor: "index",
 };
 
-export default function RootLayout() {
+const GlobalMenuButton = () => {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+  const isDark = (colorScheme ?? "light") === "dark";
+  const insets = useSafeAreaInsets();
+
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
+    <View pointerEvents="box-none" style={styles.overlayContainer}>
+      <Pressable
+        accessibilityLabel="Abrir menú"
+        onPress={() => router.push("/menu")}
+        style={[
+          styles.menuButton,
+          {
+            top: insets.top + 12,
+            backgroundColor: isDark ? "#262626" : theme.cardBackground,
+            borderColor: isDark ? "rgba(255,255,255,0.08)" : "transparent",
+            ...createShadow(0, 4, 8, isDark ? "rgba(0,0,0,0.6)" : theme.shadow, 8),
+          },
+        ]}
+      >
+        <IconSymbol name={"line.3.horizontal" as any} size={20} color={theme.tint} />
+      </Pressable>
+    </View>
+  );
+};
+
+const LayoutContainer = () => {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
+  const topSpacing = Math.max(insets.top, 20) + 12;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={{ flex: 1, paddingTop: topSpacing, backgroundColor: theme.background }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="login" />
@@ -44,9 +80,42 @@ export default function RootLayout() {
             <Stack.Screen name="notifications" />
             <Stack.Screen name="settings" />
           </Stack>
-          <StatusBar style="auto" />
-        </GestureHandlerRootView>
+        </View>
+        <GlobalMenuButton />
+      </View>
+      <StatusBar style="auto" />
+    </GestureHandlerRootView>
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <SafeAreaProvider>
+        <LayoutContainer />
       </SafeAreaProvider>
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  overlayContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: "box-none",
+    alignItems: "flex-end",
+  },
+  menuButton: {
+    position: "absolute",
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+});

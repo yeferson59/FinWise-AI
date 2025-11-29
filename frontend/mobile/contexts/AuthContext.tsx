@@ -5,8 +5,11 @@ import {
   useEffect,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, AppStateStatus } from "react-native";
+import { decode as base64Decode } from "base-64";
 
 interface User {
   id: number;
@@ -34,6 +37,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_CHECK_INTERVAL = 2 * 60 * 1000;
+
+const normalizeBase64Segment = (segment: string) => {
+  const normalized = segment.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = normalized.length % 4 === 0 ? 0 : 4 - (normalized.length % 4);
+  return normalized + "=".repeat(padding);
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -50,15 +61,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const appStateRef = useRef<AppStateStatus>(
+    AppState.currentState as AppStateStatus,
+  );
 
-  const decodeToken = useCallback((token: string): DecodedToken | null => {
+  /**
+   * Decode a JWT token payload safely
+   */
+  const decodeToken = useCallback((rawToken: string): DecodedToken | null => {
     try {
-      // Simple JWT decode without verification (signature verified by backend)
-      const parts = token.split(".");
+      const parts = rawToken.split(".");
       if (parts.length !== 3) return null;
 
-      const payload = JSON.parse(atob(parts[1]));
-      return payload as DecodedToken;
+      const payloadSegment = normalizeBase64Segment(parts[1]);
+      const decodedPayload = base64Decode(payloadSegment);
+      return JSON.parse(decodedPayload) as DecodedToken;
     } catch (error) {
       console.error("Error decoding token:", error);
       return null;
@@ -80,54 +97,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [token, decodeToken]);
 
   /**
-   * Load stored auth data on mount
-   */
-  useEffect(() => {
-    const loadStoredAuth = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        const storedToken = await AsyncStorage.getItem("token");
-
-        if (storedUser && storedToken) {
-          const parsedUser = JSON.parse(storedUser);
-
-          // Check if token is valid
-          const decoded = decodeToken(storedToken);
-          if (decoded) {
-            // Validate user data structure
-            if (
-              parsedUser.id &&
-              parsedUser.email &&
-              parsedUser.first_name &&
-              parsedUser.last_name
-            ) {
-              setUser(parsedUser);
-              setToken(storedToken);
-            } else {
-              // Invalid user data, clear storage
-              await AsyncStorage.removeItem("user");
-              await AsyncStorage.removeItem("token");
-            }
-          } else {
-            // Invalid token, clear storage
-            await AsyncStorage.removeItem("user");
-            await AsyncStorage.removeItem("token");
-          }
-        }
-      } catch (error) {
-        console.error("Error loading auth data:", error);
-        // Clear potentially corrupted data
-        await AsyncStorage.removeItem("user");
-        await AsyncStorage.removeItem("token");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadStoredAuth();
-  }, [decodeToken]);
-
-  /**
    * Save user and token to state and storage
    */
   const login = useCallback(
@@ -137,6 +106,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const decoded = decodeToken(authToken);
         if (!decoded) {
           throw new Error("Invalid token format");
+        }
+
+        if (decoded.exp && decoded.exp * 1000 <= Date.now()) {
+          throw new Error("El token ha expirado, inicia sesión nuevamente.");
         }
 
         // Validate user data
@@ -186,12 +159,117 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * For now, we return false if token is expired
    */
   const refreshToken = useCallback(async (): Promise<boolean> => {
-    if (!token || isTokenExpired()) {
+    if (!token) {
+      return false;
+    }
+
+    if (isTokenExpired()) {
       await logout();
       return false;
     }
+
     return true;
   }, [token, isTokenExpired, logout]);
+
+  /**
+   * Load stored auth data on mount
+   */
+  useEffect(() => {
+    const loadStoredAuth = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        const storedToken = await AsyncStorage.getItem("token");
+
+        if (storedUser && storedToken) {
+          const parsedUser = JSON.parse(storedUser);
+
+          // Check if token is valid
+          const decoded = decodeToken(storedToken);
+          if (decoded) {
+            const isExpired = decoded.exp
+              ? decoded.exp * 1000 <= Date.now()
+              : false;
+
+            if (isExpired) {
+              await AsyncStorage.removeItem("user");
+              await AsyncStorage.removeItem("token");
+            } else if (
+              parsedUser.id &&
+              parsedUser.email &&
+              parsedUser.first_name &&
+              parsedUser.last_name
+            ) {
+              setUser(parsedUser);
+              setToken(storedToken);
+            } else {
+              // Invalid user data, clear storage
+              await AsyncStorage.removeItem("user");
+              await AsyncStorage.removeItem("token");
+            }
+          } else {
+            // Invalid token, clear storage
+            await AsyncStorage.removeItem("user");
+            await AsyncStorage.removeItem("token");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading auth data:", error);
+        // Clear potentially corrupted data
+        await AsyncStorage.removeItem("user");
+        await AsyncStorage.removeItem("token");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStoredAuth();
+  }, [decodeToken]);
+
+  /**
+   * If token is expired after load, log out
+   */
+  useEffect(() => {
+    if (isLoading) return;
+    if (token && isTokenExpired()) {
+      // logout is declared above, safe to call
+      logout();
+    }
+  }, [isLoading, token, isTokenExpired, logout]);
+
+  /**
+   * Refresh token when app comes to foreground
+   */
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      const wasBackground =
+        appStateRef.current === "background" ||
+        appStateRef.current === "inactive";
+
+      if (wasBackground && nextState === "active") {
+        // refreshToken is declared above
+        refreshToken();
+      }
+
+      appStateRef.current = nextState;
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+    return () => subscription.remove();
+  }, [refreshToken]);
+
+  /**
+   * Periodically check token validity
+   */
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(() => {
+      refreshToken();
+    }, TOKEN_CHECK_INTERVAL);
+    return () => clearInterval(interval);
+  }, [token, refreshToken]);
 
   const value: AuthContextType = {
     user,

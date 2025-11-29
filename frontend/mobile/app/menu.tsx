@@ -13,10 +13,12 @@ import {
   useSafeAreaInsets,
   SafeAreaView,
 } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 /**
  * Side menu screen
@@ -343,6 +345,35 @@ export default function MenuScreen() {
               </Pressable>
             </View>
 
+            <Pressable
+              onPress={() => handleNavigate("/home")}
+              style={styles.featuredWrapper}
+            >
+              <LinearGradient
+                colors={
+                  isDark ? ["#0f172a", "#0f766e"] : ["#7dd3fc", "#2563eb"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.featuredCard}
+              >
+                <View style={styles.featuredContent}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.featuredTitle}>Volver al inicio</Text>
+                    <Text style={styles.featuredSubtitle}>
+                      Revisa tu panel y métricas principales en segundos.
+                    </Text>
+                    <View style={styles.featuredBadge}>
+                      <Text style={styles.featuredBadgeText}>Dashboard</Text>
+                    </View>
+                  </View>
+                  <View style={styles.featuredIcon}>
+                    <IconSymbol name={"house.fill" as any} size={32} color="#fff" />
+                  </View>
+                </View>
+              </LinearGradient>
+            </Pressable>
+
             <View style={styles.section}>
               {MENU_ITEMS.map((m) => (
                 <Pressable
@@ -493,6 +524,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     ...createShadow(0, 4, 8, "rgba(0,0,0,0.12)", 6),
+  },
+  featuredWrapper: {
+    borderRadius: 18,
+    marginBottom: 18,
+  },
+  featuredCard: {
+    borderRadius: 18,
+    padding: 18,
+  },
+  featuredContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  featuredTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  featuredSubtitle: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  featuredBadge: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  featuredBadgeText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 12,
+    letterSpacing: 0.4,
+  },
+  featuredIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 16,
   },
   section: {
     marginBottom: 12,

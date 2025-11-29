@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   View,
-  TouchableOpacity,
   StyleSheet,
   Text,
   Pressable,
@@ -9,10 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  useSafeAreaInsets,
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -81,7 +77,6 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
@@ -124,6 +119,31 @@ export default function HomeScreen() {
     return src?.name || "Sin fuente";
   };
 
+  // Calculate real totals from transactions
+  const { totalIncome, totalExpenses, totalBalance, balanceChange } = useMemo(() => {
+    let income = 0;
+    let expenses = 0;
+
+    recentTransactions.forEach((tx) => {
+      if (tx.transaction_type === "income") {
+        income += tx.amount;
+      } else {
+        expenses += tx.amount;
+      }
+    });
+
+    const balance = income - expenses;
+    // Calculate percentage change (using expenses as reference for simplicity)
+    const change = income > 0 ? ((balance / income) * 100).toFixed(1) : "0";
+
+    return {
+      totalIncome: income,
+      totalExpenses: expenses,
+      totalBalance: balance,
+      balanceChange: balance >= 0 ? `+${change}%` : `${change}%`,
+    };
+  }, [recentTransactions]);
+
   const categoryExpenses: CategoryExpense[] = useMemo(() => {
     if (backendCategories.length === 0 || recentTransactions.length === 0) {
       return [];
@@ -138,14 +158,14 @@ export default function HomeScreen() {
       }
     });
 
-    const totalExpenses = Object.values(expensesByCategory).reduce((sum, val) => sum + val, 0);
+    const expensesTotal = Object.values(expensesByCategory).reduce((sum, val) => sum + val, 0);
 
     // Map backend categories to display format with calculated amounts
     return backendCategories
       .filter((cat) => expensesByCategory[cat.id] !== undefined)
       .map((cat, index) => {
         const amount = expensesByCategory[cat.id] || 0;
-        const percent = totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0;
+        const percent = expensesTotal > 0 ? Math.round((amount / expensesTotal) * 100) : 0;
         const lowerName = cat.name.toLowerCase();
         
         return {
@@ -160,46 +180,20 @@ export default function HomeScreen() {
       .sort((a, b) => b.percent - a.percent);
   }, [backendCategories, recentTransactions]);
 
-  const budgetAlerts = useMemo(
-    () => [
-      {
-        id: "b1",
-        name: "Alimentación",
-        percent: 85,
-        color: "#ff6b6b",
-        emoji: "🍕",
-      },
-      {
-        id: "b2",
-        name: "Transporte",
-        percent: 92,
-        color: "#4dd0e1",
-        emoji: "🚗",
-      },
-    ],
-    [],
-  );
+  const budgetAlerts = useMemo(() => [], []);
 
-  const savingsGoals = useMemo(
-    () => [
-      {
-        id: "s1",
-        name: "Viaje a Miami",
-        current: "$2,450",
-        goal: "$5,000",
-        percent: 49,
-        color: "#8bc34a",
-      },
-    ],
-    [],
-  );
+  const savingsGoals = useMemo(() => [], []);
 
   if (!user) return null;
 
-  const totalBalance = "$1,250.00";
-  const ingresos = "$4,000";
-  const gastos = "$2,750";
-  const change = "+12.5%";
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    const formatted = Math.abs(amount).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return amount < 0 ? `-$${formatted}` : `$${formatted}`;
+  };
 
   const renderAction = (icon: string, label: string, idx: number) => (
     <Pressable
@@ -434,7 +428,7 @@ export default function HomeScreen() {
       style={[styles.container, { backgroundColor: theme.inputBackground }]}
     >
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingTop: insets.top + 10 }}
+        contentContainerStyle={{ padding: 20, paddingTop: 12 }}
       >
         <View style={styles.topRow}>
           <View>
@@ -445,27 +439,6 @@ export default function HomeScreen() {
               Bienvenido de vuelta
             </Text>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.menuButton,
-              {
-                // slightly darker surface for dark mode and a subtle border so it reads on dark backgrounds
-                backgroundColor: isDark ? "#262626" : theme.cardBackground,
-                ...createShadow(
-                  0,
-                  4,
-                  8,
-                  isDark ? "rgba(0,0,0,0.6)" : theme.shadow,
-                  6,
-                ),
-                borderWidth: 1,
-                borderColor: isDark ? "rgba(255,255,255,0.04)" : "transparent",
-              },
-            ]}
-            onPress={() => router.push("/menu")}
-          >
-            <Text style={{ fontSize: 20, color: theme.tint }}>☰</Text>
-          </TouchableOpacity>
         </View>
 
         <View
@@ -492,22 +465,22 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.changePill,
-                { backgroundColor: isDark ? "#023a31" : "#e6faf3" },
+                { backgroundColor: totalBalance >= 0 ? (isDark ? "#023a31" : "#e6faf3") : (isDark ? "#3a0202" : "#fae6e6") },
               ]}
             >
               <Text
                 style={{
-                  color: isDark ? "#7af0c9" : "#0f5132",
+                  color: totalBalance >= 0 ? (isDark ? "#7af0c9" : "#0f5132") : (isDark ? "#ff8a8a" : "#721c24"),
                   fontWeight: "700",
                 }}
               >
-                {change}
+                {balanceChange}
               </Text>
             </View>
           </View>
 
           <Text style={[styles.balanceAmount, { color: theme.text }]}>
-            {totalBalance}
+            {formatCurrency(totalBalance)}
           </Text>
 
           <View style={styles.balanceDivider} />
@@ -524,7 +497,7 @@ export default function HomeScreen() {
                   Ingresos
                 </Text>
                 <Text style={[styles.totalsValue, { color: theme.text }]}>
-                  {ingresos}
+                  {formatCurrency(totalIncome)}
                 </Text>
               </View>
             </View>
@@ -539,7 +512,7 @@ export default function HomeScreen() {
                   Gastos
                 </Text>
                 <Text style={[styles.totalsValue, { color: theme.text }]}>
-                  {gastos}
+                  {formatCurrency(totalExpenses)}
                 </Text>
               </View>
             </View>
@@ -592,6 +565,30 @@ export default function HomeScreen() {
           renderItem={renderRecentTransaction}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(37, 209, 178, 0.16)"
+                      : "rgba(37, 209, 178, 0.08)",
+                  },
+                ]}
+              >
+                <IconSymbol name={"tray"} size={22} color={theme.tint} />
+              </View>
+              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+                Aún no tienes transacciones
+              </Text>
+              <Text
+                style={[styles.emptyStateSubtitle, { color: theme.icon }]}
+              >
+                Registra tu primera transacción para verla aquí.
+              </Text>
+            </View>
+          }
           contentContainerStyle={{ paddingBottom: 24 }}
         />
 
@@ -608,6 +605,30 @@ export default function HomeScreen() {
           renderItem={renderBudgetAlert}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 107, 107, 0.16)"
+                      : "rgba(255, 107, 107, 0.08)",
+                  },
+                ]}
+              >
+                <IconSymbol name={"bell"} size={22} color="#ff6b6b" />
+              </View>
+              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+                Sin alertas activas
+              </Text>
+              <Text
+                style={[styles.emptyStateSubtitle, { color: theme.icon }]}
+              >
+                Configura presupuestos para recibir alertas.
+              </Text>
+            </View>
+          }
           contentContainerStyle={{ paddingBottom: 24 }}
         />
 
@@ -626,6 +647,30 @@ export default function HomeScreen() {
           renderItem={renderSavingsGoal}
           scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(139, 195, 74, 0.16)"
+                      : "rgba(139, 195, 74, 0.08)",
+                  },
+                ]}
+              >
+                <IconSymbol name={"flag"} size={22} color="#8bc34a" />
+              </View>
+              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+                Sin metas de ahorro
+              </Text>
+              <Text
+                style={[styles.emptyStateSubtitle, { color: theme.icon }]}
+              >
+                Crea una meta para comenzar a ahorrar.
+              </Text>
+            </View>
+          }
           contentContainerStyle={{ paddingBottom: 24 }}
         />
 
@@ -644,9 +689,28 @@ export default function HomeScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{ paddingBottom: 24 }}
           ListEmptyComponent={
-            <Text style={{ color: theme.icon, textAlign: "center", paddingVertical: 20 }}>
-              No hay gastos registrados
-            </Text>
+            <View style={styles.emptyState}>
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(124, 77, 255, 0.16)"
+                      : "rgba(124, 77, 255, 0.08)",
+                  },
+                ]}
+              >
+                <IconSymbol name={"chart.pie"} size={22} color="#7c4dff" />
+              </View>
+              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+                Sin gastos por categoría
+              </Text>
+              <Text
+                style={[styles.emptyStateSubtitle, { color: theme.icon }]}
+              >
+                Registra gastos para ver el desglose.
+              </Text>
+            </View>
           }
         />
       </ScrollView>
@@ -663,15 +727,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 18,
-  },
-  menuButton: {
-    width: 48,
-    height: 48,
-    padding: 10,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    ...createShadow(0, 4, 8, "rgba(0,0,0,0.12)", 6),
   },
   greeting: {
     fontSize: 28,
@@ -930,5 +985,29 @@ const styles = StyleSheet.create({
   savingsPercent: {
     fontSize: 12,
     textAlign: "right",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  emptyStateIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  emptyStateSubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
