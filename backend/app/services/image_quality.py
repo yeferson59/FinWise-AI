@@ -54,8 +54,8 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
 
         # 5. Noise level estimation using edge density
         edges = cv2.Canny(gray, 50, 150)
-        edge_density = np.sum(edges > 0) / (h * w)
-        
+        _ = np.sum(edges > 0) / (h * w)  # edge_density - used for noise estimation
+
         # High edge density could mean noise or good text content
         # Use Sobel to differentiate
         sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
@@ -71,7 +71,7 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
 
         # 7. Histogram uniformity (for detecting overexposed/underexposed regions)
         hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
-        hist_std = float(np.std(hist))
+        _ = float(np.std(hist.flatten().tolist()))  # hist_std - uniformity metric
         hist_peak = int(np.argmax(hist))
 
         # 8. Overall assessment with weighted criteria
@@ -91,23 +91,33 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
                 f"Image is {severity} blurry (score: {blur_score:.0f}) - use sharper image or stabilize camera"
             )
         if brightness <= 40:
-            recommendations.append(f"Image too dark (brightness: {brightness:.0f}) - increase lighting or exposure")
+            recommendations.append(
+                f"Image too dark (brightness: {brightness:.0f}) - increase lighting or exposure"
+            )
         elif brightness >= 210:
             recommendations.append(
                 f"Image overexposed (brightness: {brightness:.0f}) - reduce brightness or use better lighting"
             )
         if contrast <= 25:
-            recommendations.append(f"Low contrast ({contrast:.0f}) - improve lighting conditions or use flash")
+            recommendations.append(
+                f"Low contrast ({contrast:.0f}) - improve lighting conditions or use flash"
+            )
         if not resolution_ok:
             recommendations.append(
                 f"Resolution too low ({w}x{h}) - use higher resolution (min 300x300)"
             )
         if noise_level >= 2.5:
-            recommendations.append(f"High noise level ({noise_level:.2f}) - use better lighting or image stabilization")
+            recommendations.append(
+                f"High noise level ({noise_level:.2f}) - use better lighting or image stabilization"
+            )
         if text_density < 0.01:
-            recommendations.append("Very low text density detected - verify document orientation")
+            recommendations.append(
+                "Very low text density detected - verify document orientation"
+            )
         elif text_density > 0.5:
-            recommendations.append("Very high ink density - document may be inverted or have dark background")
+            recommendations.append(
+                "Very high ink density - document may be inverted or have dark background"
+            )
 
         # Add positive feedback if acceptable
         if is_acceptable and not recommendations:
@@ -124,7 +134,9 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
             "histogram_peak": hist_peak,
             "is_acceptable": is_acceptable,
             "recommendations": recommendations,
-            "quality_grade": _calculate_quality_grade(blur_score, brightness, contrast, noise_level),
+            "quality_grade": _calculate_quality_grade(
+                blur_score, brightness, contrast, noise_level
+            ),
         }
 
     except Exception as e:
@@ -143,10 +155,12 @@ def assess_image_quality(image_path: str) -> dict[str, Any]:
         }
 
 
-def _calculate_quality_grade(blur: float, brightness: float, contrast: float, noise: float) -> str:
+def _calculate_quality_grade(
+    blur: float, brightness: float, contrast: float, noise: float
+) -> str:
     """Calculate an overall quality grade A-F based on metrics."""
     score = 0
-    
+
     # Blur score (max 30 points)
     if blur >= 200:
         score += 30
@@ -154,7 +168,7 @@ def _calculate_quality_grade(blur: float, brightness: float, contrast: float, no
         score += 20
     elif blur >= 50:
         score += 10
-    
+
     # Brightness score (max 25 points)
     if 80 <= brightness <= 170:
         score += 25
@@ -162,7 +176,7 @@ def _calculate_quality_grade(blur: float, brightness: float, contrast: float, no
         score += 15
     elif 30 <= brightness <= 220:
         score += 5
-    
+
     # Contrast score (max 25 points)
     if contrast >= 50:
         score += 25
@@ -170,7 +184,7 @@ def _calculate_quality_grade(blur: float, brightness: float, contrast: float, no
         score += 15
     elif contrast >= 20:
         score += 5
-    
+
     # Noise score (max 20 points)
     if noise < 1.0:
         score += 20
@@ -180,7 +194,7 @@ def _calculate_quality_grade(blur: float, brightness: float, contrast: float, no
         score += 10
     elif noise < 2.5:
         score += 5
-    
+
     # Map to grade
     if score >= 90:
         return "A"
@@ -224,20 +238,18 @@ def auto_correct_image(image: np.ndarray, quality_info: dict[str, Any]) -> np.nd
             # Gamma correction for dark images (gamma < 1 brightens)
             gamma = 0.6 if brightness < 40 else 0.8
             inv_gamma = 1.0 / gamma
-            table = np.array([
-                ((i / 255.0) ** inv_gamma) * 255
-                for i in np.arange(0, 256)
-            ]).astype("uint8")
+            table = np.array(
+                [((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]
+            ).astype("uint8")
             corrected = cv2.LUT(corrected, table)
-        
+
         # 3. Correct high brightness (overexposure)
         elif brightness > 190:
             # Gamma correction for bright images (gamma > 1 darkens)
             gamma = 1.3 if brightness > 220 else 1.15
-            table = np.array([
-                ((i / 255.0) ** gamma) * 255
-                for i in np.arange(0, 256)
-            ]).astype("uint8")
+            table = np.array(
+                [((i / 255.0) ** gamma) * 255 for i in np.arange(0, 256)]
+            ).astype("uint8")
             corrected = cv2.LUT(corrected, table)
 
         # 4. Enhance low contrast using adaptive histogram equalization
@@ -260,11 +272,7 @@ def auto_correct_image(image: np.ndarray, quality_info: dict[str, Any]) -> np.nd
         if blur_score < 150:
             if blur_score < 80:
                 # Strong sharpening for very blurry images
-                kernel = np.array([
-                    [-1, -1, -1],
-                    [-1,  9, -1],
-                    [-1, -1, -1]
-                ])
+                kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
                 corrected = cv2.filter2D(corrected, -1, kernel)
             else:
                 # Unsharp mask for moderately blurry images
@@ -287,10 +295,10 @@ def auto_correct_image(image: np.ndarray, quality_info: dict[str, Any]) -> np.nd
 def enhance_for_ocr(image: np.ndarray) -> np.ndarray:
     """
     Apply OCR-specific enhancements to maximize text recognition accuracy.
-    
+
     Args:
         image: Input image as numpy array (BGR format)
-    
+
     Returns:
         Enhanced image optimized for OCR
     """
@@ -300,31 +308,26 @@ def enhance_for_ocr(image: np.ndarray) -> np.ndarray:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image.copy()
-        
+
         # 1. Apply bilateral filter to reduce noise while keeping edges
         denoised = cv2.bilateralFilter(gray, 11, 17, 17)
-        
+
         # 2. Apply CLAHE for local contrast enhancement
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(denoised)
-        
+
         # 3. Apply adaptive thresholding
         binary = cv2.adaptiveThreshold(
-            enhanced,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            11,
-            2
+            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
         )
-        
+
         # 4. Remove small noise with morphological operations
         kernel = np.ones((2, 2), np.uint8)
         cleaned = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
         cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_OPEN, kernel)
-        
+
         return cleaned
-        
+
     except Exception as e:
         print(f"Warning: OCR enhancement failed: {e}. Using original image.")
         return image

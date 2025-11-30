@@ -221,5 +221,5 @@ async def get_local_path(file_identifier: str):
     storage = get_file_storage()
     # Delegate to the storage backend's async context manager.
     # This ensures callers can always use `async with get_local_path(...)`.
-    async with storage.get_local_path(file_identifier) as local_path:  # type: ignore[func-returns-value]
+    async with storage.get_local_path(file_identifier) as local_path:  # type: ignore[attr-defined, func-returns-value]
         yield local_path

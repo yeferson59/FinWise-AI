@@ -56,7 +56,10 @@ _FINANCIAL_CORRECTIONS = [
     (re.compile(r"(?<=\d)\s+\$"), r"$"),  # 100 $ to 100$
     # Spanish currency formats
     (re.compile(r"(\d+)[,](\d{2})(?!\d)"), r"\1.\2"),  # 10,50 to 10.50 (euros style)
-    (re.compile(r"(\d{1,3})\.(\d{3})\.(\d{3})[,](\d{2})"), r"\1\2\3.\4"),  # 1.234.567,89 to 1234567.89
+    (
+        re.compile(r"(\d{1,3})\.(\d{3})\.(\d{3})[,](\d{2})"),
+        r"\1\2\3.\4",
+    ),  # 1.234.567,89 to 1234567.89
     (re.compile(r"(\d{1,3})\.(\d{3})[,](\d{2})"), r"\1\2.\3"),  # 1.234,56 to 1234.56
     (re.compile(r"(\d{1,3})[,](\d{3})\b"), r"\1\2"),  # 1,000 to 1000
     # Date corrections
@@ -120,15 +123,14 @@ _AMOUNT_PATTERN = re.compile(r"\$\s*(\d+(?:[.,]\d{1,2})?)")
 # Patterns for detecting structured data
 _DATE_PATTERN = re.compile(
     r"(?:FECHA|DATE|FECHA DE|EMISION)[:\s]*(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 _TIME_PATTERN = re.compile(
     r"(?:HORA|TIME|HOUR)[:\s]*(\d{1,2}[:\.]?\d{2}(?:[:\.]?\d{2})?(?:\s*[AaPp][Mm])?)",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 _TOTAL_PATTERN = re.compile(
-    r"(?:TOTAL|SUBTOTAL|IMPORTE|MONTO|AMOUNT)[:\s]*\$?\s*([\d.,]+)",
-    re.IGNORECASE
+    r"(?:TOTAL|SUBTOTAL|IMPORTE|MONTO|AMOUNT)[:\s]*\$?\s*([\d.,]+)", re.IGNORECASE
 )
 
 

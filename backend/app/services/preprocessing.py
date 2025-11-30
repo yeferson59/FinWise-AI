@@ -208,7 +208,7 @@ def preprocess_image(
         # Use smaller tile grid for better local contrast
         clahe = cv2.createCLAHE(
             clipLimit=config.clahe_clip_limit,
-            tileGridSize=(4, 4)  # Smaller tiles for finer detail
+            tileGridSize=(4, 4),  # Smaller tiles for finer detail
         )
         enhanced = clahe.apply(denoised)
     else:
@@ -236,7 +236,9 @@ def preprocess_image(
         )
         # Then open to remove small noise spots
         noise_kernel = np.ones((2, 2), np.uint8)
-        final_image = cv2.morphologyEx(final_image, cv2.MORPH_OPEN, noise_kernel, iterations=1)
+        final_image = cv2.morphologyEx(
+            final_image, cv2.MORPH_OPEN, noise_kernel, iterations=1
+        )
     else:
         final_image = thresh
 

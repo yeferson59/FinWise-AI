@@ -350,7 +350,7 @@ def parse_transaction_data(text: str) -> Dict[str, Any]:
                     year = 2000 + year if year < 100 else year
                 elif format_type == "DMY_NAMED":
                     day = int(match[0])
-                    month_str = match[1].lower() if len(match) > 1 else ""
+                    _month_str = match[1].lower() if len(match) > 1 else ""  # noqa: F841
                     year = int(match[2]) if len(match) > 2 else datetime.now().year
                     if year < 100:
                         year = 2000 + year
@@ -716,7 +716,9 @@ async def process_transaction_from_file(
 
         # Step 1: Extract text from file (OCR for images/PDFs, transcription for audio)
         try:
-            extraction_result = await extract_text_from_file(file, file_type, document_type)
+            extraction_result = await extract_text_from_file(
+                file, file_type, document_type
+            )
         except HTTPException:
             raise
         except Exception as e:
@@ -730,7 +732,7 @@ async def process_transaction_from_file(
         # Enhance extraction result with confidence if not present
         if "confidence" not in extraction_result:
             extraction_result["confidence"] = 80
-        
+
         # Normalize to raw_text for consistency with rest of the code
         extraction_result["raw_text"] = text
 
@@ -829,7 +831,7 @@ async def process_transaction_from_file(
                         source = list(source_map.values())[0]  # Fallback
                         source_id = source.id
 
-            except Exception as e:
+            except Exception:
                 # Fallback to legacy method if unified extraction fails
                 parsed_data = await parse_transaction_with_ai(text)
                 category = categories[0]

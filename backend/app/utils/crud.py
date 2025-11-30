@@ -29,7 +29,10 @@ class CRUDService(Generic[T, CreateSchema, UpdateSchema]):
         return db.get_entity_by_id(self.model, entity_id, session)
 
     async def update(
-        self, session: SessionDep, entity_id: int | str | UUID, update_data: UpdateSchema
+        self,
+        session: SessionDep,
+        entity_id: int | str | UUID,
+        update_data: UpdateSchema,
     ) -> T:
         """Update an entity. Supports both int and UUID."""
         update_dict = update_data.model_dump(exclude_unset=True)
