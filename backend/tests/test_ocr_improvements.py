@@ -118,10 +118,17 @@ class TestImageQuality:
 
     def test_auto_correct_dark_image(self):
         """Test auto-correction of dark image"""
-        image = self.create_test_image(brightness=60)  # Use brightness=60 for better test
+        image = self.create_test_image(
+            brightness=60
+        )  # Use brightness=60 for better test
 
         # Include noise_level in quality_info for new auto_correct_image
-        quality_info = {"brightness": 60, "contrast": 50, "blur_score": 150, "noise_level": 1.0}
+        quality_info = {
+            "brightness": 60,
+            "contrast": 50,
+            "blur_score": 150,
+            "noise_level": 1.0,
+        }
 
         corrected = auto_correct_image(image, quality_info)
 

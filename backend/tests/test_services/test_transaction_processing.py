@@ -165,7 +165,7 @@ class TestTransactionProcessing:
     ):
         """Test processing an image file into a transaction."""
         from unittest.mock import AsyncMock
-        
+
         # Mock the file service functions
         with (
             patch(
@@ -188,18 +188,22 @@ class TestTransactionProcessing:
             ) as mock_unified_extraction,
         ):
             # Mock OCR extraction (now uses extract_text)
-            mock_file_service.extract_text = AsyncMock(return_value={
-                "raw_text": "Receipt for $25.50 on 15/03/2024",
-                "confidence": 95,
-                "document_type": "receipt",
-                "file_type": "image",
-            })
+            mock_file_service.extract_text = AsyncMock(
+                return_value={
+                    "raw_text": "Receipt for $25.50 on 15/03/2024",
+                    "confidence": 95,
+                    "document_type": "receipt",
+                    "file_type": "image",
+                }
+            )
 
             # Mock user validation
             mock_user_service.get_user = AsyncMock(return_value=test_user)
 
             # Mock category service
-            mock_category_service.get_all_categories = AsyncMock(return_value=[test_category])
+            mock_category_service.get_all_categories = AsyncMock(
+                return_value=[test_category]
+            )
 
             # Mock source service
             mock_source_service.get_source = AsyncMock(return_value=test_source)
@@ -224,7 +228,9 @@ class TestTransactionProcessing:
                 date=datetime(2024, 3, 15, tzinfo=timezone.utc),
                 state="pending",
             )
-            mock_transaction_service.create_transaction = AsyncMock(return_value=mock_transaction)
+            mock_transaction_service.create_transaction = AsyncMock(
+                return_value=mock_transaction
+            )
 
             # Process the transaction
             result = await process_transaction_from_file(
@@ -297,7 +303,7 @@ class TestTransactionProcessing:
     ):
         """Test OCR fallback when unified extraction fails."""
         from unittest.mock import AsyncMock
-        
+
         with (
             patch(
                 "app.services.transaction_processing.file_service"
@@ -323,20 +329,24 @@ class TestTransactionProcessing:
         ):
             # Use a valid past date
             test_date = datetime(2024, 10, 15, tzinfo=timezone.utc)
-            
+
             # Mock OCR extraction
-            mock_file_service.extract_text = AsyncMock(return_value={
-                "raw_text": "Basic OCR result: $10.00",
-                "confidence": 80,
-                "document_type": "receipt",
-                "file_type": "image",
-            })
+            mock_file_service.extract_text = AsyncMock(
+                return_value={
+                    "raw_text": "Basic OCR result: $10.00",
+                    "confidence": 80,
+                    "document_type": "receipt",
+                    "file_type": "image",
+                }
+            )
 
             # Mock user validation
             mock_user_service.get_user = AsyncMock(return_value=test_user)
 
             # Mock category/source services
-            mock_category_service.get_all_categories = AsyncMock(return_value=[test_category])
+            mock_category_service.get_all_categories = AsyncMock(
+                return_value=[test_category]
+            )
             mock_source_service.get_source = AsyncMock(return_value=test_source)
 
             # Mock unified extraction to fail, fallback to parse_transaction_with_ai
@@ -349,15 +359,17 @@ class TestTransactionProcessing:
             }
 
             # Mock transaction creation
-            mock_transaction_service.create_transaction = AsyncMock(return_value=Transaction(
-                user_id=test_user.id,
-                category_id=test_category.id,
-                source_id=test_source.id,
-                description="Basic OCR result: $10.00",
-                amount=10.00,
-                date=test_date,
-                state="pending",
-            ))
+            mock_transaction_service.create_transaction = AsyncMock(
+                return_value=Transaction(
+                    user_id=test_user.id,
+                    category_id=test_category.id,
+                    source_id=test_source.id,
+                    description="Basic OCR result: $10.00",
+                    amount=10.00,
+                    date=test_date,
+                    state="pending",
+                )
+            )
 
             # Process should succeed with fallback
             result = await process_transaction_from_file(
