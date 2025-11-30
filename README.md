@@ -14,75 +14,115 @@ FinWise-AI es una solución full-stack compuesta por:
 ## 🚀 Estado Actual del Proyecto
 
 **Estado General:** Desarrollo activo  
-**Última actualización:** Noviembre 16, 2025
+**Última actualización:** Noviembre 30, 2025
 
 ### Backend
 
 **Stack:** FastAPI, Python 3.13+, SQLModel, Pydantic AI, Tesseract OCR  
 **Versión:** 0.2.x  
-**Estado:** Núcleo estable, mejoras avanzadas en OCR y agentes IA en progreso
+**Estado:** Núcleo estable, funcionalidades avanzadas implementadas
+**Tests:** 218 tests unitarios e integración
 
 #### ✅ Funcionalidades Completadas
 - Gestión de usuarios y autenticación (JWT, Argon2id)
 - Asistente virtual IA (OpenAI/OpenRouter, ReAct agent, tool-calling)
 - OCR multilenguaje (inglés, español, recibos, facturas, formularios)
-- Gestión de transacciones (CRUD, categorías, estados)
+- Gestión de transacciones (CRUD, categorías, estados, filtros avanzados)
 - Gestión de categorías (globales y personalizadas, integración con transacciones)
+- Gestión de fuentes de ingresos/gastos (sources)
+- Sistema de notificaciones y recordatorios
+- Generación de reportes financieros con resúmenes IA
+- Análisis de salud financiera con IA
+- Procesamiento de archivos (imágenes, PDFs, audio)
+- Almacenamiento de archivos (local y S3)
 - Despliegue con Docker y Docker Compose
 - Documentación técnica y ejemplos de API
+- Suite completa de tests (218 tests)
 
 #### 🚧 Mejoras en Progreso
-- Filtros avanzados y reportes de transacciones
-- Categorización automática con IA
 - Generación de reportes PDF
-- Sistema de notificaciones y recordatorios
-- Optimización y mejoras en OCR (ver docs/ y archivos de cambios)
+- Optimización y mejoras en OCR
+- Integración bancaria
 
 #### 📋 Funcionalidades Planeadas
-- Análisis de salud financiera
-- Integración bancaria y multi-moneda
+- Multi-moneda
 - Seguimiento de inversiones
-- Insights y recomendaciones inteligentes
+- Presupuestos con alertas automáticas
 
-### Frontend
+### Frontend Mobile
 
-**Mobile:** React Native + Expo  
-**Web:** React + Vite  
-**Estado:** Estructura básica, desarrollo inicial de pantallas y componentes
+**Stack:** React Native + Expo  
+**Estado:** Funcionalidades principales implementadas
 
 #### ✅ Funcionalidades Completadas
-- Estructura de proyecto Expo y Vite
-- Navegación por pestañas (mobile)
+- Estructura de proyecto Expo con navegación
+- Autenticación (login/registro)
+- Dashboard principal (home)
+- Gestión de transacciones (lista, detalle, crear)
+- Escaneo OCR de recibos y documentos
+- Grabación de audio para transacciones
+- Asistente IA conversacional
+- Sistema de notificaciones
+- Generación y visualización de reportes
+- Gestión de categorías
+- Pantalla de presupuestos
+- Configuración y perfil de usuario
 - Soporte multiplataforma (iOS, Android, Web)
 
 #### 🚧 Mejoras en Progreso
-- Diseño UI/UX y librería de componentes
-- Integración con API backend
-- Flujo de autenticación
-- Pantallas de gestión de transacciones
+- Mejoras UI/UX
+- Gráficos y visualizaciones de datos
 
 #### 📋 Funcionalidades Planeadas
-- Dashboard financiero
-- Escaneo de recibos y OCR
-- Seguimiento de presupuestos y alertas
-- Insights y recomendaciones
-- Soporte multilenguaje
+- Soporte offline
+- Widgets para iOS/Android
+- Soporte multilenguaje (i18n)
+
+### Frontend Web
+
+**Stack:** React + Vite  
+**Estado:** Estructura básica
 
 ### Shared
 
-- Código compartido para integración API (ej: api.js)
-- Facilita la comunicación entre frontend y backend
+**Stack:** TypeScript, Axios, Zod  
+**Estado:** Completo
+
+#### ✅ Funcionalidades Completadas
+- Cliente API tipado con validación Zod
+- Manejo de errores y reintentos automáticos
+- Autenticación (login, register, logout)
+- Gestión de transacciones
+- Gestión de categorías y fuentes
+- Procesamiento de texto y archivos (OCR)
+- Agente IA conversacional
+- Análisis de salud financiera
+- Notificaciones y recordatorios
+- Reportes financieros
 
 ## 🏗️ Estructura del Proyecto
 
 ```
 FinWise-AI/
-├── backend/              # API REST FastAPI, OCR, agentes IA, docs, tests
+├── backend/              # API REST FastAPI
+│   ├── app/
+│   │   ├── api/v1/       # Endpoints REST
+│   │   ├── core/         # Lógica de negocio, agentes IA
+│   │   ├── models/       # Modelos SQLModel
+│   │   ├── schemas/      # Schemas Pydantic
+│   │   └── services/     # Servicios (OCR, auth, etc.)
+│   ├── tests/            # 218 tests
+│   └── docs/             # Documentación técnica
 ├── frontend/
 │   ├── mobile/           # App móvil Expo/React Native
+│   │   ├── app/          # 19 pantallas
+│   │   ├── components/   # Componentes reutilizables
+│   │   ├── contexts/     # Context providers
+│   │   ├── hooks/        # Custom hooks
+│   │   └── services/     # Servicios cliente
 │   └── web/              # App web React/Vite
-├── shared/               # Código compartido (API, utilidades)
-├── Makefile              # Comandos de desarrollo
+├── shared/               # Código compartido (API client)
+└── Makefile              # Comandos de desarrollo
 ```
 
 ## 🚀 Guía Rápida de Inicio
@@ -117,10 +157,11 @@ npm run dev
 
 ### Makefile (Recomendado)
 ```bash
-make run-backend      # Inicia backend
-make run-frontend     # Inicia frontend web
-make sync-backend     # Instala dependencias backend
-make run-test-backend # Ejecuta tests backend
+make run-backend        # Inicia backend
+make run-frontend       # Inicia frontend web
+make sync-backend       # Instala dependencias backend
+make lint-backend       # Ejecuta linter backend
+make run-test-backend   # Ejecuta tests backend
 ```
 
 ### Docker
@@ -139,11 +180,15 @@ docker-compose up -d
 - **Docker:** Guía en `backend/DOCKER.md`
 
 ## 🧪 Testing
-- **Backend:** Tests en `backend/tests/` (pytest)
-- **Frontend:** Linter y pruebas básicas (`npm run lint` en mobile/web)
+- **Backend:** 218 tests en `backend/tests/` (pytest)
+  - Tests de API endpoints
+  - Tests de servicios
+  - Tests de OCR y procesamiento
+  - Tests de agentes IA
+- **Frontend:** Linter (`npm run lint` en mobile)
 
 ## 🛠️ Flujo de Desarrollo
-1. Linting: Ruff (Python), ESLint (JS/TS)
+1. Linting: Ruff + Mypy (Python), ESLint (JS/TS)
 2. Tests: pytest (backend)
 3. Documentación: Mantener docs actualizadas
 4. Commits: Formato convencional
@@ -168,4 +213,4 @@ docker-compose up -d
 
 ---
 **Estado del Proyecto:** Desarrollo activo  
-**Última actualización:** Noviembre 16, 2025
+**Última actualización:** Noviembre 30, 2025
