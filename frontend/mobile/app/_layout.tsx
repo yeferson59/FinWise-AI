@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -75,6 +76,7 @@ const LayoutContainer = () => {
             />
             <Stack.Screen name="categories" />
             <Stack.Screen name="reports" />
+            <Stack.Screen name="report-detail" />
             <Stack.Screen name="budget" />
             <Stack.Screen name="integrations" />
             <Stack.Screen name="notifications" />
@@ -91,9 +93,11 @@ const LayoutContainer = () => {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <LayoutContainer />
-      </SafeAreaProvider>
+      <NotificationProvider>
+        <SafeAreaProvider>
+          <LayoutContainer />
+        </SafeAreaProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

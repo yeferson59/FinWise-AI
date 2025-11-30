@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 
 /**
  * Side menu screen
@@ -150,6 +151,7 @@ export default function MenuScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
+  const { unreadCount } = useNotificationContext();
 
   // entry animation for the menu: fade + slide up
   const anim = useRef(new Animated.Value(0));
@@ -423,7 +425,15 @@ export default function MenuScreen() {
                     </View>
                   </View>
 
-                  <View>
+                  <View style={styles.menuRight}>
+                    {/* Show notification badge for notifications item */}
+                    {m.id === "notifications" && unreadCount > 0 && (
+                      <View style={styles.notificationBadge}>
+                        <Text style={styles.notificationBadgeText}>
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </Text>
+                      </View>
+                    )}
                     <Text style={{ fontSize: 18, color: theme.icon }}>›</Text>
                   </View>
                 </Pressable>
@@ -603,6 +613,25 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 12,
     marginTop: 2,
+  },
+  menuRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  notificationBadge: {
+    backgroundColor: "#ff6b6b",
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  notificationBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   actionButton: {
     flexDirection: "row",

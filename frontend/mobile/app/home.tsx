@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   Pressable,
   FlatList,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,7 +14,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTransactions, getCategories, getSources } from "shared";
+import { getTransactions, getCategories, getSources, getFinancialHealth, type FinancialHealth } from "shared";
 
 type CategoryExpense = {
   id: string;
@@ -100,14 +101,30 @@ export default function HomeScreen() {
   >([]);
   const [backendCategories, setBackendCategories] = useState<BackendCategory[]>([]);
   const [backendSources, setBackendSources] = useState<BackendSource[]>([]);
+  const [financialHealth, setFinancialHealth] = useState<FinancialHealth | null>(null);
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+
+  const loadFinancialHealth = useCallback(async () => {
+    if (!user?.id) return;
+    setIsLoadingHealth(true);
+    try {
+      const health = await getFinancialHealth(user.id, 30);
+      setFinancialHealth(health);
+    } catch (error) {
+      console.error("Error loading financial health:", error);
+    } finally {
+      setIsLoadingHealth(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
       getTransactions(user.id).then((data) => setRecentTransactions(data));
       getCategories().then((data) => setBackendCategories(data));
       getSources().then((data) => setBackendSources(data));
+      loadFinancialHealth();
     }
-  }, [user?.id]);
+  }, [user?.id, loadFinancialHealth]);
 
   const getCategoryName = (id: number) => {
     const cat = backendCategories.find((c) => c.id === id);
@@ -517,6 +534,125 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Financial Health Card */}
+        <View
+          style={[
+            styles.healthCard,
+            {
+              backgroundColor: isDark ? "#222" : theme.cardBackground,
+              ...createShadow(0, 6, 14, isDark ? "rgba(0,0,0,0.7)" : theme.shadow, 12),
+            },
+          ]}
+        >
+          <View style={styles.healthHeader}>
+            <View style={styles.healthTitleRow}>
+              <IconSymbol name={"heart.fill" as any} size={20} color={financialHealth?.status_color || theme.tint} />
+              <Text style={[styles.healthTitle, { color: theme.text }]}>
+                Salud Financiera
+              </Text>
+            </View>
+            <Pressable onPress={loadFinancialHealth} disabled={isLoadingHealth}>
+              <IconSymbol 
+                name={"arrow.clockwise" as any} 
+                size={18} 
+                color={isLoadingHealth ? theme.icon : theme.tint} 
+              />
+            </Pressable>
+          </View>
+
+          {isLoadingHealth ? (
+            <View style={styles.healthLoading}>
+              <ActivityIndicator size="small" color={theme.tint} />
+              <Text style={[styles.healthLoadingText, { color: theme.icon }]}>
+                Analizando tus finanzas...
+              </Text>
+            </View>
+          ) : financialHealth ? (
+            <>
+              <View style={styles.healthScoreContainer}>
+                <View style={styles.healthScoreCircle}>
+                  <View
+                    style={[
+                      styles.healthScoreInner,
+                      {
+                        backgroundColor: isDark ? "#1a1a1a" : "#fff",
+                        borderColor: financialHealth.status_color,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.healthScoreNumber, { color: financialHealth.status_color }]}>
+                      {financialHealth.score}
+                    </Text>
+                    <Text style={[styles.healthScoreLabel, { color: theme.icon }]}>
+                      de 100
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.healthScoreInfo}>
+                  <View
+                    style={[
+                      styles.healthStatusBadge,
+                      { backgroundColor: financialHealth.status_color + "22" },
+                    ]}
+                  >
+                    <Text style={[styles.healthStatusText, { color: financialHealth.status_color }]}>
+                      {financialHealth.status === "excellent" && "Excelente"}
+                      {financialHealth.status === "good" && "Bueno"}
+                      {financialHealth.status === "fair" && "Regular"}
+                      {financialHealth.status === "needs_attention" && "Atención"}
+                      {financialHealth.status === "critical" && "Crítico"}
+                      {financialHealth.status === "sin_datos" && "Sin datos"}
+                    </Text>
+                  </View>
+                  <Text style={[styles.healthSavingsRate, { color: theme.text }]}>
+                    Tasa de ahorro: {financialHealth.savings_rate}%
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.healthDivider} />
+
+              <View style={styles.healthAiSection}>
+                <View style={styles.healthAiHeader}>
+                  <IconSymbol name={"sparkles" as any} size={14} color={theme.tint} />
+                  <Text style={[styles.healthAiTitle, { color: theme.tint }]}>
+                    Análisis IA
+                  </Text>
+                </View>
+                <Text style={[styles.healthAiSummary, { color: theme.text }]}>
+                  {financialHealth.ai_summary}
+                </Text>
+              </View>
+
+              {financialHealth.ai_recommendations.length > 0 && (
+                <View style={styles.healthRecommendations}>
+                  {financialHealth.ai_recommendations.map((rec, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.healthRecItem,
+                        { backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa" },
+                      ]}
+                    >
+                      <Text style={styles.healthRecIcon}>💡</Text>
+                      <Text style={[styles.healthRecText, { color: theme.text }]}>
+                        {rec}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.healthEmpty}>
+              <IconSymbol name={"chart.bar" as any} size={32} color={theme.icon} />
+              <Text style={[styles.healthEmptyText, { color: theme.icon }]}>
+                Registra transacciones para ver tu salud financiera
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.actionsRow}>
@@ -1009,5 +1145,128 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     lineHeight: 18,
+  },
+  // Financial Health Card Styles
+  healthCard: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+  },
+  healthHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  healthTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  healthTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  healthLoading: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 12,
+  },
+  healthLoadingText: {
+    fontSize: 13,
+  },
+  healthScoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  healthScoreCircle: {
+    width: 90,
+    height: 90,
+  },
+  healthScoreInner: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  healthScoreNumber: {
+    fontSize: 28,
+    fontWeight: "800",
+  },
+  healthScoreLabel: {
+    fontSize: 11,
+    marginTop: -2,
+  },
+  healthScoreInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  healthStatusBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  healthStatusText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  healthSavingsRate: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  healthDivider: {
+    height: 1,
+    backgroundColor: "rgba(128,128,128,0.2)",
+    marginVertical: 14,
+  },
+  healthAiSection: {
+    marginBottom: 12,
+  },
+  healthAiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  healthAiTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  healthAiSummary: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  healthRecommendations: {
+    gap: 8,
+  },
+  healthRecItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+  },
+  healthRecIcon: {
+    fontSize: 14,
+  },
+  healthRecText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  healthEmpty: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 12,
+  },
+  healthEmptyText: {
+    fontSize: 13,
+    textAlign: "center",
   },
 });
