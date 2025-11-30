@@ -544,4 +544,378 @@ export const sendAgentMessage = async (
   }
 };
 
+// ============================================================================
+// FINANCIAL HEALTH
+// ============================================================================
+
+export type FinancialHealth = {
+  score: number;
+  status: string;
+  status_color: string;
+  total_income: number;
+  total_expenses: number;
+  balance: number;
+  savings_rate: number;
+  transaction_count: number;
+  top_expense_categories: { name: string; amount: number }[];
+  ai_summary: string;
+  ai_recommendations: string[];
+  period_days: number;
+};
+
+/**
+ * Get AI-powered financial health analysis for a user
+ */
+export const getFinancialHealth = async (
+  user_id: number,
+  period_days: number = 30,
+): Promise<FinancialHealth | null> => {
+  try {
+    const response = await api.get(`/api/v1/financial-health/${user_id}`, {
+      params: { period_days },
+      timeout: 30000, // 30 seconds for AI analysis
+    });
+
+    return response.data;
+  } catch (error) {
+    const apiError = error instanceof Error ? error : parseApiError(error);
+    console.error("[Financial Health Error]", {
+      code: (apiError as ApiError).error_code,
+      message: apiError.message,
+    });
+    return null;
+  }
+};
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+export type Notification = {
+  id: number;
+  user_id: number;
+  title: string;
+  body: string;
+  notification_type: string;
+  priority: string;
+  icon: string;
+  is_read: boolean;
+  scheduled_at: string | null;
+  action_url: string | null;
+  metadata: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationStats = {
+  total: number;
+  unread: number;
+  by_type: Record<string, number>;
+};
+
+export type CreateNotification = {
+  title: string;
+  body: string;
+  notification_type?: string;
+  priority?: string;
+  icon?: string;
+  scheduled_at?: string;
+  action_url?: string;
+};
+
+/**
+ * Get notifications for a user
+ */
+export const getNotifications = async (
+  user_id: number,
+  options?: {
+    unread_only?: boolean;
+    notification_type?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<Notification[]> => {
+  try {
+    const response = await api.get(`/api/v1/notifications/${user_id}`, {
+      params: options,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("[Notifications Error]", error);
+    return [];
+  }
+};
+
+/**
+ * Get notification stats for a user
+ */
+export const getNotificationStats = async (
+  user_id: number,
+): Promise<NotificationStats | null> => {
+  try {
+    const response = await api.get(`/api/v1/notifications/${user_id}/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("[Notification Stats Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Create a new notification
+ */
+export const createNotification = async (
+  user_id: number,
+  notification: CreateNotification,
+): Promise<Notification | null> => {
+  try {
+    const response = await api.post(`/api/v1/notifications/${user_id}`, notification);
+    return response.data;
+  } catch (error) {
+    console.error("[Create Notification Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Create a reminder notification
+ */
+export const createReminder = async (
+  user_id: number,
+  title: string,
+  body: string,
+  scheduled_at?: string,
+): Promise<Notification | null> => {
+  try {
+    const response = await api.post(`/api/v1/notifications/${user_id}/reminder`, {
+      user_id,
+      title,
+      body,
+      scheduled_at,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("[Create Reminder Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Mark a notification as read
+ */
+export const markNotificationRead = async (
+  user_id: number,
+  notification_id: number,
+): Promise<Notification | null> => {
+  try {
+    const response = await api.patch(
+      `/api/v1/notifications/${user_id}/${notification_id}/read`,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("[Mark Read Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Mark all notifications as read
+ */
+export const markAllNotificationsRead = async (
+  user_id: number,
+): Promise<number> => {
+  try {
+    const response = await api.patch(`/api/v1/notifications/${user_id}/read-all`);
+    return response.data.marked_as_read;
+  } catch (error) {
+    console.error("[Mark All Read Error]", error);
+    return 0;
+  }
+};
+
+/**
+ * Delete a notification
+ */
+export const deleteNotification = async (
+  user_id: number,
+  notification_id: number,
+): Promise<boolean> => {
+  try {
+    await api.delete(`/api/v1/notifications/${user_id}/${notification_id}`);
+    return true;
+  } catch (error) {
+    console.error("[Delete Notification Error]", error);
+    return false;
+  }
+};
+
+// ============================================================================
+// REPORTS
+// ============================================================================
+
+export type CategoryBreakdown = {
+  category_id: number;
+  category_name: string;
+  total_amount: number;
+  percentage: number;
+  transaction_count: number;
+};
+
+export type MonthlyTrend = {
+  month: string;
+  year: number;
+  income: number;
+  expenses: number;
+  balance: number;
+};
+
+export type ReportData = {
+  period_start: string;
+  period_end: string;
+  total_income: number;
+  total_expenses: number;
+  net_balance: number;
+  savings_rate: number;
+  transaction_count: number;
+  category_breakdown: CategoryBreakdown[];
+  monthly_trends: MonthlyTrend[];
+  top_expenses: { description: string; amount: number; date: string; category_id: number }[];
+  income_sources: { category_id: number; category_name: string; amount: number; percentage: number }[];
+};
+
+export type Report = {
+  id: number;
+  user_id: number;
+  title: string;
+  report_type: string;
+  format: string;
+  status: string;
+  period_start: string;
+  period_end: string;
+  data: ReportData | null;
+  ai_summary: string | null;
+  file_path: string | null;
+  created_at: string;
+};
+
+export type ReportListItem = {
+  id: number;
+  title: string;
+  report_type: string;
+  format: string;
+  status: string;
+  period_start: string;
+  period_end: string;
+  created_at: string;
+};
+
+export type GenerateReportRequest = {
+  report_type: string;
+  period_start: string;
+  period_end: string;
+  format?: string;
+  title?: string;
+  include_ai_summary?: boolean;
+};
+
+/**
+ * Generate a new financial report
+ */
+export const generateReport = async (
+  user_id: number,
+  request: GenerateReportRequest,
+): Promise<Report | null> => {
+  try {
+    const response = await api.post(`/api/v1/reports/${user_id}`, request, {
+      timeout: 60000, // Reports may take time to generate
+    });
+    return response.data;
+  } catch (error) {
+    console.error("[Generate Report Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Generate a quick report with preset periods
+ */
+export const generateQuickReport = async (
+  user_id: number,
+  report_type: string,
+  months: number = 1,
+): Promise<Report | null> => {
+  try {
+    const response = await api.post(
+      `/api/v1/reports/${user_id}/quick/${report_type}`,
+      null,
+      {
+        params: { months },
+        timeout: 60000,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("[Quick Report Error]", error);
+    return null;
+  }
+};
+
+/**
+ * List reports for a user
+ */
+export const getReports = async (
+  user_id: number,
+  limit: number = 20,
+  offset: number = 0,
+): Promise<ReportListItem[]> => {
+  try {
+    const response = await api.get(`/api/v1/reports/${user_id}`, {
+      params: { limit, offset },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("[List Reports Error]", error);
+    return [];
+  }
+};
+
+/**
+ * Get a specific report with full data
+ */
+export const getReport = async (
+  user_id: number,
+  report_id: number,
+): Promise<Report | null> => {
+  try {
+    const response = await api.get(`/api/v1/reports/${user_id}/${report_id}`);
+    return response.data;
+  } catch (error) {
+    console.error("[Get Report Error]", error);
+    return null;
+  }
+};
+
+/**
+ * Delete a report
+ */
+export const deleteReport = async (
+  user_id: number,
+  report_id: number,
+): Promise<boolean> => {
+  try {
+    await api.delete(`/api/v1/reports/${user_id}/${report_id}`);
+    return true;
+  } catch (error) {
+    console.error("[Delete Report Error]", error);
+    return false;
+  }
+};
+
+/**
+ * Get report CSV export URL
+ */
+export const getReportCsvUrl = (user_id: number, report_id: number): string => {
+  return `${api.defaults.baseURL}/api/v1/reports/${user_id}/${report_id}/csv`;
+};
+
 export default api;
