@@ -189,7 +189,7 @@ async def test_classification_category_not_found(test_db):
             # Test classification
             with pytest.raises(
                 ValueError,
-                match="The classified category 'NonExistentCategory' does not exist",
+                match="Unable to classify the document",
             ):
                 await category.classification(test_db, "receipt", file)
 

@@ -21,7 +21,8 @@ async def test_register_success(test_db):
 
     result = await auth.register(test_db, register_data)
 
-    assert result == "Register successfully"
+    assert result.success is True
+    assert result.message == "Usuario registrado exitosamente"
 
     # Verify user was created
     from app.services import user as user_service
@@ -34,6 +35,8 @@ async def test_register_success(test_db):
 @pytest.mark.asyncio
 async def test_register_password_mismatch(test_db):
     """Test registration with password mismatch."""
+    from app.core.exceptions import PasswordMismatchError
+
     register_data = Register(
         first_name="John",
         last_name="Doe",
@@ -43,14 +46,15 @@ async def test_register_password_mismatch(test_db):
         terms_and_conditions=True,
     )
 
-    result = await auth.register(test_db, register_data)
-
-    assert result == "No successfully"
+    with pytest.raises(PasswordMismatchError):
+        await auth.register(test_db, register_data)
 
 
 @pytest.mark.asyncio
 async def test_register_terms_not_accepted(test_db):
     """Test registration without accepting terms."""
+    from app.core.exceptions import TermsNotAcceptedError
+
     register_data = Register(
         first_name="John",
         last_name="Doe",
@@ -60,9 +64,8 @@ async def test_register_terms_not_accepted(test_db):
         terms_and_conditions=False,
     )
 
-    result = await auth.register(test_db, register_data)
-
-    assert result == "Terms and conditions must be accepted"
+    with pytest.raises(TermsNotAcceptedError):
+        await auth.register(test_db, register_data)
 
 
 @pytest.mark.asyncio

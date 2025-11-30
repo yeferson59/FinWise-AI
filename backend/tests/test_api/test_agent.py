@@ -76,6 +76,6 @@ def test_models_cache_is_working():
 # Uncomment when you have a client fixture set up
 def test_agent_api():
     """Test agent API endpoint"""
-    res = client.post("/api/v1/agents", json={"message": "Hello, who are you?"})
+    res = client.post("/api/v1/agents", json={"message": "Hello, who are you?", "user_id": 1})
     assert res.status_code == 200
     assert res.json() != ""
