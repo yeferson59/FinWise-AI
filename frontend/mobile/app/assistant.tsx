@@ -76,7 +76,7 @@ export default function AssistantScreen() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch {
       const errorMessage: ChatMessage = {
         id: generateId(),
         role: "assistant",
