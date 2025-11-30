@@ -3,7 +3,9 @@ from pydantic import BaseModel, Field
 
 class ChatAgent(BaseModel):
     message: str = Field(description="The message to send to the agent")
-    user_id: int = Field(description="The ID of the authenticated user making the request")
+    user_id: int = Field(
+        description="The ID of the authenticated user making the request"
+    )
     temperature: float | None = Field(
         default=None,
         description="Controls randomness in responses. Lower values (e.g., 0.2) make output more focused and deterministic, higher values (e.g., 0.8) make it more creative and varied. Range: 0.0 to 1.0",
