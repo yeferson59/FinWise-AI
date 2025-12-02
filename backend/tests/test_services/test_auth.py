@@ -21,7 +21,8 @@ async def test_register_success(test_db):
 
     result = await auth.register(test_db, register_data)
 
-    assert result == "Register successfully"
+    assert result.success is True
+    assert result.message == "Usuario registrado exitosamente"
 
     # Verify user was created
     from app.services import user as user_service
@@ -34,6 +35,8 @@ async def test_register_success(test_db):
 @pytest.mark.asyncio
 async def test_register_password_mismatch(test_db):
     """Test registration with password mismatch."""
+    from app.core.exceptions import PasswordMismatchError
+
     register_data = Register(
         first_name="John",
         last_name="Doe",
@@ -43,14 +46,15 @@ async def test_register_password_mismatch(test_db):
         terms_and_conditions=True,
     )
 
-    result = await auth.register(test_db, register_data)
-
-    assert result == "No successfully"
+    with pytest.raises(PasswordMismatchError):
+        await auth.register(test_db, register_data)
 
 
 @pytest.mark.asyncio
 async def test_register_terms_not_accepted(test_db):
     """Test registration without accepting terms."""
+    from app.core.exceptions import TermsNotAcceptedError
+
     register_data = Register(
         first_name="John",
         last_name="Doe",
@@ -60,9 +64,8 @@ async def test_register_terms_not_accepted(test_db):
         terms_and_conditions=False,
     )
 
-    result = await auth.register(test_db, register_data)
-
-    assert result == "Terms and conditions must be accepted"
+    with pytest.raises(TermsNotAcceptedError):
+        await auth.register(test_db, register_data)
 
 
 @pytest.mark.asyncio
@@ -87,13 +90,15 @@ async def test_login_success(test_db):
 
     assert result.success is True
     assert result.access_token is not None
-    assert result.user_email == "jane.smith@example.com"
-    assert result.user_id is not None
+    assert result.user.email == "jane.smith@example.com"
+    assert result.user.id is not None
 
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(test_db):
     """Test login with wrong password."""
+    from app.core.exceptions import InvalidCredentialsError
+
     # First create a user
     from app.services import user as user_service
     from app.schemas.user import CreateUser
@@ -109,22 +114,19 @@ async def test_login_wrong_password(test_db):
     # Try to login with wrong password
     login_data = Login(email="bob.johnson@example.com", password="WrongPassword123!@")
 
-    result = await auth.login(test_db, login_data)
-
-    assert result.success is False
-    assert result.access_token is None
-    assert result.user_id is None
+    with pytest.raises(InvalidCredentialsError):
+        await auth.login(test_db, login_data)
 
 
 @pytest.mark.asyncio
 async def test_login_user_not_found(test_db):
     """Test login with non-existent user."""
+    from app.core.exceptions import InvalidCredentialsError
+
     login_data = Login(email="nonexistent@example.com", password="SecurePass123!@")
 
-    result = await auth.login(test_db, login_data)
-
-    assert result.success is False
-    assert result.access_token is None
+    with pytest.raises(InvalidCredentialsError):
+        await auth.login(test_db, login_data)
 
 
 @pytest.mark.asyncio
@@ -160,7 +162,13 @@ async def test_logout(test_db):
         expires_at=test_session.expires_at,
     )
 
-    # Logout
-    result = await auth.logout(test_db, current_session)
+    # Logout - the function doesn't return a value, it just deletes the session
+    await auth.logout(test_db, current_session)
 
-    assert result == "Logout successfully"
+    # Verify session was deleted
+    from sqlmodel import select
+
+    deleted_session = test_db.exec(
+        select(Session).where(Session.id == test_session.id)
+    ).first()
+    assert deleted_session is None

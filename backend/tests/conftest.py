@@ -50,8 +50,12 @@ def test_db():
     from sqlmodel import Session, SQLModel
 
     # Import all models to ensure they are registered with SQLModel
+    from app.models.user import User  # noqa: F401
+    from app.models.category import Category  # noqa: F401
+    from app.models.transaction import Transaction, Source  # noqa: F401
 
-    # Create all tables
+    # Drop and recreate all tables to ensure schema is up to date
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:

@@ -11,6 +11,9 @@ run-frontend:
 run-backend:
 	cd backend && $(UV) run fastapi dev app/main.py
 
+run-backend-prod:
+	cd backend && $(UV) run fastapi run app/main.py --host 0.0.0.0 --port 8000
+
 add-backend-deps:
 	@if [ -z "$(DEPS)" ]; then \
 		echo 'Usage: make add-backend-deps DEPS="pkg1 pkg2" [UV=uv]'; \

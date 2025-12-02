@@ -133,27 +133,28 @@ class DocumentProfile:
         self.description: str = description
 
 
-# Predefined profiles for different document types
+# Predefined profiles for different document types - ENHANCED
 PROFILES = {
     DocumentType.RECEIPT: DocumentProfile(
         name="Receipt",
-        description="Optimized for receipts with small text and numbers",
+        description="Optimized for receipts with small text, numbers, and thermal paper",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.SINGLE_BLOCK,
-            oem_mode=OEMMode.DEFAULT,
+            oem_mode=OEMMode.NEURAL_NET,  # LSTM works better for receipts
             language="eng+spa",
             preserve_interword_spaces=True,
             additional_params={
-                "tessedit_char_whitelist": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáéíóúüñÁÉÍÓÚÜÑ$€.,:-/() "
+                "tessedit_char_whitelist": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáéíóúüñÁÉÍÓÚÜÑ$€.,:-/() ",
+                "textord_heavy_nr": "1",  # Better for noisy images
             },
         ),
         preprocessing_config=PreprocessingConfig(
-            scale_min_height=1500,  # Higher resolution for small text
+            scale_min_height=1800,  # Higher resolution for small receipt text
             enable_deskew=True,
-            denoise_strength=8,
+            denoise_strength=12,  # Stronger denoising for thermal paper
             enable_clahe=True,
-            clahe_clip_limit=3.0,  # Higher contrast
-            adaptive_threshold_block_size=11,
+            clahe_clip_limit=3.5,  # Higher contrast for faded receipts
+            adaptive_threshold_block_size=9,  # Smaller blocks for fine text
             adaptive_threshold_c=2,
             enable_morphology=True,
             morphology_kernel_size=(1, 1),
@@ -162,21 +163,24 @@ PROFILES = {
     ),
     DocumentType.INVOICE: DocumentProfile(
         name="Invoice",
-        description="Optimized for invoices with tables and structured data",
+        description="Optimized for invoices with tables, structured data, and logos",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
-            oem_mode=OEMMode.DEFAULT,
+            oem_mode=OEMMode.NEURAL_NET,
             language="eng+spa",
             preserve_interword_spaces=True,
+            additional_params={
+                "tessedit_pageseg_mode": "1",  # With OSD for better structure detection
+            },
         ),
         preprocessing_config=PreprocessingConfig(
-            scale_min_height=1200,
+            scale_min_height=1400,
             enable_deskew=True,
-            denoise_strength=10,
+            denoise_strength=8,
             enable_clahe=True,
             clahe_clip_limit=2.5,
-            adaptive_threshold_block_size=15,
-            adaptive_threshold_c=5,
+            adaptive_threshold_block_size=13,
+            adaptive_threshold_c=4,
             enable_morphology=True,
             morphology_kernel_size=(1, 1),
             morphology_iterations=1,
@@ -187,27 +191,7 @@ PROFILES = {
         description="General documents with paragraphs of text",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
-            oem_mode=OEMMode.DEFAULT,
-            language="eng+spa",
-            preserve_interword_spaces=True,
-        ),
-        preprocessing_config=PreprocessingConfig(
-            scale_min_height=1000,
-            enable_deskew=True,
-            denoise_strength=10,
-            enable_clahe=True,
-            clahe_clip_limit=2.0,
-            adaptive_threshold_block_size=15,
-            adaptive_threshold_c=5,
-            enable_morphology=False,  # Less aggressive for clean documents
-        ),
-    ),
-    DocumentType.FORM: DocumentProfile(
-        name="Form",
-        description="Forms with fields and checkboxes",
-        ocr_config=OCRConfig(
-            psm_mode=PSMMode.SPARSE_TEXT,
-            oem_mode=OEMMode.DEFAULT,
+            oem_mode=OEMMode.NEURAL_NET,
             language="eng+spa",
             preserve_interword_spaces=True,
         ),
@@ -219,6 +203,29 @@ PROFILES = {
             clahe_clip_limit=2.0,
             adaptive_threshold_block_size=15,
             adaptive_threshold_c=5,
+            enable_morphology=False,  # Less aggressive for clean documents
+        ),
+    ),
+    DocumentType.FORM: DocumentProfile(
+        name="Form",
+        description="Forms with fields, checkboxes, and labels",
+        ocr_config=OCRConfig(
+            psm_mode=PSMMode.SPARSE_TEXT,  # Better for scattered form fields
+            oem_mode=OEMMode.NEURAL_NET,
+            language="eng+spa",
+            preserve_interword_spaces=True,
+            additional_params={
+                "tessedit_char_blacklist": "[]{}",  # Avoid confusion with checkboxes
+            },
+        ),
+        preprocessing_config=PreprocessingConfig(
+            scale_min_height=1300,
+            enable_deskew=True,
+            denoise_strength=6,
+            enable_clahe=True,
+            clahe_clip_limit=2.0,
+            adaptive_threshold_block_size=13,
+            adaptive_threshold_c=4,
             enable_morphology=True,
             morphology_kernel_size=(1, 1),
             morphology_iterations=1,
@@ -226,17 +233,17 @@ PROFILES = {
     ),
     DocumentType.SCREENSHOT: DocumentProfile(
         name="Screenshot",
-        description="Computer screenshots with clear text",
+        description="Computer screenshots with clear digital text",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
-            oem_mode=OEMMode.NEURAL_NET,  # LSTM works well on digital text
+            oem_mode=OEMMode.NEURAL_NET,  # LSTM works great on digital text
             language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
-            scale_min_height=800,  # Screenshots are usually already high-res
+            scale_min_height=600,  # Screenshots are usually already high-res
             enable_deskew=False,  # Screenshots are usually straight
-            denoise_strength=5,  # Minimal denoising
+            denoise_strength=3,  # Minimal denoising for clean digital images
             enable_clahe=False,  # Usually good contrast already
             adaptive_threshold_block_size=11,
             adaptive_threshold_c=2,
@@ -245,22 +252,50 @@ PROFILES = {
     ),
     DocumentType.PHOTO: DocumentProfile(
         name="Photo",
-        description="Photos of documents taken with camera",
+        description="Photos of documents taken with camera/mobile",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
-            oem_mode=OEMMode.DEFAULT,
+            oem_mode=OEMMode.NEURAL_NET,
             language="eng+spa",
             preserve_interword_spaces=True,
+            additional_params={
+                "textord_heavy_nr": "1",  # Handle noise from camera
+            },
         ),
         preprocessing_config=PreprocessingConfig(
-            scale_min_height=1200,
+            scale_min_height=1500,
             enable_deskew=True,  # Photos often have skew
             enable_background_removal=True,  # Remove distracting backgrounds
-            denoise_strength=12,  # More denoising for camera noise
+            denoise_strength=15,  # More denoising for camera noise
+            enable_clahe=True,
+            clahe_clip_limit=3.0,
+            adaptive_threshold_block_size=15,
+            adaptive_threshold_c=6,
+            enable_morphology=True,
+            morphology_kernel_size=(2, 2),
+            morphology_iterations=1,
+        ),
+    ),
+    DocumentType.HANDWRITTEN: DocumentProfile(
+        name="Handwritten",
+        description="Handwritten notes and documents",
+        ocr_config=OCRConfig(
+            psm_mode=PSMMode.SINGLE_BLOCK,
+            oem_mode=OEMMode.NEURAL_NET,
+            language="eng+spa",
+            preserve_interword_spaces=True,
+            additional_params={
+                "tessedit_pageseg_mode": "6",  # Single uniform block
+            },
+        ),
+        preprocessing_config=PreprocessingConfig(
+            scale_min_height=1600,
+            enable_deskew=True,
+            denoise_strength=10,
             enable_clahe=True,
             clahe_clip_limit=2.5,
             adaptive_threshold_block_size=17,
-            adaptive_threshold_c=5,
+            adaptive_threshold_c=7,
             enable_morphology=True,
             morphology_kernel_size=(2, 2),
             morphology_iterations=1,
@@ -271,12 +306,12 @@ PROFILES = {
         description="Default profile for unknown document types",
         ocr_config=OCRConfig(
             psm_mode=PSMMode.AUTO,
-            oem_mode=OEMMode.DEFAULT,
+            oem_mode=OEMMode.NEURAL_NET,
             language="eng+spa",
             preserve_interword_spaces=True,
         ),
         preprocessing_config=PreprocessingConfig(
-            scale_min_height=1000,
+            scale_min_height=1200,
             enable_deskew=True,
             denoise_strength=10,
             enable_clahe=True,

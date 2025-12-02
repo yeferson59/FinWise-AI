@@ -18,166 +18,272 @@ def get_default_categories() -> list[Category]:
     """
     return [
         # Income
-        Category(name="Salary", description="Income from employment", is_default=True),
-        Category(name="Bonus", description="Extra income from work", is_default=True),
+        Category(name="Salario", description="Ingresos por empleo", is_default=True),
         Category(
-            name="Interest Income", description="Income from interest", is_default=True
+            name="Bono", description="Ingresos extra por trabajo", is_default=True
         ),
         Category(
-            name="Investment Income",
-            description="Income from investments",
+            name="Ingresos por Intereses",
+            description="Ingresos por intereses",
             is_default=True,
         ),
         Category(
-            name="Rental Income",
-            description="Income from property rental",
+            name="Ingresos por Inversiones",
+            description="Ingresos por inversiones",
             is_default=True,
         ),
         Category(
-            name="Business Income", description="Income from business", is_default=True
+            name="Ingresos por Alquiler",
+            description="Ingresos por alquiler de propiedad",
+            is_default=True,
         ),
-        Category(name="Gift Received", description="Gifts received", is_default=True),
-        Category(name="Refunds", description="Refunds received", is_default=True),
         Category(
-            name="Other Income", description="Other types of income", is_default=True
+            name="Ingresos Empresariales",
+            description="Ingresos por negocio",
+            is_default=True,
+        ),
+        Category(
+            name="Regalo Recibido", description="Regalos recibidos", is_default=True
+        ),
+        Category(
+            name="Reembolsos", description="Reembolsos recibidos", is_default=True
+        ),
+        Category(
+            name="Otros Ingresos",
+            description="Otros tipos de ingresos",
+            is_default=True,
         ),
         # Expenses
         Category(
-            name="Groceries",
-            description="Food and supermarket purchases",
+            name="Compras de Supermercado",
+            description="Comida y compras en supermercado",
             is_default=True,
         ),
         Category(
-            name="Dining Out", description="Restaurants and cafes", is_default=True
-        ),
-        Category(
-            name="Utilities",
-            description="Electricity, water, gas, etc.",
-            is_default=True,
-        ),
-        Category(name="Rent", description="Monthly rent payments", is_default=True),
-        Category(name="Mortgage", description="Mortgage payments", is_default=True),
-        Category(
-            name="Transportation",
-            description="Public transport, taxis, etc.",
-            is_default=True,
-        ),
-        Category(name="Fuel", description="Gasoline and fuel", is_default=True),
-        Category(name="Insurance", description="Insurance payments", is_default=True),
-        Category(
-            name="Healthcare",
-            description="General healthcare expenses",
+            name="Comer Fuera",
+            description="Restaurantes y cafés",
             is_default=True,
         ),
         Category(
-            name="Medical Expenses",
-            description="Doctor, hospital, pharmacy",
+            name="Servicios Públicos",
+            description="Electricidad, agua, gas, etc.",
             is_default=True,
         ),
         Category(
-            name="Education", description="Tuition, courses, books", is_default=True
-        ),
-        Category(name="Childcare", description="Daycare, babysitting", is_default=True),
-        Category(
-            name="Entertainment",
-            description="Movies, concerts, events",
+            name="Alquiler",
+            description="Pagos mensuales de alquiler",
             is_default=True,
         ),
         Category(
-            name="Subscriptions",
-            description="Streaming, magazines, etc.",
-            is_default=True,
-        ),
-        Category(name="Clothing", description="Apparel and shoes", is_default=True),
-        Category(
-            name="Personal Care",
-            description="Haircuts, beauty, hygiene",
+            name="Hipoteca",
+            description="Pagos de hipoteca",
             is_default=True,
         ),
         Category(
-            name="Travel",
-            description="Flights, hotels, travel expenses",
-            is_default=True,
-        ),
-        Category(name="Vacation", description="Holiday trips", is_default=True),
-        Category(name="Phone & Internet", description="Telecom bills", is_default=True),
-        Category(name="Taxes", description="Tax payments", is_default=True),
-        Category(
-            name="Donations", description="Charity and donations", is_default=True
-        ),
-        Category(
-            name="Pet Care", description="Pet food, vet, grooming", is_default=True
-        ),
-        Category(
-            name="Home Maintenance",
-            description="Repairs, cleaning, improvements",
+            name="Transporte",
+            description="Transporte público, taxis, etc.",
             is_default=True,
         ),
         Category(
-            name="Electronics", description="Gadgets and devices", is_default=True
+            name="Combustible",
+            description="Gasolina y combustible",
+            is_default=True,
         ),
-        Category(name="Shopping", description="General shopping", is_default=True),
-        Category(name="Miscellaneous", description="Other expenses", is_default=True),
+        Category(
+            name="Seguro",
+            description="Pagos de seguros",
+            is_default=True,
+        ),
+        Category(
+            name="Salud",
+            description="Gastos generales de salud",
+            is_default=True,
+        ),
+        Category(
+            name="Gastos Médicos",
+            description="Médico, hospital, farmacia",
+            is_default=True,
+        ),
+        Category(
+            name="Educación",
+            description="Matrícula, cursos, libros",
+            is_default=True,
+        ),
+        Category(
+            name="Cuidado Infantil",
+            description="Guardería, niñera",
+            is_default=True,
+        ),
+        Category(
+            name="Entretenimiento",
+            description="Películas, conciertos, eventos",
+            is_default=True,
+        ),
+        Category(
+            name="Suscripciones",
+            description="Streaming, revistas, etc.",
+            is_default=True,
+        ),
+        Category(name="Ropa", description="Ropa y zapatos", is_default=True),
+        Category(
+            name="Cuidado Personal",
+            description="Cortes de cabello, belleza, higiene",
+            is_default=True,
+        ),
+        Category(
+            name="Viajes",
+            description="Vuelos, hoteles, gastos de viaje",
+            is_default=True,
+        ),
+        Category(
+            name="Vacaciones",
+            description="Viajes de vacaciones",
+            is_default=True,
+        ),
+        Category(
+            name="Teléfono e Internet",
+            description="Facturas de telecomunicaciones",
+            is_default=True,
+        ),
+        Category(
+            name="Impuestos",
+            description="Pagos de impuestos",
+            is_default=True,
+        ),
+        Category(
+            name="Donaciones",
+            description="Caridad y donaciones",
+            is_default=True,
+        ),
+        Category(
+            name="Cuidado de Mascotas",
+            description="Comida para mascotas, veterinario, aseo",
+            is_default=True,
+        ),
+        Category(
+            name="Mantenimiento del Hogar",
+            description="Reparaciones, limpieza, mejoras",
+            is_default=True,
+        ),
+        Category(
+            name="Electrónicos",
+            description="Gadgets y dispositivos",
+            is_default=True,
+        ),
+        Category(name="Compras", description="Compras generales", is_default=True),
+        Category(
+            name="Varios",
+            description="Otros gastos",
+            is_default=True,
+        ),
         # Savings
         Category(
-            name="Emergency Fund",
-            description="Savings for emergencies",
+            name="Fondo de Emergencia",
+            description="Ahorros para emergencias",
             is_default=True,
         ),
         Category(
-            name="Retirement Savings",
-            description="Retirement accounts",
-            is_default=True,
-        ),
-        Category(name="College Fund", description="Education savings", is_default=True),
-        Category(
-            name="Investment Savings",
-            description="Savings for investments",
+            name="Ahorros para Jubilación",
+            description="Cuentas de jubilación",
             is_default=True,
         ),
         Category(
-            name="Short-term Savings", description="Short-term goals", is_default=True
+            name="Fondo para Universidad",
+            description="Ahorros para educación",
+            is_default=True,
+        ),
+        Category(
+            name="Ahorros para Inversiones",
+            description="Ahorros para inversiones",
+            is_default=True,
+        ),
+        Category(
+            name="Ahorros a Corto Plazo",
+            description="Metas a corto plazo",
+            is_default=True,
         ),
         # Investments
-        Category(name="Stocks", description="Stock investments", is_default=True),
-        Category(name="Bonds", description="Bond investments", is_default=True),
         Category(
-            name="Mutual Funds", description="Mutual fund investments", is_default=True
+            name="Acciones",
+            description="Inversiones en acciones",
+            is_default=True,
         ),
         Category(
-            name="Real Estate", description="Real estate investments", is_default=True
+            name="Bonos",
+            description="Inversiones en bonos",
+            is_default=True,
         ),
         Category(
-            name="Cryptocurrency", description="Crypto investments", is_default=True
+            name="Fondos Mutuos",
+            description="Inversiones en fondos mutuos",
+            is_default=True,
         ),
         Category(
-            name="Other Investments",
-            description="Other types of investments",
+            name="Bienes Raíces",
+            description="Inversiones en bienes raíces",
+            is_default=True,
+        ),
+        Category(
+            name="Criptomonedas",
+            description="Inversiones en cripto",
+            is_default=True,
+        ),
+        Category(
+            name="Otras Inversiones",
+            description="Otros tipos de inversiones",
             is_default=True,
         ),
         # Debt
         Category(
-            name="Credit Card Payment", description="Credit card bills", is_default=True
-        ),
-        Category(name="Loan Payment", description="Loan repayments", is_default=True),
-        Category(
-            name="Mortgage Payment", description="Mortgage repayments", is_default=True
-        ),
-        Category(
-            name="Student Loan", description="Student loan payments", is_default=True
-        ),
-        Category(name="Car Loan", description="Car loan payments", is_default=True),
-        Category(name="Other Debt", description="Other debts", is_default=True),
-        # Other
-        Category(
-            name="Uncategorized",
-            description="Uncategorized transactions",
+            name="Pago de Tarjeta de Crédito",
+            description="Facturas de tarjeta de crédito",
             is_default=True,
         ),
-        Category(name="Transfers", description="Account transfers", is_default=True),
-        Category(name="Fees", description="Bank and service fees", is_default=True),
         Category(
-            name="Adjustments", description="Balance adjustments", is_default=True
+            name="Pago de Préstamo",
+            description="Pagos de préstamos",
+            is_default=True,
+        ),
+        Category(
+            name="Pago de Hipoteca",
+            description="Pagos de hipoteca",
+            is_default=True,
+        ),
+        Category(
+            name="Préstamo Estudiantil",
+            description="Pagos de préstamo estudiantil",
+            is_default=True,
+        ),
+        Category(
+            name="Préstamo de Auto",
+            description="Pagos de préstamo de auto",
+            is_default=True,
+        ),
+        Category(
+            name="Otras Deudas",
+            description="Otras deudas",
+            is_default=True,
+        ),
+        # Other
+        Category(
+            name="Sin Categorizar",
+            description="Transacciones sin categorizar",
+            is_default=True,
+        ),
+        Category(
+            name="Transferencias",
+            description="Transferencias entre cuentas",
+            is_default=True,
+        ),
+        Category(
+            name="Comisiones",
+            description="Comisiones bancarias y de servicios",
+            is_default=True,
+        ),
+        Category(
+            name="Ajustes",
+            description="Ajustes de saldo",
+            is_default=True,
         ),
     ]
 
@@ -239,67 +345,113 @@ def get_default_sources() -> list[Source]:
     return [
         # Banking
         Source(
-            name="Bank Account", description="Primary bank account", is_default=True
+            name="Cuenta Bancaria",
+            description="Cuenta bancaria principal",
+            is_default=True,
         ),
-        Source(name="Savings Account", description="Savings account", is_default=True),
         Source(
-            name="Checking Account", description="Checking account", is_default=True
+            name="Cuenta de Ahorros",
+            description="Cuenta de ahorros",
+            is_default=True,
         ),
-        Source(name="Credit Card", description="Credit card account", is_default=True),
-        Source(name="Debit Card", description="Debit card account", is_default=True),
+        Source(
+            name="Cuenta Corriente",
+            description="Cuenta corriente",
+            is_default=True,
+        ),
+        Source(
+            name="Tarjeta de Crédito",
+            description="Cuenta de tarjeta de crédito",
+            is_default=True,
+        ),
+        Source(
+            name="Tarjeta de Débito",
+            description="Cuenta de tarjeta de débito",
+            is_default=True,
+        ),
         # Digital Wallets
-        Source(name="PayPal", description="PayPal account", is_default=True),
-        Source(name="Venmo", description="Venmo account", is_default=True),
-        Source(name="Cash App", description="Cash App account", is_default=True),
-        Source(name="Apple Pay", description="Apple Pay", is_default=True),
-        Source(name="Google Pay", description="Google Pay", is_default=True),
+        Source(
+            name="PayPal",
+            description="Cuenta PayPal",
+            is_default=True,
+        ),
+        Source(
+            name="Venmo",
+            description="Cuenta Venmo",
+            is_default=True,
+        ),
+        Source(name="Cash App", description="Cuenta Cash App", is_default=True),
+        Source(
+            name="Apple Pay",
+            description="Apple Pay",
+            is_default=True,
+        ),
+        Source(
+            name="Google Pay",
+            description="Google Pay",
+            is_default=True,
+        ),
         # Cryptocurrency
         Source(
-            name="Bitcoin Wallet",
-            description="Bitcoin cryptocurrency wallet",
+            name="Billetera Bitcoin",
+            description="Billetera de criptomoneda Bitcoin",
             is_default=True,
         ),
         Source(
-            name="Ethereum Wallet",
-            description="Ethereum cryptocurrency wallet",
+            name="Billetera Ethereum",
+            description="Billetera de criptomoneda Ethereum",
             is_default=True,
         ),
         Source(
-            name="Crypto Exchange",
-            description="Cryptocurrency exchange account",
+            name="Exchange de Cripto",
+            description="Cuenta de exchange de criptomonedas",
             is_default=True,
         ),
         # Investment
         Source(
-            name="Brokerage Account",
-            description="Investment brokerage account",
+            name="Cuenta de Correduría",
+            description="Cuenta de correduría de inversiones",
             is_default=True,
         ),
         Source(
-            name="Retirement Account",
-            description="401k or IRA account",
+            name="Cuenta de Jubilación",
+            description="Cuenta 401k o IRA",
             is_default=True,
         ),
         Source(
-            name="Investment App",
-            description="Investment application account",
+            name="App de Inversiones",
+            description="Cuenta de aplicación de inversiones",
             is_default=True,
         ),
         # Cash and Physical
-        Source(name="Cash", description="Physical cash", is_default=True),
-        Source(name="Check", description="Check payments", is_default=True),
+        Source(name="Efectivo", description="Efectivo físico", is_default=True),
+        Source(
+            name="Cheque",
+            description="Pagos con cheque",
+            is_default=True,
+        ),
         # Business
         Source(
-            name="Business Account",
-            description="Business bank account",
+            name="Cuenta Empresarial",
+            description="Cuenta bancaria empresarial",
             is_default=True,
         ),
         Source(
-            name="Client Payment", description="Payments from clients", is_default=True
+            name="Pago de Cliente",
+            description="Pagos de clientes",
+            is_default=True,
         ),
         # Other
-        Source(name="Other", description="Other payment sources", is_default=True),
-        Source(name="Unknown", description="Unknown payment source", is_default=True),
+        Source(
+            name="Otro",
+            description="Otras fuentes de pago",
+            is_default=True,
+        ),
+        Source(
+            name="Desconocido",
+            description="Fuente de pago desconocida",
+            is_default=True,
+        ),
     ]
 
 

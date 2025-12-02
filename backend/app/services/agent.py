@@ -1,6 +1,7 @@
 from typing import Any
 
-from app.core.agent import AgentDeps, get_agent, react_agent
+from app.core.agent_secure import AgentDeps, react_agent
+from app.core.agent import get_agent
 from app.db.session import SessionDep
 
 
@@ -26,11 +27,14 @@ async def chat_agent(
 
 async def chat_react_agent(
     session: SessionDep,
+    user_id: int,
     message: str,
     temperature: float | None = None,
     top_p: float | None = None,
 ) -> str:
-    deps = AgentDeps(session=session)
+    # Create dependencies with user_id for security scoping
+    # All agent tools will only access data for this user
+    deps = AgentDeps(session=session, user_id=user_id)
 
     # Build model settings, using provided values or falling back to defaults
     model_settings: dict[str, Any] = {}

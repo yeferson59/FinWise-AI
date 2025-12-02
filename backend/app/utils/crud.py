@@ -1,6 +1,7 @@
 """Generic CRUD utilities for services layer."""
 
 from typing import TypeVar, Generic
+from uuid import UUID
 from pydantic import BaseModel
 from app.db.session import SessionDep
 from app.models.base import Base, BaseUuid
@@ -23,19 +24,22 @@ class CRUDService(Generic[T, CreateSchema, UpdateSchema]):
         db.create_db_entity(entity, session)
         return entity
 
-    async def get_by_id(self, session: SessionDep, entity_id: int) -> T:
-        """Get entity by ID."""
+    async def get_by_id(self, session: SessionDep, entity_id: int | str | UUID) -> T:
+        """Get entity by ID. Supports both int and UUID."""
         return db.get_entity_by_id(self.model, entity_id, session)
 
     async def update(
-        self, session: SessionDep, entity_id: int, update_data: UpdateSchema
+        self,
+        session: SessionDep,
+        entity_id: int | str | UUID,
+        update_data: UpdateSchema,
     ) -> T:
-        """Update an entity."""
+        """Update an entity. Supports both int and UUID."""
         update_dict = update_data.model_dump(exclude_unset=True)
         return db.update_db_entity(self.model, entity_id, update_dict, session)
 
-    async def delete(self, session: SessionDep, entity_id: int) -> T:
-        """Delete an entity."""
+    async def delete(self, session: SessionDep, entity_id: int | str | UUID) -> T:
+        """Delete an entity. Supports both int and UUID."""
         entity = db.get_entity_by_id(self.model, entity_id, session)
         db.delete_db_entity(self.model, entity_id, session)
         return entity

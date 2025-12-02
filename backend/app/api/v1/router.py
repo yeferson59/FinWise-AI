@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     categories,
     files,
     source,
+    financial_health,
 )
 
 router = APIRouter()
@@ -32,3 +33,6 @@ router.include_router(
 router.include_router(categories.router, prefix="/categories", tags=["categories"])
 router.include_router(files.router, prefix="/files", tags=["files"])
 router.include_router(source.router, prefix="/sources", tags=["sources"])
+router.include_router(
+    financial_health.router, prefix="/financial-health", tags=["financial-health"]
+)

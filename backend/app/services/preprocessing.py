@@ -19,6 +19,19 @@ except ImportError:
     TESSERACT_AVAILABLE = False
 
 
+# ============================================================================
+# ENHANCED PREPROCESSING CONSTANTS
+# ============================================================================
+
+# Optimal DPI for OCR (300 DPI is standard for document scanning)
+OPTIMAL_DPI = 300
+MIN_DPI_ESTIMATE = 150
+
+# Minimum dimensions for good OCR
+MIN_WIDTH_FOR_OCR = 400
+MIN_HEIGHT_FOR_OCR = 300
+
+
 def scale_image(image: Any, config: PreprocessingConfig) -> tuple[Any, float]:
     """
     Scale image if it's too small for better OCR accuracy.
@@ -137,6 +150,7 @@ def preprocess_image(
 ) -> str:
     """
     Preprocess an image for OCR with configurable settings.
+    Enhanced version with better noise reduction and text enhancement.
 
     Args:
         filepath: Path to the image file
@@ -174,10 +188,13 @@ def preprocess_image(
     # Step 4: Convert to Grayscale
     gray = to_grayscale(image)
 
-    # Step 5: Noise Removal
+    # Step 5: Enhanced noise removal with bilateral filter (preserves edges better)
     if config.denoise_strength > 0:
+        # First pass: bilateral filter (edge-preserving)
+        denoised = cv2.bilateralFilter(gray, 9, 75, 75)
+        # Second pass: Non-local means for remaining noise
         denoised = cv2.fastNlMeansDenoising(
-            gray,
+            denoised,
             None,
             h=config.denoise_strength,
             templateWindowSize=7,
@@ -186,16 +203,23 @@ def preprocess_image(
     else:
         denoised = gray
 
-    # Step 6: Enhance Contrast with CLAHE
+    # Step 6: Enhance Contrast with CLAHE (improved parameters)
     if config.enable_clahe:
-        clahe = cv2.createCLAHE(clipLimit=config.clahe_clip_limit, tileGridSize=(8, 8))
+        # Use smaller tile grid for better local contrast
+        clahe = cv2.createCLAHE(
+            clipLimit=config.clahe_clip_limit,
+            tileGridSize=(4, 4),  # Smaller tiles for finer detail
+        )
         enhanced = clahe.apply(denoised)
     else:
         enhanced = denoised
 
-    # Step 7: Adaptive Thresholding (improved binary filter)
+    # Step 7: Apply Gaussian blur to reduce high-frequency noise before thresholding
+    blurred = cv2.GaussianBlur(enhanced, (3, 3), 0)
+
+    # Step 8: Adaptive Thresholding (improved binary filter)
     thresh = cv2.adaptiveThreshold(
-        enhanced,
+        blurred,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
@@ -203,11 +227,17 @@ def preprocess_image(
         config.adaptive_threshold_c,
     )
 
-    # Step 8: Morphological Operations (optional)
+    # Step 9: Morphological Operations (optional) - improved sequence
     if config.enable_morphology:
         kernel = np.ones(config.morphology_kernel_size, np.uint8)
+        # First close small gaps in characters
         final_image = cv2.morphologyEx(
             thresh, cv2.MORPH_CLOSE, kernel, iterations=config.morphology_iterations
+        )
+        # Then open to remove small noise spots
+        noise_kernel = np.ones((2, 2), np.uint8)
+        final_image = cv2.morphologyEx(
+            final_image, cv2.MORPH_OPEN, noise_kernel, iterations=1
         )
     else:
         final_image = thresh

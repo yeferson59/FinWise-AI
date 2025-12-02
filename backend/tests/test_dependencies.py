@@ -33,15 +33,15 @@ def test_get_default_categories_has_expected_categories():
     categories = get_default_categories()
     category_names = {cat.name for cat in categories}
 
-    # Check for some expected categories
+    # Check for some expected categories (Spanish names)
     expected_categories = {
-        "Salary",
-        "Groceries",
-        "Rent",
-        "Utilities",
-        "Entertainment",
-        "Healthcare",
-        "Uncategorized",
+        "Salario",
+        "Compras de Supermercado",
+        "Alquiler",
+        "Servicios Públicos",
+        "Entretenimiento",
+        "Salud",
+        "Sin Categorizar",
     }
 
     assert expected_categories.issubset(category_names)
@@ -183,14 +183,14 @@ def test_get_default_sources_has_expected_sources():
     sources = get_default_sources()
     source_names = {src.name for src in sources}
 
-    # Check for some expected sources
+    # Check for some expected sources (Spanish names)
     expected_sources = {
-        "Bank Account",
-        "Credit Card",
+        "Cuenta Bancaria",
+        "Tarjeta de Crédito",
         "PayPal",
-        "Cash",
+        "Efectivo",
         "Cash App",
-        "Other",
+        "Otro",
     }
 
     assert expected_sources.issubset(source_names)
@@ -260,8 +260,8 @@ def test_init_sources_partial_existing(mock_engine, mock_session_class):
     mock_session = MagicMock()
     mock_session_class.return_value.__enter__.return_value = mock_session
 
-    # Mock that some sources exist
-    mock_session.exec.return_value.all.return_value = ["Bank Account", "Cash"]
+    # Mock that some sources exist (use Spanish names)
+    mock_session.exec.return_value.all.return_value = ["Cuenta Bancaria", "Efectivo"]
 
     # Call the function
     init_sources()
@@ -290,6 +290,7 @@ def test_init_sources_handles_exceptions(mock_engine, mock_session_class):
         init_sources()
 
 
+@patch("app.dependencies.Session")
 @patch("app.dependencies.logger")
 def test_init_sources_logs_correctly(mock_logger, mock_session_class):
     """Test that init_sources logs appropriate messages."""
@@ -297,8 +298,8 @@ def test_init_sources_logs_correctly(mock_logger, mock_session_class):
     mock_session = MagicMock()
     mock_session_class.return_value.__enter__.return_value = mock_session
 
-    # Mock that some sources exist
-    mock_session.exec.return_value.all.return_value = ["Bank Account"]
+    # Mock that some sources exist (use Spanish names)
+    mock_session.exec.return_value.all.return_value = ["Cuenta Bancaria"]
 
     # Call the function
     init_sources()
