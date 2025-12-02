@@ -783,20 +783,20 @@ export default function OcrScreen() {
                       showsHorizontalScrollIndicator={false}
                     >
                       <View style={styles.chipContainer}>
-                        {sources.map((src) => (
+                        {sources.map((source) => (
                           <Pressable
-                            key={src.id}
+                            key={source.id}
                             onPress={() =>
                               setEditableTransaction({
                                 ...editableTransaction,
-                                source_id: src.id,
+                                source_id: source.id,
                               })
                             }
                             style={[
                               styles.chip,
                               {
                                 backgroundColor:
-                                  editableTransaction.source_id === src.id
+                                  editableTransaction.source_id === source.id
                                     ? theme.tint
                                     : isDark
                                       ? "#333"
@@ -807,13 +807,13 @@ export default function OcrScreen() {
                              <ThemedText
                                style={{
                                  color:
-                                   editableTransaction.source_id === src.id
+                                   editableTransaction.source_id === source.id
                                      ? "#fff"
                                      : theme.text,
                                  fontSize: 13,
                                }}
                              >
-                               {SOURCE_EMOJIS[src.name] || ''} {src.name}
+                               {SOURCE_EMOJIS[source.name] || ''} {source.name}
                              </ThemedText>
                           </Pressable>
                         ))}
