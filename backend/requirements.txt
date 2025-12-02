@@ -40,7 +40,7 @@ flatbuffers==25.9.23
 frozenlist==1.8.0
 fsspec==2025.10.0
 future==1.0.0
-genai-prices==0.0.39
+genai-prices==0.0.47
 griffe==1.15.0
 h11==0.16.0
 hf-xet==1.2.0
