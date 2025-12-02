@@ -20,6 +20,7 @@ import { Colors, createShadow } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useNotificationContext } from "@/contexts/NotificationContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Side menu screen
@@ -152,6 +153,7 @@ export default function MenuScreen() {
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
   const { unreadCount } = useNotificationContext();
+  const { logout } = useAuth();
 
   // entry animation for the menu: fade + slide up
   const anim = useRef(new Animated.Value(0));
@@ -281,13 +283,14 @@ export default function MenuScreen() {
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert("Cerrar sesión", "¿Deseas cerrar sesión?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Cerrar sesión",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
+          await logout();
           router.replace("/login" as any);
         },
       },

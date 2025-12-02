@@ -246,25 +246,26 @@ export default function AssistantScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.chatContainer}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          contentContainerStyle={[
-            styles.messagesList,
-            messages.length === 0 && styles.emptyMessagesList,
-          ]}
-          ListEmptyComponent={renderEmptyState}
-          ListFooterComponent={isLoading ? renderTypingIndicator : null}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToBottom}
-        />
+       <KeyboardAvoidingView
+         style={styles.chatContainer}
+         behavior="height"
+         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+       >
+         <FlatList
+           ref={flatListRef}
+           data={messages}
+           keyExtractor={(item) => item.id}
+           renderItem={renderMessage}
+           contentContainerStyle={[
+             styles.messagesList,
+             messages.length === 0 && styles.emptyMessagesList,
+           ]}
+           ListEmptyComponent={renderEmptyState}
+           ListFooterComponent={isLoading ? renderTypingIndicator : null}
+           showsVerticalScrollIndicator={false}
+           onContentSizeChange={scrollToBottom}
+           keyboardShouldPersistTaps="handled"
+         />
 
         <View
           style={[

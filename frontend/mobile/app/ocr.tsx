@@ -9,6 +9,7 @@ import {
   ScrollView,
   Image,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -296,37 +297,44 @@ export default function OcrScreen() {
 
   return (
     <ThemedView style={[styles.root, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <ThemedText
-            type="title"
-            style={[styles.title, { color: theme.text }]}
-          >
-            OCR - Escanear documentos
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-            Escanea recibos, facturas y documentos
-          </ThemedText>
-        </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <ThemedText
+              type="title"
+              style={[styles.title, { color: theme.text }]}
+            >
+              OCR - Escanear documentos
+            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
+              Escanea recibos, facturas y documentos
+            </ThemedText>
+          </View>
 
-        {!ocrResult ? (
-          <>
-            {/* Document Type Selector */}
-            <View style={styles.typeSelector}>
-              <ThemedText
-                style={[styles.typeSelectorLabel, { color: theme.text }]}
-              >
-                Tipo de documento:
-              </ThemedText>
-              <View style={styles.typeButtons}>
-                {DOCUMENT_TYPES.map((type) => (
-                  <Pressable
-                    key={type.value}
-                    onPress={() => setDocumentType(type.value)}
-                    style={[
-                      styles.typeButton,
-                      {
-                        backgroundColor:
+          {!ocrResult ? (
+            <>
+              {/* Document Type Selector */}
+              <View style={styles.typeSelector}>
+                <ThemedText
+                  style={[styles.typeSelectorLabel, { color: theme.text }]}
+                >
+                  Tipo de documento:
+                </ThemedText>
+                <View style={styles.typeButtons}>
+                  {DOCUMENT_TYPES.map((type) => (
+                    <Pressable
+                      key={type.value}
+                      onPress={() => setDocumentType(type.value)}
+                      style={[
+                        styles.typeButton,
+                        {
+                          backgroundColor:
                           documentType === type.value
                             ? theme.tint
                             : isDark
@@ -881,6 +889,7 @@ export default function OcrScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }

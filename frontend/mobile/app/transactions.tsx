@@ -9,6 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -24,6 +26,17 @@ import {
   getSources,
   createTransaction,
 } from "shared";
+
+const formatAmount = (amount: number): string => {
+  if (amount >= 1_000_000_000) {
+    return (amount / 1_000_000_000).toFixed(1) + "B";
+  } else if (amount >= 1_000_000) {
+    return (amount / 1_000_000).toFixed(1) + "M";
+  } else if (amount >= 10_000) {
+    return (amount / 1_000).toFixed(1) + "K";
+  }
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 type Transaction = {
   id: string;
@@ -256,7 +269,7 @@ export default function TransactionsScreen() {
             {formattedDate}
           </Text>
           <Text style={[styles.amountText, { color: amountColor }]}>
-            {isIncome ? "+" : "-"}${item.amount.toFixed(2)}
+            {isIncome ? "+" : "-"}${formatAmount(item.amount)}
           </Text>
         </View>
       </Pressable>
@@ -310,22 +323,27 @@ export default function TransactionsScreen() {
         visible={isFormVisible}
         onRequestClose={closeForm}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[styles.modalCard, { backgroundColor: theme.cardBackground }]}
-          >
-            <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
-              Nueva transacción
-            </ThemedText>
-
-            <ScrollView
-              style={{ maxHeight: 420 }}
-              showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[styles.modalCard, { backgroundColor: theme.cardBackground }]}
             >
-              <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: theme.icon }]}>Título</Text>
-                <TextInput
-                  value={formData.title}
+              <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+                Nueva transacción
+              </ThemedText>
+
+              <ScrollView
+                style={{ maxHeight: 420 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: theme.icon }]}>Título</Text>
+                  <TextInput
+                    value={formData.title}
                   onChangeText={(title) => setFormData((prev) => ({ ...prev, title }))}
                   placeholder="Compra supermercado"
                   placeholderTextColor={theme.icon}
@@ -528,6 +546,7 @@ export default function TransactionsScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ThemedView>
   );

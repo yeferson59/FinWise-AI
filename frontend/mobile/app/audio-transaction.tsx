@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { AudioModule, RecordingPresets, useAudioRecorder } from "expo-audio";
@@ -17,7 +18,12 @@ import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import api, { processFile, getCategories, getSources, SOURCE_EMOJIS } from "shared";
+import api, {
+  processFile,
+  getCategories,
+  getSources,
+  SOURCE_EMOJIS,
+} from "shared";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Category = { id: number; name: string };
@@ -308,30 +314,37 @@ export default function AudioTransactionScreen() {
     <ThemedView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText
-            type="title"
-            style={[styles.title, { color: theme.text }]}
-          >
-            Transacción por Voz
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-            Dicta tu transacción y se creará automáticamente
-          </ThemedText>
-        </View>
-
-        {!result ? (
-          <>
-            {/* Recording UI */}
-            <View
-              style={[
-                styles.recordingCard,
-                { backgroundColor: isDark ? "#222" : theme.cardBackground },
-              ]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <ThemedText
+              type="title"
+              style={[styles.title, { color: theme.text }]}
             >
-              {/* Microphone Icon */}
+              Transacción por Voz
+            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
+              Dicta tu transacción y se creará automáticamente
+            </ThemedText>
+          </View>
+
+          {!result ? (
+            <>
+              {/* Recording UI */}
+              <View
+                style={[
+                  styles.recordingCard,
+                  { backgroundColor: isDark ? "#222" : theme.cardBackground },
+                ]}
+              >
+                {/* Microphone Icon */}
               <View
                 style={[
                   styles.micContainer,
@@ -349,6 +362,15 @@ export default function AudioTransactionScreen() {
                 />
               </View>
 
+              {/* Instructions */}
+              <ThemedText style={[styles.instructions, { color: theme.icon }]}>
+                {isRecording
+                  ? 'Grabando... Di algo como:\n"Gasté 50 dólares en comida"'
+                  : recordedUri
+                    ? "Audio listo. Presiona procesar o vuelve a grabar"
+                    : "Presiona el botón para grabar"}
+              </ThemedText>
+
               {/* Duration */}
               {(isRecording || recordingDuration > 0) && (
                 <ThemedText
@@ -361,21 +383,12 @@ export default function AudioTransactionScreen() {
                 </ThemedText>
               )}
 
-              {/* Instructions */}
-              <ThemedText style={[styles.instructions, { color: theme.icon }]}>
-                {isRecording
-                  ? 'Grabando... Di algo como:\n"Gasté 50 dólares en comida"'
-                  : recordedUri
-                    ? "Audio listo. Puedes procesarlo o volver a grabar"
-                    : "Presiona el botón para grabar"}
-              </ThemedText>
-
               {/* Processing indicator */}
               {processing && (
                 <View style={styles.processingContainer}>
-                  <ActivityIndicator color={theme.tint} size="small" />
+                  <ActivityIndicator color={theme.tint} size="large" />
                   <ThemedText
-                    style={[styles.processingText, { color: theme.icon }]}
+                    style={[styles.processingText, { color: theme.text }]}
                   >
                     {processingStep}
                   </ThemedText>
@@ -411,7 +424,9 @@ export default function AudioTransactionScreen() {
                 <View
                   style={[
                     styles.postRecordingContainer,
-                    { backgroundColor: isDark ? "#111" : theme.inputBackground },
+                    {
+                      backgroundColor: isDark ? "#111" : theme.inputBackground,
+                    },
                   ]}
                 >
                   <ThemedText
@@ -422,7 +437,8 @@ export default function AudioTransactionScreen() {
                   <ThemedText
                     style={[styles.readySubLabel, { color: theme.icon }]}
                   >
-                    Procesa el audio o vuelve a grabar si necesitas otro intento.
+                    Procesa el audio o vuelve a grabar si necesitas otro
+                    intento.
                   </ThemedText>
                   <View style={styles.postRecordingActions}>
                     <Pressable
@@ -434,7 +450,7 @@ export default function AudioTransactionScreen() {
                     >
                       <IconSymbol
                         name={"waveform" as any}
-                        size={18}
+                        size={16}
                         color="#fff"
                       />
                       <ThemedText
@@ -456,7 +472,7 @@ export default function AudioTransactionScreen() {
                     >
                       <IconSymbol
                         name={"arrow.counterclockwise" as any}
-                        size={18}
+                        size={16}
                         color={theme.icon}
                       />
                       <ThemedText
@@ -776,17 +792,17 @@ export default function AudioTransactionScreen() {
                               },
                             ]}
                           >
-                             <ThemedText
-                               style={{
-                                 color:
-                                   editableTransaction.source_id === src.id
-                                     ? "#fff"
-                                     : theme.text,
-                                 fontSize: 13,
-                               }}
-                             >
-                               {SOURCE_EMOJIS[src.name] || ''} {src.name}
-                             </ThemedText>
+                            <ThemedText
+                              style={{
+                                color:
+                                  editableTransaction.source_id === src.id
+                                    ? "#fff"
+                                    : theme.text,
+                                fontSize: 13,
+                              }}
+                            >
+                              {SOURCE_EMOJIS[src.name] || ""} {src.name}
+                            </ThemedText>
                           </Pressable>
                         ))}
                       </View>
@@ -841,6 +857,7 @@ export default function AudioTransactionScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
@@ -880,9 +897,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   duration: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "700",
-    marginBottom: 16,
+    marginTop: 10,
+    textAlign: 'center',
   },
   instructions: {
     fontSize: 14,
@@ -897,7 +915,8 @@ const styles = StyleSheet.create({
   },
   processingText: {
     marginLeft: 10,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "600",
   },
   recordButton: {
     width: 80,
@@ -936,7 +955,7 @@ const styles = StyleSheet.create({
   },
   postActionButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -945,7 +964,7 @@ const styles = StyleSheet.create({
   },
   postActionText: {
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 13,
   },
   tipsContainer: {
     paddingHorizontal: 20,

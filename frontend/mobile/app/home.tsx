@@ -76,6 +76,17 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   general: "📦",
 };
 
+const formatAmountShort = (amount: number): string => {
+  if (amount >= 1_000_000_000) {
+    return (amount / 1_000_000_000).toFixed(1) + "B";
+  } else if (amount >= 1_000_000) {
+    return (amount / 1_000_000).toFixed(1) + "M";
+  } else if (amount >= 10_000) {
+    return (amount / 1_000).toFixed(1) + "K";
+  }
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -188,7 +199,7 @@ export default function HomeScreen() {
         return {
           id: cat.id.toString(),
           name: cat.name,
-          amount: `$${amount.toFixed(2)}`,
+          amount: `$${formatAmountShort(amount)}`,
           percent,
           color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
           emoji: CATEGORY_EMOJIS[lowerName] || "🏷️",
@@ -205,11 +216,32 @@ export default function HomeScreen() {
 
   // Format currency for display
   const formatCurrency = (amount: number) => {
-    const formatted = Math.abs(amount).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    const absAmount = Math.abs(amount);
+    let formatted: string;
+    if (absAmount >= 1_000_000_000) {
+      formatted = (absAmount / 1_000_000_000).toFixed(1) + "B";
+    } else if (absAmount >= 1_000_000) {
+      formatted = (absAmount / 1_000_000).toFixed(1) + "M";
+    } else if (absAmount >= 10_000) {
+      formatted = (absAmount / 1_000).toFixed(1) + "K";
+    } else {
+      formatted = absAmount.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
     return amount < 0 ? `-$${formatted}` : `$${formatted}`;
+  };
+
+  const formatAmount = (amount: number): string => {
+    if (amount >= 1_000_000_000) {
+      return (amount / 1_000_000_000).toFixed(1) + "B";
+    } else if (amount >= 1_000_000) {
+      return (amount / 1_000_000).toFixed(1) + "M";
+    } else if (amount >= 10_000) {
+      return (amount / 1_000).toFixed(1) + "K";
+    }
+    return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const renderAction = (icon: string, label: string, idx: number) => (
@@ -314,7 +346,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <Text style={[styles.transactionAmount, { color: transactionColor }]}>
-          {isIncome ? "+" : "-"}${item.amount.toFixed(2)}
+          {isIncome ? "+" : "-"}${formatAmount(item.amount)}
         </Text>
       </Pressable>
     );

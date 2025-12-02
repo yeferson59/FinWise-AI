@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedView } from "@/components/themed-view";
@@ -371,88 +373,93 @@ export default function CategoriesScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: isDark ? "#1a1a1a" : "#fff" },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
-                Nueva categoría
-              </ThemedText>
-              <Pressable onPress={() => setModalVisible(false)}>
-                <IconSymbol
-                  name={"xmark.circle.fill" as any}
-                  size={28}
-                  color={theme.icon}
-                />
-              </Pressable>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
-                Nombre *
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: isDark ? "#333" : "#f5f5f5",
-                    color: theme.text,
-                    borderColor: isDark ? "#444" : "#ddd",
-                  },
-                ]}
-                value={newCategoryName}
-                onChangeText={setNewCategoryName}
-                placeholder="Ej: Viajes, Mascotas, Gym..."
-                placeholderTextColor={theme.icon}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
-                Descripción (opcional)
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.textArea,
-                  {
-                    backgroundColor: isDark ? "#333" : "#f5f5f5",
-                    color: theme.text,
-                    borderColor: isDark ? "#444" : "#ddd",
-                  },
-                ]}
-                value={newCategoryDescription}
-                onChangeText={setNewCategoryDescription}
-                placeholder="Descripción de la categoría"
-                placeholderTextColor={theme.icon}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <Pressable
-              onPress={handleCreateCategory}
-              disabled={saving}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.modalOverlay}>
+            <View
               style={[
-                styles.createButton,
-                {
-                  backgroundColor: "#22c55e",
-                  opacity: saving ? 0.6 : 1,
-                },
+                styles.modalContent,
+                { backgroundColor: isDark ? "#1a1a1a" : "#fff" },
               ]}
             >
-              {saving ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.createButtonText}>Crear categoría</Text>
-              )}
-            </Pressable>
+              <View style={styles.modalHeader}>
+                <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+                  Nueva categoría
+                </ThemedText>
+                <Pressable onPress={() => setModalVisible(false)}>
+                  <IconSymbol
+                    name={"xmark.circle.fill" as any}
+                    size={28}
+                    color={theme.icon}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
+                  Nombre *
+                </ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: isDark ? "#333" : "#f5f5f5",
+                      color: theme.text,
+                      borderColor: isDark ? "#444" : "#ddd",
+                    },
+                  ]}
+                  value={newCategoryName}
+                  onChangeText={setNewCategoryName}
+                  placeholder="Ej: Viajes, Mascotas, Gym..."
+                  placeholderTextColor={theme.icon}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.inputLabel, { color: theme.icon }]}>
+                  Descripción (opcional)
+                </ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.textArea,
+                    {
+                      backgroundColor: isDark ? "#333" : "#f5f5f5",
+                      color: theme.text,
+                      borderColor: isDark ? "#444" : "#ddd",
+                    },
+                  ]}
+                  value={newCategoryDescription}
+                  onChangeText={setNewCategoryDescription}
+                  placeholder="Descripción de la categoría"
+                  placeholderTextColor={theme.icon}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              <Pressable
+                onPress={handleCreateCategory}
+                disabled={saving}
+                style={[
+                  styles.createButton,
+                  {
+                    backgroundColor: "#22c55e",
+                    opacity: saving ? 0.6 : 1,
+                  },
+                ]}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.createButtonText}>Crear categoría</Text>
+                )}
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal de detalle/edición */}
@@ -462,45 +469,52 @@ export default function CategoriesScreen() {
         transparent={true}
         onRequestClose={() => setDetailModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: isDark ? "#1a1a1a" : "#fff" },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
-                {isEditing ? "Editar categoría" : "Detalle de categoría"}
-              </ThemedText>
-              <Pressable onPress={() => setDetailModalVisible(false)}>
-                <IconSymbol
-                  name={"xmark.circle.fill" as any}
-                  size={28}
-                  color={theme.icon}
-                />
-              </Pressable>
-            </View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: isDark ? "#1a1a1a" : "#fff" },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+                  {isEditing ? "Editar categoría" : "Detalle de categoría"}
+                </ThemedText>
+                <Pressable onPress={() => setDetailModalVisible(false)}>
+                  <IconSymbol
+                    name={"xmark.circle.fill" as any}
+                    size={28}
+                    color={theme.icon}
+                  />
+                </Pressable>
+              </View>
 
-            {selectedCategory && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Emoji y badge */}
-                <View style={styles.detailHeader}>
-                  <View
-                    style={[
-                      styles.detailEmoji,
-                      {
-                        backgroundColor:
-                          getCategoryColor(
-                            categories.indexOf(selectedCategory),
-                          ) + "22",
-                      },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 32 }}>
-                      {getCategoryEmoji(selectedCategory.name)}
-                    </Text>
-                  </View>
+              {selectedCategory && (
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {/* Emoji y badge */}
+                  <View style={styles.detailHeader}>
+                    <View
+                      style={[
+                        styles.detailEmoji,
+                        {
+                          backgroundColor:
+                            getCategoryColor(
+                              categories.indexOf(selectedCategory),
+                            ) + "22",
+                        },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 32 }}>
+                        {getCategoryEmoji(selectedCategory.name)}
+                      </Text>
+                    </View>
                   <View
                     style={[
                       styles.detailBadge,
@@ -692,6 +706,7 @@ export default function CategoriesScreen() {
             )}
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ThemedView>
   );

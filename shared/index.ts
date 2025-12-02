@@ -94,6 +94,17 @@ const createApiInstance = (): AxiosInstance => {
 const api = createApiInstance();
 
 /**
+ * Set the authorization token for API requests
+ */
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common["Authorization"];
+  }
+};
+
+/**
  * Retry logic with exponential backoff
  */
 const withRetry = async <T>(

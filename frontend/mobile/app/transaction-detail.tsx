@@ -8,6 +8,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -20,6 +22,17 @@ import api, { getCategories, getSources, SOURCE_EMOJIS } from "shared";
 
 type Category = { id: number; name: string };
 type Source = { id: number; name: string };
+
+const formatAmount = (amount: number): string => {
+  if (amount >= 1_000_000_000) {
+    return (amount / 1_000_000_000).toFixed(1) + "B";
+  } else if (amount >= 1_000_000) {
+    return (amount / 1_000_000).toFixed(1) + "M";
+  } else if (amount >= 10_000) {
+    return (amount / 1_000).toFixed(1) + "K";
+  }
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 export default function TransactionDetailScreen() {
   const router = useRouter();
@@ -225,17 +238,23 @@ export default function TransactionDetailScreen() {
           </Pressable>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
-          {/* Amount Card */}
-          <View
-            style={[
-              styles.amountCard,
-              {
-                backgroundColor: isDark ? "#1a1a1a" : "#fff",
-                ...createShadow(0, 6, 12, theme.shadow, 8),
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Amount Card */}
+            <View
+              style={[
+                styles.amountCard,
+                {
+                  backgroundColor: isDark ? "#1a1a1a" : "#fff",
+                  ...createShadow(0, 6, 12, theme.shadow, 8),
               },
             ]}
           >
@@ -256,7 +275,7 @@ export default function TransactionDetailScreen() {
               {isIncome ? "Ingreso" : "Gasto"}
             </Text>
             <Text style={[styles.amountValue, { color: amountColor }]}>
-              {isIncome ? "+" : "-"}${amount.toFixed(2)}
+              {isIncome ? "+" : "-"}${formatAmount(amount)}
             </Text>
             <Pressable
               onPress={() => {
@@ -599,6 +618,7 @@ export default function TransactionDetailScreen() {
             </>
           )}
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
   );

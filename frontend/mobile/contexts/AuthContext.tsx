@@ -10,6 +10,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, AppStateStatus } from "react-native";
 import { decode as base64Decode } from "base-64";
+import { logout as apiLogout, setAuthToken } from "shared";
 
 interface User {
   id: number;
@@ -129,6 +130,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           AsyncStorage.setItem("user", JSON.stringify(userData)),
           AsyncStorage.setItem("token", authToken),
         ]);
+
+        // Set token for API requests
+        setAuthToken(authToken);
       } catch (error) {
         console.error("Error storing auth data:", error);
         throw error;
@@ -141,8 +145,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Clear user and token
    */
   const logout = useCallback(async () => {
+    try {
+      // Call logout API to invalidate session on server
+      await apiLogout();
+    } catch (error) {
+      console.error("Error calling logout API:", error);
+      // Continue with local logout even if API call fails
+    }
+
     setUser(null);
     setToken(null);
+
+    // Clear token from API requests
+    setAuthToken(null);
+
     try {
       await Promise.all([
         AsyncStorage.removeItem("user"),
@@ -193,6 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (isExpired) {
               await AsyncStorage.removeItem("user");
               await AsyncStorage.removeItem("token");
+              setAuthToken(null);
             } else if (
               parsedUser.id &&
               parsedUser.email &&
@@ -201,15 +218,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             ) {
               setUser(parsedUser);
               setToken(storedToken);
+              setAuthToken(storedToken);
             } else {
               // Invalid user data, clear storage
               await AsyncStorage.removeItem("user");
               await AsyncStorage.removeItem("token");
+              setAuthToken(null);
             }
           } else {
             // Invalid token, clear storage
             await AsyncStorage.removeItem("user");
             await AsyncStorage.removeItem("token");
+            setAuthToken(null);
           }
         }
       } catch (error) {

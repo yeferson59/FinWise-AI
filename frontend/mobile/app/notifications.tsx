@@ -5,11 +5,9 @@ import {
   FlatList,
   Pressable,
   Text,
-  Platform,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
@@ -36,7 +34,6 @@ const ICON_MAP: Record<string, string> = {
 };
 
 export default function NotificationsScreen() {
-  const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
   const isDark = (colorScheme ?? "light") === "dark";
@@ -229,35 +226,17 @@ export default function NotificationsScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
     >
       <View style={styles.header}>
-        <View>
-          <ThemedText
-            type="title"
-            style={[styles.headerTitle, { color: theme.text }]}
-          >
-            Notificaciones
-          </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: theme.icon }]}>
-            {items.filter(i => !i.is_read).length} sin leer
-          </ThemedText>
-        </View>
-
-        <Pressable
-          onPress={() => router.back()}
-          style={[
-            styles.closeBtn,
-            {
-              backgroundColor: isDark ? "#2a2a2a" : theme.cardBackground,
-              shadowColor: theme.shadow,
-            },
-          ]}
-          hitSlop={8}
-        >
-          <IconSymbol
-            name={Platform.OS === "ios" ? ("xmark" as any) : ("close" as any)}
-            size={18}
-            color={theme.icon}
-          />
-        </Pressable>
+       <View>
+         <ThemedText
+           type="title"
+           style={[styles.headerTitle, { color: theme.text }]}
+         >
+           Notificaciones
+         </ThemedText>
+         <ThemedText style={[styles.headerSubtitle, { color: theme.icon }]}>
+           {items.filter(i => !i.is_read).length} sin leer
+         </ThemedText>
+       </View>
       </View>
 
       {isLoading ? (
@@ -306,8 +285,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
   headerTitle: {

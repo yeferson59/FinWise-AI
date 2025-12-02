@@ -17,6 +17,17 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReport, getReportCsvUrl, type Report } from "shared";
 
+const formatAmount = (amount: number): string => {
+  if (amount >= 1_000_000_000) {
+    return (amount / 1_000_000_000).toFixed(1) + "B";
+  } else if (amount >= 1_000_000) {
+    return (amount / 1_000_000).toFixed(1) + "M";
+  } else if (amount >= 10_000) {
+    return (amount / 1_000).toFixed(1) + "K";
+  }
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function ReportDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,7 +60,7 @@ export default function ReportDetailScreen() {
 
     try {
       await Share.share({
-        message: `📊 ${report.title}\n\n${report.ai_summary || ""}\n\n💰 Ingresos: $${report.data?.total_income.toFixed(2)}\n💸 Gastos: $${report.data?.total_expenses.toFixed(2)}\n📈 Balance: $${report.data?.net_balance.toFixed(2)}`,
+        message: `📊 ${report.title}\n\n${report.ai_summary || ""}\n\n💰 Ingresos: $${formatAmount(report.data?.total_income || 0)}\n💸 Gastos: $${formatAmount(report.data?.total_expenses || 0)}\n📈 Balance: $${formatAmount(report.data?.net_balance || 0)}`,
         title: report.title,
       });
     } catch (error) {
