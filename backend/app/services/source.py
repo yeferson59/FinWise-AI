@@ -39,9 +39,7 @@ async def delete_source(session: SessionDep, id: int):
     return await _source_crud.delete(session, id)
 
 
-async def classify_source_from_text(
-    session: SessionDep, text: str, document_type: str = "general"
-):
+async def classify_source_from_text(session: SessionDep, text: str):
     """
     Classify extracted text into a source using AI agent.
 

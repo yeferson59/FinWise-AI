@@ -160,7 +160,7 @@ def extract_with_multiple_strategies(
                 temp_files.extend([path for path, _ in binarized_paths])
 
                 # Try top 2 binarization methods
-                for i, (bin_path, method) in enumerate(binarized_paths[:2]):
+                for _, (bin_path, method) in enumerate(binarized_paths[:2]):
                     try:
                         text4 = extract_text(bin_path, document_type=document_type)
                         # Estimate confidence based on text length and structure

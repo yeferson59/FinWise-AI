@@ -870,7 +870,7 @@ async def process_transaction_from_file(
             if source_id is None:
                 try:
                     source = await source_service.classify_source_from_text(
-                        session, text, document_type
+                        session, text
                     )
                     source_id = source.id
                 except Exception:

@@ -8,22 +8,19 @@ import json
 from datetime import datetime
 from typing import Any
 
-from sqlmodel import col, select, and_
+from sqlmodel import and_, col, select
 
-from app.config import get_settings
 from app.core.llm import get_model
 from app.db.session import SessionDep
+from app.models.category import Category
 from app.models.report import Report, ReportStatus
 from app.models.transaction import Transaction
-from app.models.category import Category
 from app.schemas.report import (
-    ReportRequest,
-    ReportData,
     CategoryBreakdown,
     MonthlyTrend,
+    ReportData,
+    ReportRequest,
 )
-
-settings = get_settings()
 
 
 async def generate_report(
