@@ -109,21 +109,27 @@ async def extract_text_from_file(
                     document_type=document_type,
                     file=file,
                 )
-                
+
                 # Extract metadata from the comprehensive result
                 metadata = result.get("metadata", {})
                 improvements = result.get("improvements_applied", {})
-                
+
                 return {
                     "text": result.get("raw_text", ""),
-                    "confidence": metadata.get("original_confidence", {}).get("average_confidence", 80),
+                    "confidence": metadata.get("original_confidence", {}).get(
+                        "average_confidence", 80
+                    ),
                     "document_type": result.get("document_type", document_type),
                     "file_type": file_type,
-                    "extraction_method": metadata.get("strategy_used", "intelligent_ocr"),
+                    "extraction_method": metadata.get(
+                        "strategy_used", "intelligent_ocr"
+                    ),
                     "quality_info": metadata.get("quality_info", {}),
                     "improvements_applied": improvements,
                     "detected_language": metadata.get("detected_language", "unknown"),
-                    "text_length": metadata.get("text_length", len(result.get("raw_text", ""))),
+                    "text_length": metadata.get(
+                        "text_length", len(result.get("raw_text", ""))
+                    ),
                 }
             except Exception as e:
                 try:
@@ -163,11 +169,7 @@ async def extract_text_from_file(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to extract text: {str(e)}"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Text extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to extract text: {str(e)}")
 
 
 async def classify_extracted_text(
